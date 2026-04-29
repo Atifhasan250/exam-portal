@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/exam-portal.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Exam Portal</title>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Tailwind Configuration (CDN for quick setup matching original) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        theme: {
+                            bg: 'var(--color-bg)',
+                            surface: 'var(--color-surface)',
+                            primary: 'var(--color-primary)',
+                            secondary: 'var(--color-secondary)',
+                            accent: 'var(--color-accent)',
+                            border: 'var(--color-border)',
+                            'error-bg': 'var(--color-error-bg)',
+                            'error-text': 'var(--color-error-text)',
+                            'error-border': 'var(--color-error-border)',
+                            'success-bg': 'var(--color-success-bg)',
+                            'success-text': 'var(--color-success-text)',
+                            'success-border': 'var(--color-success-border)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
