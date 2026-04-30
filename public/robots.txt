@@ -3,12 +3,5 @@ Allow: /
 Allow: /exams
 Allow: /leaderboard
 Allow: /profile
-
-# Block admin routes from indexing
 Disallow: /admin
-Disallow: /admin/
-
-# Block API routes
-Disallow: /api/
-
 Sitemap: https://it-resource-zone.vercel.app/sitemap.xml

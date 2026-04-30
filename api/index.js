@@ -1,14 +1,48 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { connectDB } from '../lib/db.js';
 import Exam from '../lib/models/Exam.js';
 import Submission from '../lib/models/Submission.js';
 import Question from '../lib/models/Question.js';
 
+// ── Environment Guard ────────────────────────────────────────────────────────
+const REQUIRED_ENV = ['MONGO_URI', 'ADMIN_USERNAME', 'ADMIN_PASSWORD', 'JWT_SECRET'];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`FATAL: Missing environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+
 const app = express();
-app.use(cors());
+
+// ── CORS ─────────────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://it-resource-zone.vercel.app']
+    : ['http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
+
 app.use(express.json({ limit: '10mb' }));
+
+// ── Rate Limiting ─────────────────────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { error: 'Too many login attempts. Try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: { error: 'Too many requests.' }
+});
+app.use('/api/', apiLimiter);
 
 // ── Auth Middleware ──────────────────────────────────────────────────────────
 const auth = (req, res, next) => {
@@ -23,7 +57,7 @@ const auth = (req, res, next) => {
 };
 
 // ── Admin Login ──────────────────────────────────────────────────────────────
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
   if (username !== process.env.ADMIN_USERNAME || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Invalid credentials' });
@@ -34,6 +68,7 @@ app.post('/api/admin/login', (req, res) => {
 
 // ── GET all exams (public, published only) ───────────────────────────────────
 app.get('/api/exams', async (req, res) => {
+  res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
   try {
     await connectDB();
     const exams = await Exam.find({ published: true }, { questions: 0 }).sort({ createdAt: -1 });
@@ -68,11 +103,11 @@ app.put('/api/exams/:id/publish', auth, async (req, res) => {
   }
 });
 
-// ── GET single exam with questions ───────────────────────────────────────────
+// ── GET single exam with questions (published only) ───────────────────────────
 app.get('/api/exams/:id', async (req, res) => {
   try {
     await connectDB();
-    const exam = await Exam.findById(req.params.id).lean();
+    const exam = await Exam.findOne({ _id: req.params.id, published: true }).lean();
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
     const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
     res.json({ ...exam, questions });
@@ -88,18 +123,6 @@ app.post('/api/exams', auth, async (req, res) => {
     const exam = new Exam(req.body);
     await exam.save();
     res.status(201).json(exam);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── PUT update exam (admin) ──────────────────────────────────────────────────
-app.put('/api/exams/:id', auth, async (req, res) => {
-  try {
-    await connectDB();
-    const exam = await Exam.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    res.json(exam);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -139,14 +162,14 @@ app.delete('/api/exams/:id/questions/:qIdx', auth, async (req, res) => {
     await connectDB();
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    
+
     const questions = await Question.find({ examId: exam._id }).sort({ order: 1 });
     const qIdx = parseInt(req.params.qIdx);
-    
+
     if (questions[qIdx]) {
       await Question.findByIdAndDelete(questions[qIdx]._id);
     }
-    
+
     const remaining = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
     res.json({ ...exam.toObject(), questions: remaining });
   } catch (err) {
@@ -156,23 +179,36 @@ app.delete('/api/exams/:id/questions/:qIdx', auth, async (req, res) => {
 
 // ── POST add questions to exam (admin) ───────────────────────────────────────
 app.post('/api/exams/:id/questions', auth, async (req, res) => {
+  const questions = req.body.questions;
+  if (!Array.isArray(questions) || questions.length === 0)
+    return res.status(400).json({ error: 'questions must be a non-empty array' });
+
+  for (const [i, q] of questions.entries()) {
+    if (!q.question || typeof q.question !== 'string')
+      return res.status(400).json({ error: `Question ${i + 1}: missing question text` });
+    if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 5)
+      return res.status(400).json({ error: `Question ${i + 1}: must have 2-5 options` });
+    if (typeof q.correct !== 'number' || q.correct < 0 || q.correct >= q.options.length)
+      return res.status(400).json({ error: `Question ${i + 1}: invalid correct index` });
+  }
+
   try {
     await connectDB();
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    
+
     const existingCount = await Question.countDocuments({ examId: exam._id });
-    
-    const newQuestions = req.body.questions.map((q, idx) => ({
+
+    const newQuestions = questions.map((q, idx) => ({
       ...q,
       examId: exam._id,
       order: existingCount + idx
     }));
-    
+
     await Question.insertMany(newQuestions);
-    
-    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
-    res.json({ ...exam.toObject(), questions });
+
+    const allQuestions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
+    res.json({ ...exam.toObject(), questions: allQuestions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -184,7 +220,7 @@ app.post('/api/exams/:id/submit', async (req, res) => {
     await connectDB();
     const exam = await Exam.findById(req.params.id).lean();
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    
+
     const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
     const { answers, studentName } = req.body;
 
@@ -201,17 +237,21 @@ app.post('/api/exams/:id/submit', async (req, res) => {
     const wasLive = exam.liveStart && exam.liveEnd &&
       now >= new Date(exam.liveStart) && now <= new Date(exam.liveEnd);
 
-    const submissionData = {
+    const sName = studentName || 'Anonymous';
+    const existingSubmission = await Submission.findOne({
       examId: exam._id,
-      studentName: studentName || 'Anonymous',
-      score, total: questions.length, wrong, unanswered, wasLive
-    };
+      studentName: sName
+    });
 
-    if (wasLive) {
-      submissionData.answers = answers;
+    if (!existingSubmission) {
+      const submissionData = {
+        examId: exam._id,
+        studentName: sName,
+        score, total: questions.length, wrong, unanswered, wasLive,
+        answers
+      };
+      await Submission.create(submissionData);
     }
-
-    await Submission.create(submissionData);
 
     res.json({ score, total: questions.length, wrong, unanswered, questions });
   } catch (err) {
@@ -232,7 +272,7 @@ app.put('/api/submissions/name', async (req, res) => {
   }
 });
 
-// ── GET leaderboard for an exam ──────────────────────────────────────────────
+// ── GET leaderboard for a single exam ────────────────────────────────────────
 app.get('/api/exams/:id/leaderboard', async (req, res) => {
   try {
     await connectDB();
@@ -244,42 +284,50 @@ app.get('/api/exams/:id/leaderboard', async (req, res) => {
   }
 });
 
-// ── GET all leaderboard data (all live exams) ────────────────────────────────
+// ── GET all leaderboard data (batched, no N+1) ───────────────────────────────
 app.get('/api/leaderboard', async (req, res) => {
+  res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
   try {
     await connectDB();
-    const exams = await Exam.find({ published: true, liveStart: { $exists: true } }, { questions: 0 }).sort({ liveEnd: -1 });
-    const data = [];
-    for (const exam of exams) {
-      const submissions = await Submission.find({ examId: exam._id, wasLive: true })
-        .sort({ score: -1, submittedAt: 1 });
-      
-      const uniqueSubs = [];
-      const seenNames = new Set();
-      for (const sub of submissions) {
-        if (!seenNames.has(sub.studentName)) {
-          seenNames.add(sub.studentName);
-          uniqueSubs.push(sub);
-        }
-      }
+    const exams = await Exam.find(
+      { published: true, liveStart: { $exists: true } },
+      { questions: 0 }
+    ).sort({ liveEnd: -1 }).lean();
 
-      if (uniqueSubs.length > 0) {
-        data.push({ exam, submissions: uniqueSubs });
+    const examIds = exams.map(e => e._id);
+
+    const submissions = await Submission.find({ examId: { $in: examIds }, wasLive: true })
+      .sort({ score: -1, submittedAt: 1 })
+      .lean();
+
+    // Group by examId, deduplicate by studentName (keeping best score first)
+    const grouped = {};
+    for (const sub of submissions) {
+      const key = sub.examId.toString();
+      if (!grouped[key]) grouped[key] = { seen: new Set(), list: [] };
+      if (!grouped[key].seen.has(sub.studentName)) {
+        grouped[key].seen.add(sub.studentName);
+        grouped[key].list.push(sub);
       }
     }
+
+    const data = exams
+      .map(exam => ({ exam, submissions: grouped[exam._id.toString()]?.list || [] }))
+      .filter(d => d.submissions.length > 0);
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── GET submissions for a student ────────────────────────────────────────────
+// ── GET submissions for a student (best score per exam) ───────────────────────
 app.get('/api/submissions/:name', async (req, res) => {
   try {
     await connectDB();
     const submissions = await Submission.find({ studentName: req.params.name })
       .populate('examId', 'title')
-      .sort({ submittedAt: -1 });
+      .sort({ score: -1, submittedAt: -1 });
 
     const uniqueSubmissions = [];
     const seenExams = new Set();
@@ -303,7 +351,7 @@ app.get('/api/submissions/details/:id', async (req, res) => {
     await connectDB();
     const submission = await Submission.findById(req.params.id).populate('examId', 'title duration');
     if (!submission) return res.status(404).json({ error: 'Submission not found' });
-    
+
     const questions = await Question.find({ examId: submission.examId._id }).sort({ order: 1 }).lean();
     res.json({ submission, questions });
   } catch (err) {

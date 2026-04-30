@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import BottomNav from '../components/BottomNav'
+import { safeHTML } from '../utils/sanitize'
 
 export default function SubmissionDetails() {
   const { id } = useParams()
@@ -10,9 +10,6 @@ export default function SubmissionDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('all') // all, right, wrong
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
-
-  // theme handled by Navbar
 
   useEffect(() => {
     fetch(`/api/submissions/details/${id}`)
@@ -48,9 +45,8 @@ export default function SubmissionDetails() {
   })
 
   return (
-    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20">
+    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
       <Navbar />
-      <BottomNav />
 
       <main className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
         <div className="flex items-center space-x-3 mb-6">
@@ -77,7 +73,7 @@ export default function SubmissionDetails() {
               {['all', 'right', 'wrong'].map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
-                    filter === f 
+                    filter === f
                     ? f === 'right' ? 'bg-theme-success-bg text-theme-success-text shadow-sm' : f === 'wrong' ? 'bg-theme-error-bg text-theme-error-text shadow-sm' : 'bg-theme-bg border border-theme-border shadow-sm'
                     : 'text-theme-secondary hover:text-theme-primary'
                   }`}>
@@ -94,23 +90,14 @@ export default function SubmissionDetails() {
                 </div>
               ) : (
                 filteredQuestions.map(({ q, idx, userAns, isCorrect }) => (
-                  <div key={idx} className={`p-4 rounded-xl border bg-theme-surface ${isCorrect ? 'border-theme-success-border' : 'border-theme-error-border'}`}>
-                    <div className="font-bold text-theme-primary mb-3 text-sm sm:text-base leading-snug [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: `${idx + 1}. ${q.question}` }} />
-                    <div className="text-sm space-y-1.5 pl-2 sm:pl-3 border-l-2 border-theme-border/50">
-                      <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-medium`}>
-                        Your answer: {userAns !== undefined ? <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.options[userAns] }} /> : <i>Not answered</i>}
+                  <div key={idx} className={`p-5 rounded-2xl border ${isCorrect ? 'bg-theme-success-bg border-theme-success-border' : 'bg-theme-error-bg border-theme-error-border'}`}>
+                    <div className="font-bold text-theme-primary mb-4 text-sm sm:text-base leading-relaxed [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(`${idx + 1}. ${q.question}`) }} />
+                    <div className="text-sm space-y-2.5">
+                      <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-semibold`}>
+                        Your answer: {userAns !== undefined ? <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(q.options[userAns]) }} /> : <i>Not answered</i>}
                       </p>
-                      {!isCorrect && (
-                        <div className="text-theme-success-text font-semibold">
-                          Correct: <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.options[q.correct] }} />
-                        </div>
-                      )}
-                      {q.explanation && (
-                        <div className="text-theme-secondary mt-3 pt-3 text-xs border-t border-theme-border/50 flex items-start space-x-2">
-                          <i className="fas fa-lightbulb text-yellow-500 mt-0.5 shrink-0"></i>
-                          <div className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.explanation }} />
-                        </div>
-                      )}
+                      {!isCorrect && <div className="text-theme-success-text font-semibold">Correct: <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(q.options[q.correct]) }} /></div>}
+                      {q.explanation && <div className="text-theme-secondary mt-4 text-xs sm:text-sm border-t border-theme-border pt-3 leading-relaxed [&_p]:m-0 [&_p]:inline"><i className="fas fa-lightbulb mr-1.5 text-yellow-500"></i><span dangerouslySetInnerHTML={{ __html: safeHTML(q.explanation) }} /></div>}
                     </div>
                   </div>
                 ))

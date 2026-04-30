@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import BottomNav from '../components/BottomNav'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
-  
+
   const [studentName, setStudentName] = useState(() => localStorage.getItem('student_name') || '')
   const [showEditModal, setShowEditModal] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -26,11 +24,10 @@ export default function ProfilePage() {
       } catch (e) { console.error(e) }
     }
     localStorage.setItem('student_name', newName)
+    window.dispatchEvent(new Event('student_name_changed'))
     setStudentName(newName)
     setShowEditModal(false)
   }
-
-  // theme is handled by Navbar now
 
   useEffect(() => {
     if (!studentName) {
@@ -48,9 +45,8 @@ export default function ProfilePage() {
   }, [studentName, navigate])
 
   return (
-    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20">
+    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
       <Navbar studentName={studentName} setStudentName={setStudentName} />
-      <BottomNav />
 
       <main className="max-w-4xl mx-auto px-4 mt-8">
         <div className="flex items-center space-x-3 mb-6">
@@ -60,7 +56,7 @@ export default function ProfilePage() {
           <h2 className="text-3xl font-extrabold text-theme-primary">Your Profile</h2>
         </div>
         <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm">
-          <div className="w-24 h-24 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent shrink-0">
+          <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-theme-accent shrink-0">
             <i className="fas fa-user text-4xl"></i>
           </div>
           <div className="flex-1 min-w-0">
@@ -80,10 +76,18 @@ export default function ProfilePage() {
         </div>
 
         <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Exam History</h3>
-        
+
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-10 h-10 border-4 border-theme-accent border-t-transparent rounded-full animate-spin"></div>
+          <div className="space-y-4">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="bg-theme-surface border border-theme-border rounded-2xl p-5 flex items-center justify-between gap-4">
+                <div className="space-y-2 flex-1">
+                  <div className="skeleton h-5 w-2/3 rounded-lg" />
+                  <div className="skeleton h-4 w-1/3 rounded-lg" />
+                </div>
+                <div className="skeleton h-10 w-20 rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : submissions.length === 0 ? (
           <div className="text-center py-16 bg-theme-surface border border-theme-border rounded-2xl shadow-sm">
@@ -94,12 +98,11 @@ export default function ProfilePage() {
           <div className="space-y-4">
             {submissions.map(sub => {
               const pct = (sub.score / sub.total) * 100
-              const isClickable = sub.wasLive;
               return (
-                <div key={sub._id} 
-                  onClick={() => isClickable && navigate(`/profile/submission/${sub._id}`)}
-                  className={`bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${isClickable ? 'cursor-pointer hover:border-theme-accent hover:shadow-md' : 'opacity-80'}`}
-                  title={isClickable ? 'View specific results' : 'Detailed records not available for practice exams'}>
+                <div key={sub._id}
+                  onClick={() => navigate(`/profile/submission/${sub._id}`)}
+                  className="group bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all cursor-pointer hover:border-theme-accent hover:shadow-md"
+                  title="View specific results">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <h4 className="font-bold text-theme-primary text-lg truncate">
@@ -117,9 +120,9 @@ export default function ProfilePage() {
                         dateStyle: 'medium', timeStyle: 'short'
                       })}
                     </p>
-                    {isClickable && <p className="text-[10px] text-theme-accent mt-2 font-bold sm:hidden"><i className="fas fa-hand-pointer mr-1"></i>Tap to view details</p>}
+                    <p className="text-[10px] text-theme-accent mt-2 font-bold sm:hidden"><i className="fas fa-hand-pointer mr-1"></i>Tap to view details</p>
                   </div>
-                  
+
                   <div className="flex items-center gap-6 w-full sm:w-auto pl-2 sm:pl-4 border-l-0 sm:border-l border-theme-border mt-3 sm:mt-0 pr-2">
                     <div className="text-center flex-1 sm:flex-none">
                       <p className="text-[10px] uppercase font-bold text-theme-secondary mb-0.5">Score</p>
@@ -131,11 +134,9 @@ export default function ProfilePage() {
                       <p className="text-[10px] uppercase font-bold text-theme-secondary mb-0.5">Percent</p>
                       <p className="font-bold text-theme-primary">{pct.toFixed(0)}%</p>
                     </div>
-                    {isClickable && (
-                      <div className="hidden sm:flex text-theme-secondary opacity-50 group-hover:opacity-100 group-hover:text-theme-accent transition-all ml-2">
-                        <i className="fas fa-chevron-right"></i>
-                      </div>
-                    )}
+                    <div className="hidden sm:flex text-theme-secondary opacity-50 group-hover:opacity-100 group-hover:text-theme-accent transition-all ml-2">
+                      <i className="fas fa-chevron-right"></i>
+                    </div>
                   </div>
                 </div>
               )
@@ -145,8 +146,8 @@ export default function ProfilePage() {
       </main>
 
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel">
             <h3 className="text-xl font-bold text-theme-primary mb-2">Edit Name</h3>
             <p className="text-theme-secondary text-sm mb-5">Update your display name.</p>
             <input

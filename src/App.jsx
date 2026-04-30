@@ -8,6 +8,7 @@ import ExamPage from './pages/ExamPage'
 import Leaderboard from './pages/Leaderboard'
 import ProfilePage from './pages/ProfilePage'
 import SubmissionDetails from './pages/SubmissionDetails'
+import BottomNav from './components/BottomNav'
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('admin_token')
@@ -18,6 +19,7 @@ const ProtectedRoute = ({ children }) => {
 export default function App() {
   return (
     <div className="flex flex-col min-h-screen bg-theme-bg text-theme-primary transition-theme">
+      <BottomNav />
       <div className="flex-grow">
         <Routes>
           <Route path="/"               element={<HomePage />} />
@@ -37,7 +39,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-      <footer className="text-center py-6 text-sm text-theme-secondary border-t border-theme-border/50 bg-theme-surface mt-auto">
+      <footer className="text-center pt-6 pb-24 sm:pb-6 px-4 text-sm text-theme-secondary border-t border-theme-border bg-theme-surface mt-auto">
         &copy; 2026 IT Resource Zone | Made by <a href="https://atifs-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="font-bold text-theme-primary hover:text-theme-accent transition-colors underline">Atif Hasan</a>
       </footer>
     </div>

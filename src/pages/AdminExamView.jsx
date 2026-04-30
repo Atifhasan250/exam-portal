@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
+import { safeHTML } from '../utils/sanitize'
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
@@ -9,30 +11,10 @@ const authHeaders = () => ({
 export default function AdminExamView() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useTheme()
   const [exam, setExam] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
-
-  useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark')
-    else document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  const toggleTheme = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = rect.left + rect.width / 2
-    const y = rect.top + rect.height / 2
-    const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
-    if (document.startViewTransition) {
-      document.documentElement.style.setProperty('--tx', `${x}px`)
-      document.documentElement.style.setProperty('--ty', `${y}px`)
-      document.documentElement.style.setProperty('--tr', `${endRadius}px`)
-      document.startViewTransition(() => setTheme(t => t === 'dark' ? 'light' : 'dark'))
-    } else {
-      setTheme(t => t === 'dark' ? 'light' : 'dark')
-    }
-  }
+  const [questionToDelete, setQuestionToDelete] = useState(null) // index of question to delete
 
   const fetchExam = async () => {
     try {
@@ -43,11 +25,11 @@ export default function AdminExamView() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchExam() }, [id])
+  useEffect(() => { fetchExam() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const deleteQuestion = async (qIdx) => {
-    if (!confirm(`Delete question ${qIdx + 1}?`)) return
-    await fetch(`/api/exams/${id}/questions/${qIdx}`, { method: 'DELETE', headers: authHeaders() })
+  const confirmDeleteQuestion = async () => {
+    await fetch(`/api/exams/${id}/questions/${questionToDelete}`, { method: 'DELETE', headers: authHeaders() })
+    setQuestionToDelete(null)
     fetchExam()
   }
 
@@ -81,12 +63,12 @@ export default function AdminExamView() {
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-theme-primary text-sm mb-2">
                   <span className="text-theme-secondary mr-2">{idx + 1}.</span>
-                  <span dangerouslySetInnerHTML={{ __html: q.question }} />
+                  <span dangerouslySetInnerHTML={{ __html: safeHTML(q.question) }} />
                 </p>
                 <div className="grid gap-1.5 ml-5">
                   {q.options.map((opt, oi) => (
                     <p key={oi} className={`text-sm ${oi === q.correct ? 'text-theme-success-text font-bold' : 'text-theme-secondary'}`}>
-                      {oi + 1}. <span dangerouslySetInnerHTML={{ __html: opt }} /> {oi === q.correct ? '(correct)' : ''}
+                      {oi + 1}. <span dangerouslySetInnerHTML={{ __html: safeHTML(opt) }} /> {oi === q.correct ? '(correct)' : ''}
                     </p>
                   ))}
                 </div>
@@ -96,7 +78,7 @@ export default function AdminExamView() {
                   </p>
                 )}
               </div>
-              <button onClick={() => deleteQuestion(idx)}
+              <button onClick={() => setQuestionToDelete(idx)}
                 className="flex-shrink-0 w-8 h-8 rounded-lg bg-theme-error-bg text-theme-error-text border border-theme-error-border flex items-center justify-center hover:opacity-80 transition-all text-xs">
                 <i className="fas fa-trash"></i>
               </button>
@@ -111,6 +93,33 @@ export default function AdminExamView() {
           </div>
         )}
       </main>
+
+      {/* Custom Delete Question Modal (Fix 6.4 / Section 3.7) */}
+      {questionToDelete !== null && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5 modal-panel">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="w-16 h-16 rounded-full bg-theme-error-bg flex items-center justify-center text-theme-error-text border-4 border-theme-error-border/30">
+                <i className="fas fa-trash-alt text-2xl"></i>
+              </div>
+              <h3 className="text-xl font-bold text-theme-primary">Delete Question?</h3>
+              <p className="text-theme-secondary text-sm">
+                Are you sure you want to permanently delete question <strong>{questionToDelete + 1}</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex space-x-3 pt-2">
+              <button onClick={() => setQuestionToDelete(null)}
+                className="flex-1 bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary py-2.5 rounded-xl font-bold transition-all">
+                Cancel
+              </button>
+              <button onClick={confirmDeleteQuestion}
+                className="flex-1 bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 py-2.5 rounded-xl font-bold transition-all">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

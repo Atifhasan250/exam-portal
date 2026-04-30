@@ -1,40 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import BottomNav from '../components/BottomNav'
+import { useTheme } from '../context/ThemeContext'
 
 export default function ExamsPage() {
   const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const { theme, toggleTheme } = useTheme()
   const [studentName, setStudentName] = useState(() => localStorage.getItem('student_name') || '')
   const [showNameModal, setShowNameModal] = useState(false)
   const [pendingExamId, setPendingExamId] = useState(null)
   const [nameInput, setNameInput] = useState('')
   const [showProfileMenu, setShowProfileMenu] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [now, setNow] = useState(new Date())
   const navigate = useNavigate()
-
-  useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark')
-    else document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  const toggleTheme = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = rect.left + rect.width / 2
-    const y = rect.top + rect.height / 2
-    const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
-    if (document.startViewTransition) {
-      document.documentElement.style.setProperty('--tx', `${x}px`)
-      document.documentElement.style.setProperty('--ty', `${y}px`)
-      document.documentElement.style.setProperty('--tr', `${endRadius}px`)
-      document.startViewTransition(() => setTheme(t => t === 'dark' ? 'light' : 'dark'))
-    } else {
-      setTheme(t => t === 'dark' ? 'light' : 'dark')
-    }
-  }
 
   // tick every 30s to update live/past status
   useEffect(() => {
@@ -42,10 +20,21 @@ export default function ExamsPage() {
     return () => clearInterval(interval)
   }, [])
 
+  // Stale-while-revalidate cache (Section 1.1)
   useEffect(() => {
+    const cached = sessionStorage.getItem('exams_cache')
+    if (cached) {
+      setExams(JSON.parse(cached))
+      setLoading(false)
+    }
     fetch('/api/exams')
       .then(r => r.json())
-      .then(data => { setExams(Array.isArray(data) ? data : []); setLoading(false) })
+      .then(data => {
+        const arr = Array.isArray(data) ? data : []
+        setExams(arr)
+        sessionStorage.setItem('exams_cache', JSON.stringify(arr))
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [])
 
@@ -94,6 +83,7 @@ export default function ExamsPage() {
     }
 
     localStorage.setItem('student_name', newName)
+    window.dispatchEvent(new Event('student_name_changed'))
     setStudentName(newName)
     setShowNameModal(false)
     if (pendingExamId) navigate(`/exam/${pendingExamId}`)
@@ -102,13 +92,12 @@ export default function ExamsPage() {
   const liveAlreadyTaken = (examId) => !!localStorage.getItem(`live_taken_${examId}`)
 
   return (
-    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
-      <BottomNav />
+    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
       {/* Header */}
       <header className="bg-theme-surface border-b border-theme-border sticky top-0 z-50 shadow-sm transition-theme">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-3 cursor-pointer shrink-0">
-            <img src="/favicon.png" alt="Logo" className="h-9 w-9 object-cover rounded-xl shadow-sm" />
+            <img src="/favicon.png" alt="Logo" className="h-9 w-9 object-contain" />
             <h1 className="text-xl font-bold tracking-tight text-theme-primary">IT Resource Zone</h1>
           </Link>
           <div className="flex items-center space-x-2 sm:space-x-3">
@@ -124,32 +113,12 @@ export default function ExamsPage() {
                 <span>Leaderboard</span>
               </Link>
               {studentName && (
-                <div className="relative">
-                  <button onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="flex shrink-0 items-center space-x-1.5 text-sm font-medium text-theme-primary bg-theme-bg border border-theme-border hover:border-theme-primary/40 px-3 py-2 rounded-xl transition-all relative z-50"
-                    title="Profile Options">
-                    <i className="fas fa-user-circle text-theme-accent"></i>
-                    <span className="max-w-[120px] truncate">{studentName}</span>
-                    <i className={`fas fa-chevron-${showProfileMenu ? 'up' : 'down'} text-xs text-theme-secondary ml-1`}></i>
-                  </button>
-                  {showProfileMenu && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)}></div>
-                      <div className="absolute right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-xl shadow-lg z-50 overflow-hidden">
-                        <Link to="/profile" onClick={() => setShowProfileMenu(false)}
-                          className="w-full text-left px-4 py-3 text-sm font-medium text-theme-primary hover:bg-theme-bg flex items-center space-x-3 transition-colors border-b border-theme-border/50">
-                          <i className="fas fa-id-card text-theme-accent"></i>
-                          <span>View Profile</span>
-                        </Link>
-                        <button onClick={() => { setShowProfileMenu(false); setPendingExamId(null); setNameInput(studentName); setShowNameModal(true); }}
-                          className="w-full text-left px-4 py-3 text-sm font-medium text-theme-primary hover:bg-theme-bg flex items-center space-x-3 transition-colors">
-                          <i className="fas fa-edit text-theme-secondary"></i>
-                          <span>Edit Name</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <Link to="/profile"
+                  className="flex shrink-0 items-center space-x-1.5 text-sm font-medium text-theme-primary bg-theme-bg border border-theme-border hover:border-theme-primary/40 px-3 py-2 rounded-xl transition-all"
+                  title="View Profile">
+                  <i className="fas fa-user-circle text-theme-accent"></i>
+                  <span className="max-w-[120px] truncate">{studentName}</span>
+                </Link>
               )}
             </div>
           </div>
@@ -165,17 +134,31 @@ export default function ExamsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-10 h-10 border-4 border-theme-accent border-t-transparent rounded-full animate-spin"></div>
+          <div className="space-y-14">
+            {[0, 1].map(section => (
+              <div key={section} className="space-y-5">
+                <div className="skeleton h-8 w-48 rounded-xl" />
+                <div className="grid sm:grid-cols-2 gap-5">
+                  {[0, 1].map(i => (
+                    <div key={i} className="bg-theme-surface border border-theme-border rounded-2xl p-6 space-y-4">
+                      <div className="skeleton h-6 w-3/4 rounded-lg" />
+                      <div className="skeleton h-4 w-1/2 rounded-lg" />
+                      <div className="skeleton h-4 w-2/3 rounded-lg" />
+                      <div className="skeleton h-11 w-full rounded-xl mt-4" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <>
             {/* Upcoming Exams */}
             {upcomingExams.length > 0 && (
               <Section title="Upcoming Exams" icon="fa-calendar-alt" color="text-yellow-500">
-                {upcomingExams.map(exam => (
+                {upcomingExams.map((exam, i) => (
                   <ExamCard key={exam._id} exam={exam} badge="upcoming" badgeColor="bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                    fmtDate={fmtDate} disabled disabledLabel="Starts Soon" />
+                    fmtDate={fmtDate} disabled disabledLabel="Starts Soon" index={i} />
                 ))}
               </Section>
             )}
@@ -184,14 +167,15 @@ export default function ExamsPage() {
             <Section title="Live Exams" icon="fa-circle text-red-500 animate-pulse" color="text-red-500">
               {liveExams.length === 0 ? (
                 <p className="text-theme-secondary text-sm">No exams are live right now.</p>
-              ) : liveExams.map(exam => {
+              ) : liveExams.map((exam, i) => {
                 const taken = liveAlreadyTaken(exam._id)
                 return (
                   <ExamCard key={exam._id} exam={exam} badge="LIVE" badgeColor="bg-red-500/10 text-red-500 border-red-500/20"
                     fmtDate={fmtDate}
                     disabled={taken}
                     disabledLabel="Already Submitted"
-                    onStart={() => handleTakeExam(exam._id)} />
+                    onStart={() => handleTakeExam(exam._id)}
+                    index={i} />
                 )
               })}
             </Section>
@@ -200,9 +184,9 @@ export default function ExamsPage() {
             <Section title="Past Exams" icon="fa-history" color="text-theme-secondary">
               {pastExams.length === 0 ? (
                 <p className="text-theme-secondary text-sm">No past exams yet.</p>
-              ) : pastExams.map(exam => (
-                <ExamCard key={exam._id} exam={exam} badge="Practice" badgeColor="bg-theme-accent/10 text-theme-accent border-theme-accent/20"
-                  fmtDate={fmtDate} onStart={() => handleTakeExam(exam._id)} />
+              ) : pastExams.map((exam, i) => (
+                <ExamCard key={exam._id} exam={exam} badge="Practice" badgeColor="bg-indigo-500/10 text-theme-accent border border-indigo-500/20"
+                  fmtDate={fmtDate} onStart={() => handleTakeExam(exam._id)} index={i} />
               ))}
             </Section>
           </>
@@ -211,8 +195,8 @@ export default function ExamsPage() {
 
       {/* Name Modal */}
       {showNameModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel">
             <h3 className="text-xl font-bold text-theme-primary mb-2">Welcome!</h3>
             <p className="text-theme-secondary text-sm mb-5">Enter your name to get started. It'll be saved for future exams.</p>
             <input
@@ -247,9 +231,12 @@ function Section({ title, icon, color, children }) {
   )
 }
 
-function ExamCard({ exam, badge, badgeColor, fmtDate, onStart, disabled, disabledLabel }) {
+function ExamCard({ exam, badge, badgeColor, fmtDate, onStart, disabled, disabledLabel, index = 0 }) {
   return (
-    <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-theme-accent/40 transition-all">
+    <div
+      className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/40 transition-all"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
       <div>
         <div className="flex items-start justify-between mb-3">
           <h3 className="font-bold text-theme-primary text-lg leading-snug">{exam.title}</h3>

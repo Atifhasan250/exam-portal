@@ -1,22 +1,30 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import BottomNav from '../components/BottomNav'
 
 export default function Leaderboard() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const navigate = useNavigate()
-  const toggleRef = useRef(null)
 
   const { id } = useParams()
   const selectedExamId = id
 
+  // Stale-while-revalidate cache (Section 1.1)
   useEffect(() => {
+    const cached = sessionStorage.getItem('leaderboard_cache')
+    if (cached) {
+      setData(JSON.parse(cached))
+      setLoading(false)
+    }
     fetch('/api/leaderboard')
       .then(r => r.json())
-      .then(d => { setData(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(d => {
+        const arr = Array.isArray(d) ? d : []
+        setData(arr)
+        sessionStorage.setItem('leaderboard_cache', JSON.stringify(arr))
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [])
 
@@ -39,9 +47,8 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20">
+    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
       <Navbar />
-      <BottomNav />
 
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-12">
         {!selectedExamId && (
@@ -56,8 +63,17 @@ export default function Leaderboard() {
         )}
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-10 h-10 border-4 border-theme-accent border-t-transparent rounded-full animate-spin"></div>
+          <div className="space-y-5">
+            <div className="skeleton h-10 w-64 rounded-xl" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="bg-theme-surface border border-theme-border rounded-2xl p-6 space-y-3">
+                  <div className="skeleton h-6 w-3/4 rounded-lg" />
+                  <div className="skeleton h-4 w-1/2 rounded-lg" />
+                  <div className="skeleton h-4 w-2/3 rounded-lg" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : data.length === 0 ? (
           <div className="text-center py-20 text-theme-secondary">
@@ -66,9 +82,13 @@ export default function Leaderboard() {
           </div>
         ) : !selectedExamId ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {data.map(({ exam, submissions }) => (
-              <div key={exam._id} onClick={() => navigate(`/leaderboard/${exam._id}`)}
-                className="bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-theme-accent/40 hover:-translate-y-1 transition-all cursor-pointer">
+            {data.map(({ exam, submissions }, i) => (
+              <div
+                key={exam._id}
+                onClick={() => navigate(`/leaderboard/${exam._id}`)}
+                className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/40 hover:-translate-y-1 transition-all cursor-pointer"
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
                 <div>
                   <h3 className="font-bold text-theme-primary text-lg leading-snug mb-3">{exam.title}</h3>
                   <div className="space-y-1 text-sm text-theme-secondary">
@@ -77,7 +97,7 @@ export default function Leaderboard() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-theme-border pt-4 mt-2">
-                  <span className="text-sm font-bold text-theme-accent bg-theme-accent/10 px-3 py-1 rounded-lg">
+                  <span className="text-sm font-bold text-theme-accent bg-indigo-500/10 px-3 py-1 rounded-lg">
                     <i className="fas fa-users mr-2"></i>{submissions.length} Taken
                   </span>
                   <i className="fas fa-arrow-right text-theme-secondary"></i>
@@ -87,15 +107,17 @@ export default function Leaderboard() {
           </div>
         ) : selectedData && (
           <section className="space-y-6">
-            <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm relative">
+            <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex items-start gap-4">
               <button onClick={() => navigate('/leaderboard')}
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 w-8 h-8 rounded-full bg-theme-bg flex items-center justify-center border border-theme-border text-theme-secondary hover:text-theme-primary transition-all">
+                className="w-10 h-10 shrink-0 rounded-full bg-theme-bg flex items-center justify-center border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all mt-0.5">
                 <i className="fas fa-arrow-left"></i>
               </button>
-              <h2 className="text-2xl font-extrabold text-theme-primary pr-12">{selectedData.exam.title}</h2>
-              <p className="text-sm text-theme-secondary mt-1">
-                <i className="fas fa-calendar-alt mr-1"></i>{fmtDate(selectedData.exam.liveStart)} - {fmtDate(selectedData.exam.liveEnd)}
-              </p>
+              <div>
+                <h2 className="text-2xl font-extrabold text-theme-primary">{selectedData.exam.title}</h2>
+                <p className="text-sm text-theme-secondary mt-1">
+                  <i className="fas fa-calendar-alt mr-1.5"></i>{fmtDate(selectedData.exam.liveStart)} - {fmtDate(selectedData.exam.liveEnd)}
+                </p>
+              </div>
             </div>
 
             {/* Table */}
@@ -114,9 +136,16 @@ export default function Leaderboard() {
               {selectedData.submissions.map((sub, idx) => {
                 const rank = idx + 1
                 return (
-                  <div key={sub._id} className={`grid grid-cols-12 gap-2 px-3 sm:px-5 py-3.5 items-center text-sm border-b border-theme-border/50 last:border-b-0 transition-colors hover:bg-theme-bg/50 ${rank <= 3 ? 'bg-theme-bg/30' : ''}`}>
+                  <div
+                    key={sub._id}
+                    className={`card-enter grid grid-cols-12 gap-2 px-3 sm:px-5 py-3.5 items-center text-sm border-b border-theme-border last:border-b-0 transition-colors hover:bg-theme-bg/50 ${rank <= 3 ? 'bg-theme-bg/30' : ''}`}
+                    style={{ animationDelay: `${idx * 60}ms` }}
+                  >
                     <div className="col-span-2 sm:col-span-1 flex justify-center">
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border ${getRankStyle(rank)}`}>
+                      <span
+                        className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border ${getRankStyle(rank)} ${rank <= 3 ? 'rank-pop' : ''}`}
+                        style={rank <= 3 ? { animationDelay: `${(rank - 1) * 120}ms` } : {}}
+                      >
                         {rank <= 3 ? <i className={getRankIcon(rank)}></i> : rank}
                       </span>
                     </div>

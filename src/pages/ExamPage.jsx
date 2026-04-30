@@ -1,9 +1,31 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
+import { safeHTML } from '../utils/sanitize'
+
+// 4.4 — Score counter roll-up hook
+function useCountUp(target, duration = 900) {
+  const [current, setCurrent] = useState(0)
+  useEffect(() => {
+    if (target === 0) { setCurrent(0); return }
+    let raf
+    const start = performance.now()
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setCurrent(Math.round(eased * target))
+      if (progress < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+  return current
+}
 
 export default function ExamPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useTheme()
   const [exam, setExam] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -14,31 +36,14 @@ export default function ExamPage() {
   const [timeLeft, setTimeLeft] = useState(0)
   const [result, setResult] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState({ show: false, text: '' })
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const [lastSelected, setLastSelected] = useState({})
   const timerRef = useRef(null)
   const studentName = localStorage.getItem('student_name') || 'Student'
 
-  useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark')
-    else document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  const toggleTheme = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = rect.left + rect.width / 2
-    const y = rect.top + rect.height / 2
-    const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
-    if (document.startViewTransition) {
-      document.documentElement.style.setProperty('--tx', `${x}px`)
-      document.documentElement.style.setProperty('--ty', `${y}px`)
-      document.documentElement.style.setProperty('--tr', `${endRadius}px`)
-      document.startViewTransition(() => setTheme(t => t === 'dark' ? 'light' : 'dark'))
-    } else {
-      setTheme(t => t === 'dark' ? 'light' : 'dark')
-    }
-  }
+  // Scroll to top on screen change (Fix 6.3)
+  useEffect(() => { window.scrollTo(0, 0) }, [screen])
 
   useEffect(() => {
     fetch(`/api/exams/${id}`)
@@ -48,12 +53,12 @@ export default function ExamPage() {
           setError(data.error)
           return
         }
-        
+
         // Block if they already took it LIVE, and the exam is STILL LIVE
         const now = new Date()
         const isStillLive = data.liveStart && data.liveEnd &&
             now >= new Date(data.liveStart) && now <= new Date(data.liveEnd)
-        
+
         if (isStillLive && localStorage.getItem(`live_taken_${id}`)) {
           setError('You have already completed this live exam. You can practice it again once the live period ends.')
           return
@@ -65,6 +70,42 @@ export default function ExamPage() {
       .catch(() => setError('Failed to load exam'))
       .finally(() => setLoading(false))
   }, [id])
+
+  // Timer cleanup on unmount (Section 3.3)
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [])
+
+  // Anti-cheat: visibilitychange + key/context blocking (Section 3.4)
+  useEffect(() => {
+    if (screen !== 'exam') return
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        showToast('Tab switch detected. Exam will be submitted.')
+        setTimeout(() => submitExam(), 3500)
+      }
+    }
+
+    const blockContext = (e) => e.preventDefault()
+    const blockKeys = (e) => {
+      if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'p', 'a', 's', 'u'].includes(e.key.toLowerCase())) {
+        e.preventDefault()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('contextmenu', blockContext)
+    document.addEventListener('keydown', blockKeys)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('contextmenu', blockContext)
+      document.removeEventListener('keydown', blockKeys)
+    }
+  }, [screen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showToast = (text) => {
     setToast({ show: true, text })
@@ -81,7 +122,10 @@ export default function ExamPage() {
     }, 1000)
   }
 
+  // Double submission guard (Section 3.8)
   const submitExam = async () => {
+    if (submitting) return
+    setSubmitting(true)
     if (timerRef.current) clearInterval(timerRef.current)
     setModalOpen(false)
     setScreen('result')
@@ -105,6 +149,7 @@ export default function ExamPage() {
   const saveAnswer = (qIdx, oIdx) => {
     if (answers[qIdx] !== undefined) return
     setAnswers(prev => ({ ...prev, [qIdx]: oIdx }))
+    setLastSelected(prev => ({ ...prev, [qIdx]: oIdx }))
   }
 
   if (loading) return <Loader />
@@ -119,9 +164,9 @@ export default function ExamPage() {
       {/* Header */}
       <header className="bg-theme-surface border-b border-theme-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-3">
-            <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-cover rounded-xl" />
-            <span className="font-bold text-theme-primary hidden sm:block">{exam?.title}</span>
+          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-contain shrink-0" />
+            <span className="font-bold text-theme-primary truncate text-sm sm:text-base">{exam?.title}</span>
           </Link>
           <div className="flex items-center space-x-3">
             <button onClick={toggleTheme}
@@ -129,7 +174,11 @@ export default function ExamPage() {
               <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
             </button>
             {screen === 'exam' && (
-              <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'animate-pulse bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent border-indigo-200 dark:border-indigo-500/20'}`}>
+              <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${
+                pulse
+                  ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border'
+                  : 'bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent border-indigo-200 dark:border-indigo-500/20'
+              }`}>
                 {mins}:{secs}
               </div>
             )}
@@ -138,6 +187,13 @@ export default function ExamPage() {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 md:p-8">
+        {screen !== 'exam' && (
+          <div className="mb-6">
+            <Link to="/" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shadow-sm">
+               <i className="fas fa-arrow-left"></i>
+            </Link>
+          </div>
+        )}
         {/* Setup */}
         {screen === 'setup' && (
           <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 shadow-sm space-y-6">
@@ -175,7 +231,7 @@ export default function ExamPage() {
                     <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-theme-bg flex items-center justify-center font-bold text-theme-secondary text-xs sm:text-sm">{qi + 1}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm sm:text-base font-bold text-theme-primary leading-relaxed [&_p]:m-0 [&_p]:inline"
-                        dangerouslySetInnerHTML={{ __html: q.question }} />
+                        dangerouslySetInnerHTML={{ __html: safeHTML(q.question) }} />
                     </div>
                   </div>
                   <div className="grid gap-2 sm:gap-3">
@@ -189,12 +245,21 @@ export default function ExamPage() {
                           : 'border-theme-border bg-theme-surface hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
                       const dotCls = sel ? 'border-theme-accent bg-theme-accent' : 'border-slate-300 dark:border-slate-500 group-hover:border-theme-accent'
                       return (
-                        <label key={oi} className={cls} onClick={() => saveAnswer(qi, oi)}>
+                        <label
+                          key={oi}
+                          className={`${cls} ${lastSelected[qi] === oi ? 'option-selected-anim' : ''}`}
+                          onClick={() => saveAnswer(qi, oi)}
+                          onAnimationEnd={() => setLastSelected(prev => {
+                            const n = { ...prev }
+                            delete n[qi]
+                            return n
+                          })}
+                        >
                           <div className={`flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all ${dotCls}`}>
                             {sel && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full scale-in-center"></div>}
                           </div>
                           <span className={`ml-2 sm:ml-3 text-sm sm:text-base leading-snug [&_p]:m-0 [&_p]:inline ${sel ? 'text-theme-primary font-bold' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
-                            dangerouslySetInnerHTML={{ __html: opt }} />
+                            dangerouslySetInnerHTML={{ __html: safeHTML(opt) }} />
                         </label>
                       )
                     })}
@@ -213,7 +278,7 @@ export default function ExamPage() {
 
         {/* Result */}
         {screen === 'result' && result && (
-          <ResultScreen result={result} studentName={studentName} onBack={() => navigate('/')} />
+          <ResultScreen result={result} studentName={studentName} examId={id} onBack={() => navigate('/')} />
         )}
         {screen === 'result' && !result && (
           <div className="text-center py-20 text-theme-secondary">Calculating results…</div>
@@ -222,15 +287,17 @@ export default function ExamPage() {
 
       {/* Confirm Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel">
             <h3 className="text-xl font-bold text-theme-primary mb-3">Submit Exam?</h3>
             <p className="text-theme-secondary mb-6 text-sm">You won't be able to change your answers afterward.</p>
             <div className="flex space-x-3">
               <button onClick={() => setModalOpen(false)}
                 className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl hover:bg-theme-bg font-semibold transition-all">Cancel</button>
-              <button onClick={submitExam}
-                className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all">Confirm</button>
+              <button onClick={submitExam} disabled={submitting}
+                className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all disabled:opacity-60">
+                {submitting ? 'Submitting...' : 'Confirm'}
+              </button>
             </div>
           </div>
         </div>
@@ -245,8 +312,9 @@ export default function ExamPage() {
   )
 }
 
-function ResultScreen({ result, studentName, onBack }) {
+function ResultScreen({ result, studentName, examId, onBack }) {
   const pct = (result.score / result.total) * 100
+  const displayScore = useCountUp(result.score, 900)
   return (
     <div className="space-y-6 text-center">
       <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 md:p-12 shadow-sm">
@@ -257,9 +325,18 @@ function ResultScreen({ result, studentName, onBack }) {
         </div>
         <h2 className="text-3xl font-bold text-theme-primary mb-1">Exam Completed!</h2>
         <p className="text-theme-secondary mb-8">Results for: <span className="font-semibold text-theme-primary">{studentName}</span></p>
-        <div className="inline-block bg-theme-bg border border-theme-border rounded-2xl px-10 py-6 mb-8">
+        <div className="inline-block bg-theme-bg border border-theme-border rounded-2xl px-10 py-6 mb-6">
           <p className="text-xs uppercase tracking-widest text-theme-secondary font-bold mb-1">Your Score</p>
-          <p className="text-6xl font-black text-theme-accent">{result.score}<span className="text-3xl text-theme-secondary">/{result.total}</span></p>
+          <p className="text-6xl font-black text-theme-accent">
+            {displayScore}<span className="text-3xl text-theme-secondary">/{result.total}</span>
+          </p>
+        </div>
+
+        <div className="mb-8">
+          <Link to={`/leaderboard/${examId}`} className="inline-flex items-center space-x-2 text-theme-accent hover:text-theme-primary transition-colors font-bold bg-indigo-500/10 hover:bg-indigo-500/20 px-6 py-3 rounded-xl">
+            <span>See leaderboard</span>
+            <i className="fas fa-arrow-right"></i>
+          </Link>
         </div>
 
         {/* Answer Review */}
@@ -269,14 +346,14 @@ function ResultScreen({ result, studentName, onBack }) {
             const userAns = result.answers ? result.answers[idx] : undefined
             const isCorrect = userAns === q.correct
             return (
-              <div key={idx} className={`p-4 rounded-xl border ${isCorrect ? 'bg-theme-success-bg border-theme-success-border' : 'bg-theme-error-bg border-theme-error-border'}`}>
-                <div className="font-bold text-theme-primary mb-2 text-sm [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: `${idx + 1}. ${q.question}` }} />
-                <div className="text-sm space-y-1">
-                  <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-medium`}>
-                    Your answer: {userAns !== undefined ? <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.options[userAns] }} /> : <i>Not answered</i>}
+              <div key={idx} className={`p-5 rounded-2xl border ${isCorrect ? 'bg-theme-success-bg border-theme-success-border' : 'bg-theme-error-bg border-theme-error-border'}`}>
+                <div className="font-bold text-theme-primary mb-4 text-sm sm:text-base leading-relaxed [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(`${idx + 1}. ${q.question}`) }} />
+                <div className="text-sm space-y-2.5">
+                  <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-semibold`}>
+                    Your answer: {userAns !== undefined ? <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(q.options[userAns]) }} /> : <i>Not answered</i>}
                   </p>
-                  {!isCorrect && <div className="text-theme-success-text font-semibold">Correct: <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.options[q.correct] }} /></div>}
-                  {q.explanation && <div className="text-theme-secondary mt-1 text-xs border-t border-theme-border/50 pt-1 [&_p]:m-0 [&_p]:inline"><i className="fas fa-lightbulb mr-1 text-yellow-500"></i><span dangerouslySetInnerHTML={{ __html: q.explanation }} /></div>}
+                  {!isCorrect && <div className="text-theme-success-text font-semibold">Correct: <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(q.options[q.correct]) }} /></div>}
+                  {q.explanation && <div className="text-theme-secondary mt-4 text-xs sm:text-sm border-t border-theme-border pt-3 leading-relaxed [&_p]:m-0 [&_p]:inline"><i className="fas fa-lightbulb mr-1.5 text-yellow-500"></i><span dangerouslySetInnerHTML={{ __html: safeHTML(q.explanation) }} /></div>}
                 </div>
               </div>
             )

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { parseTXT, parseJSON, parseCSV } from '../utils/parseQuestions'
+import { useTheme } from '../context/ThemeContext'
 
 const API = '/api/exams'
 const authHeaders = () => ({
@@ -11,33 +12,12 @@ const authHeaders = () => ({
 export default function AdminDashboard() {
   const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const { theme, toggleTheme } = useTheme()
   const [showCreate, setShowCreate] = useState(false)
   const [editExam, setEditExam] = useState(null)
   const [addQuestionsTo, setAddQuestionsTo] = useState(null)
   const [examToDelete, setExamToDelete] = useState(null)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark')
-    else document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  const toggleTheme = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = rect.left + rect.width / 2
-    const y = rect.top + rect.height / 2
-    const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
-    if (document.startViewTransition) {
-      document.documentElement.style.setProperty('--tx', `${x}px`)
-      document.documentElement.style.setProperty('--ty', `${y}px`)
-      document.documentElement.style.setProperty('--tr', `${endRadius}px`)
-      document.startViewTransition(() => setTheme(t => t === 'dark' ? 'light' : 'dark'))
-    } else {
-      setTheme(t => t === 'dark' ? 'light' : 'dark')
-    }
-  }
 
   const fetchExams = async () => {
     try {
@@ -84,7 +64,7 @@ export default function AdminDashboard() {
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <Link to="/" className="shrink-0">
-              <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-cover rounded-xl" />
+              <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-contain rounded-xl" />
             </Link>
             <h1 className="text-base sm:text-lg font-bold text-theme-primary truncate">Admin Dashboard</h1>
           </div>
@@ -191,8 +171,8 @@ export default function AdminDashboard() {
 
       {/* Delete Confirmation Modal */}
       {examToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5 modal-panel">
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-16 h-16 rounded-full bg-theme-error-bg flex items-center justify-center text-theme-error-text border-4 border-theme-error-border/30">
                 <i className="fas fa-trash-alt text-2xl"></i>
@@ -287,8 +267,8 @@ function CreateExamModal({ exam, onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 w-full max-w-lg shadow-2xl my-8">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto modal-backdrop">
+      <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 w-full max-w-lg shadow-2xl my-8 modal-panel">
         <h3 className="text-xl font-bold text-theme-primary mb-5">{exam ? 'Edit Exam' : 'Create New Exam'}</h3>
         {error && <div className="mb-4 p-3 bg-theme-error-bg border border-theme-error-border text-theme-error-text rounded-xl text-sm">{error}</div>}
 
@@ -386,8 +366,8 @@ function AddQuestionsModal({ examId, onClose, onAdded }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 w-full max-w-2xl shadow-2xl my-8">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-start justify-center p-4 overflow-y-auto modal-backdrop">
+      <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 w-full max-w-2xl shadow-2xl my-8 modal-panel">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-xl font-bold text-theme-primary">Add Questions</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-theme-bg flex items-center justify-center text-theme-secondary hover:text-theme-primary"><i className="fas fa-times"></i></button>
@@ -410,6 +390,7 @@ function AddQuestionsModal({ examId, onClose, onAdded }) {
         {tab === 'txt' && (
           <div className="space-y-3">
             <textarea value={txtInput} onChange={e => setTxtInput(e.target.value)} rows={10}
+              autoComplete="off" spellCheck="false"
               className="input-field font-mono text-sm resize-y" placeholder="Paste questions in TXT format..." />
             <FormatExample title="TXT Format Example" code={`Q1. What is the capital of France?
 1. Berlin
@@ -433,6 +414,7 @@ Q2. Which is a JavaScript framework?
         {tab === 'json' && (
           <div className="space-y-3">
             <textarea value={jsonInput} onChange={e => setJsonInput(e.target.value)} rows={10}
+              autoComplete="off" spellCheck="false"
               className="input-field font-mono text-sm resize-y" placeholder="Paste JSON array..." />
             <FormatExample title="JSON Format Example" code={`[
   {

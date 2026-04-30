@@ -56,7 +56,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <img src="/favicon.png" alt="Logo" className="h-16 w-16 object-cover rounded-2xl shadow-lg mx-auto mb-4" />
+            <img src="/favicon.png" alt="Logo" className="h-16 w-16 object-contain mx-auto mb-4" />
           </Link>
           <h1 className="text-2xl font-extrabold text-theme-primary">Admin Portal</h1>
           <p className="text-theme-secondary text-sm mt-1">Sign in to manage exams</p>
