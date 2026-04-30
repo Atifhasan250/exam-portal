@@ -20,6 +20,24 @@ export default function Leaderboard() {
       .catch(() => setLoading(false))
   }, [])
 
+  const selectedData = selectedExamId ? data.find(item => item.exam._id === selectedExamId) : null
+
+  const fmtDate = (d) => new Date(d).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+
+  const getRankStyle = (rank) => {
+    if (rank === 1) return 'bg-yellow-500/10 border-yellow-500 text-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]'
+    if (rank === 2) return 'bg-slate-300/10 border-slate-300 text-slate-400'
+    if (rank === 3) return 'bg-orange-500/10 border-orange-500 text-orange-600'
+    return 'bg-theme-bg border-theme-border text-theme-secondary'
+  }
+
+  const getRankIcon = (rank) => {
+    if (rank === 1) return 'fas fa-crown'
+    if (rank === 2) return 'fas fa-medal'
+    if (rank === 3) return 'fas fa-award'
+    return null
+  }
+
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20">
       <Navbar />
