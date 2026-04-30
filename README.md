@@ -1,4 +1,4 @@
-# ExamPortal
+# IT Resource Zone
 
 A secure digital examination platform with real-time live exam scheduling, anti-cheat monitoring, and a full-featured admin dashboard. Built with React, Express, MongoDB, and Tailwind CSS. Designed for single-repo deployment on Vercel.
 
@@ -87,7 +87,7 @@ EXAM PORTAL/
       AdminDashboard.jsx Exam management and question import
       AdminExamView.jsx  View and delete individual questions
   public/
-    exam-portal.png      Application logo and favicon
+    favicon.png          Application logo and favicon
   server.js              Local dev server entry point
   vite.config.js         Vite config with API proxy
   vercel.json            Vercel deployment configuration

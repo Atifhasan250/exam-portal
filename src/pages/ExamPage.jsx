@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 
 export default function ExamPage() {
   const { id } = useParams()
@@ -119,10 +119,10 @@ export default function ExamPage() {
       {/* Header */}
       <header className="bg-theme-surface border-b border-theme-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img src="/exam-portal.png" alt="Logo" className="h-8 w-8 object-cover rounded-xl" />
+          <Link to="/" className="flex items-center space-x-3">
+            <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-cover rounded-xl" />
             <span className="font-bold text-theme-primary hidden sm:block">{exam?.title}</span>
-          </div>
+          </Link>
           <div className="flex items-center space-x-3">
             <button onClick={toggleTheme}
               className="w-9 h-9 rounded-full flex items-center justify-center bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary transition-all">
@@ -171,33 +171,33 @@ export default function ExamPage() {
               const hasAnswered = answers[qi] !== undefined
               return (
                 <div key={qi} className="bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-6 shadow-sm">
-                  <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="flex items-start space-x-3 sm:space-x-4 mb-4 sm:mb-5">
                     <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-theme-bg flex items-center justify-center font-bold text-theme-secondary text-xs sm:text-sm">{qi + 1}</span>
-                    <div className="flex-1 space-y-3 sm:space-y-4 min-w-0">
-                      <p className="text-sm sm:text-base font-bold text-theme-primary leading-relaxed"
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm sm:text-base font-bold text-theme-primary leading-relaxed [&_p]:m-0 [&_p]:inline"
                         dangerouslySetInnerHTML={{ __html: q.question }} />
-                      <div className="grid gap-2 sm:gap-3">
-                        {q.options.map((opt, oi) => {
-                          const sel = answers[qi] === oi
-                          let cls = 'group flex items-center p-3 sm:p-4 rounded-xl border transition-all duration-200 '
-                          cls += hasAnswered
-                            ? sel ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default'
-                              : 'border-theme-border bg-theme-surface opacity-50 cursor-default'
-                            : sel ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-pointer'
-                              : 'border-theme-border bg-theme-surface hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
-                          const dotCls = sel ? 'border-theme-accent bg-theme-accent' : 'border-slate-300 dark:border-slate-500 group-hover:border-theme-accent'
-                          return (
-                            <label key={oi} className={cls} onClick={() => saveAnswer(qi, oi)}>
-                              <div className={`flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all ${dotCls}`}>
-                                {sel && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full scale-in-center"></div>}
-                              </div>
-                              <span className={`ml-3 sm:ml-4 text-sm sm:text-base leading-snug ${sel ? 'text-theme-primary font-bold' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
-                                dangerouslySetInnerHTML={{ __html: opt }} />
-                            </label>
-                          )
-                        })}
-                      </div>
                     </div>
+                  </div>
+                  <div className="grid gap-2 sm:gap-3">
+                    {q.options.map((opt, oi) => {
+                      const sel = answers[qi] === oi
+                      let cls = 'group flex items-center p-3 sm:p-4 rounded-xl border transition-all duration-200 '
+                      cls += hasAnswered
+                        ? sel ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default'
+                          : 'border-theme-border bg-theme-surface opacity-50 cursor-default'
+                        : sel ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-pointer'
+                          : 'border-theme-border bg-theme-surface hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
+                      const dotCls = sel ? 'border-theme-accent bg-theme-accent' : 'border-slate-300 dark:border-slate-500 group-hover:border-theme-accent'
+                      return (
+                        <label key={oi} className={cls} onClick={() => saveAnswer(qi, oi)}>
+                          <div className={`flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all ${dotCls}`}>
+                            {sel && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full scale-in-center"></div>}
+                          </div>
+                          <span className={`ml-2 sm:ml-3 text-sm sm:text-base leading-snug [&_p]:m-0 [&_p]:inline ${sel ? 'text-theme-primary font-bold' : 'text-slate-700 dark:text-slate-300 font-medium'}`}
+                            dangerouslySetInnerHTML={{ __html: opt }} />
+                        </label>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -270,13 +270,13 @@ function ResultScreen({ result, studentName, onBack }) {
             const isCorrect = userAns === q.correct
             return (
               <div key={idx} className={`p-4 rounded-xl border ${isCorrect ? 'bg-theme-success-bg border-theme-success-border' : 'bg-theme-error-bg border-theme-error-border'}`}>
-                <p className="font-bold text-theme-primary mb-2 text-sm" dangerouslySetInnerHTML={{ __html: `${idx + 1}. ${q.question}` }} />
+                <div className="font-bold text-theme-primary mb-2 text-sm [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: `${idx + 1}. ${q.question}` }} />
                 <div className="text-sm space-y-1">
                   <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-medium`}>
-                    Your answer: {userAns !== undefined ? <span dangerouslySetInnerHTML={{ __html: q.options[userAns] }} /> : <i>Not answered</i>}
+                    Your answer: {userAns !== undefined ? <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.options[userAns] }} /> : <i>Not answered</i>}
                   </p>
-                  {!isCorrect && <p className="text-theme-success-text font-semibold">Correct: <span dangerouslySetInnerHTML={{ __html: q.options[q.correct] }} /></p>}
-                  {q.explanation && <p className="text-theme-secondary mt-1 text-xs border-t border-theme-border/50 pt-1"><i className="fas fa-lightbulb mr-1 text-yellow-500"></i>{q.explanation}</p>}
+                  {!isCorrect && <div className="text-theme-success-text font-semibold">Correct: <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: q.options[q.correct] }} /></div>}
+                  {q.explanation && <div className="text-theme-secondary mt-1 text-xs border-t border-theme-border/50 pt-1 [&_p]:m-0 [&_p]:inline"><i className="fas fa-lightbulb mr-1 text-yellow-500"></i><span dangerouslySetInnerHTML={{ __html: q.explanation }} /></div>}
                 </div>
               </div>
             )

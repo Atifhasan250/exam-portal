@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { parseTXT, parseJSON, parseCSV } from '../utils/parseQuestions'
 
 const API = '/api/exams'
@@ -83,7 +83,9 @@ export default function AdminDashboard() {
       <header className="bg-theme-surface border-b border-theme-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            <img src="/exam-portal.png" alt="Logo" className="h-8 w-8 object-cover rounded-xl shrink-0" />
+            <Link to="/" className="shrink-0">
+              <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-cover rounded-xl" />
+            </Link>
             <h1 className="text-base sm:text-lg font-bold text-theme-primary truncate">Admin Dashboard</h1>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">

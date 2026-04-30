@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { connectDB } from '../lib/db.js';
 import Exam from '../lib/models/Exam.js';
 import Submission from '../lib/models/Submission.js';
+import Question from '../lib/models/Question.js';
 
 const app = express();
 app.use(cors());
@@ -71,9 +72,10 @@ app.put('/api/exams/:id/publish', auth, async (req, res) => {
 app.get('/api/exams/:id', async (req, res) => {
   try {
     await connectDB();
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findById(req.params.id).lean();
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    res.json(exam);
+    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
+    res.json({ ...exam, questions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -123,6 +125,7 @@ app.delete('/api/exams/:id', auth, async (req, res) => {
   try {
     await connectDB();
     await Exam.findByIdAndDelete(req.params.id);
+    await Question.deleteMany({ examId: req.params.id });
     await Submission.deleteMany({ examId: req.params.id });
     res.json({ success: true });
   } catch (err) {
@@ -136,9 +139,16 @@ app.delete('/api/exams/:id/questions/:qIdx', auth, async (req, res) => {
     await connectDB();
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    exam.questions.splice(parseInt(req.params.qIdx), 1);
-    await exam.save();
-    res.json(exam);
+    
+    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 });
+    const qIdx = parseInt(req.params.qIdx);
+    
+    if (questions[qIdx]) {
+      await Question.findByIdAndDelete(questions[qIdx]._id);
+    }
+    
+    const remaining = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
+    res.json({ ...exam.toObject(), questions: remaining });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -150,9 +160,19 @@ app.post('/api/exams/:id/questions', auth, async (req, res) => {
     await connectDB();
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
-    exam.questions.push(...req.body.questions);
-    await exam.save();
-    res.json(exam);
+    
+    const existingCount = await Question.countDocuments({ examId: exam._id });
+    
+    const newQuestions = req.body.questions.map((q, idx) => ({
+      ...q,
+      examId: exam._id,
+      order: existingCount + idx
+    }));
+    
+    await Question.insertMany(newQuestions);
+    
+    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
+    res.json({ ...exam.toObject(), questions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -162,14 +182,16 @@ app.post('/api/exams/:id/questions', auth, async (req, res) => {
 app.post('/api/exams/:id/submit', async (req, res) => {
   try {
     await connectDB();
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findById(req.params.id).lean();
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
+    
+    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean();
     const { answers, studentName } = req.body;
 
     let score = 0;
     let wrong = 0;
     let unanswered = 0;
-    exam.questions.forEach((q, idx) => {
+    questions.forEach((q, idx) => {
       if (answers[idx] === undefined || answers[idx] === null) unanswered++;
       else if (answers[idx] === q.correct) score++;
       else wrong++;
@@ -179,13 +201,19 @@ app.post('/api/exams/:id/submit', async (req, res) => {
     const wasLive = exam.liveStart && exam.liveEnd &&
       now >= new Date(exam.liveStart) && now <= new Date(exam.liveEnd);
 
-    await Submission.create({
+    const submissionData = {
       examId: exam._id,
       studentName: studentName || 'Anonymous',
-      score, total: exam.questions.length, wrong, unanswered, wasLive,
-    });
+      score, total: questions.length, wrong, unanswered, wasLive
+    };
 
-    res.json({ score, total: exam.questions.length, wrong, unanswered, questions: exam.questions });
+    if (wasLive) {
+      submissionData.answers = answers;
+    }
+
+    await Submission.create(submissionData);
+
+    res.json({ score, total: questions.length, wrong, unanswered, questions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -264,6 +292,20 @@ app.get('/api/submissions/:name', async (req, res) => {
     }
 
     res.json(uniqueSubmissions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET submission details (includes answers and questions) ──────────────────
+app.get('/api/submissions/details/:id', async (req, res) => {
+  try {
+    await connectDB();
+    const submission = await Submission.findById(req.params.id).populate('examId', 'title duration');
+    if (!submission) return res.status(404).json({ error: 'Submission not found' });
+    
+    const questions = await Question.find({ examId: submission.examId._id }).sort({ order: 1 }).lean();
+    res.json({ submission, questions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

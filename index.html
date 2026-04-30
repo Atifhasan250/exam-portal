@@ -2,14 +2,90 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/exam-portal.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Secure Exam Portal</title>
-    
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Tailwind Configuration (CDN for quick setup matching original) -->
+
+    <!-- ===================== PRIMARY SEO ===================== -->
+    <title>IT Resource Zone – Free IT Exams & MCQ Practice Platform</title>
+    <meta name="description" content="IT Resource Zone is a free online platform for IT students and professionals to take live MCQ exams, practice past papers, and track scores on real-time leaderboards. Powered by a clean, modern interface." />
+    <meta name="keywords" content="IT Resource Zone, IT exam portal, free IT MCQ, online IT exam, IT practice test, computer science exam, programming quiz, networking quiz, IT leaderboard, IT assessment, atif hasan, atif, developer atif" />
+    <meta name="author" content="Atif Hasan" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://it-resource-zone.vercel.app/" />
+
+    <!-- ===================== OPEN GRAPH (Facebook, LinkedIn, WhatsApp) ===================== -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IT Resource Zone" />
+    <meta property="og:title" content="IT Resource Zone – Free IT Exams & MCQ Practice" />
+    <meta property="og:description" content="Take live IT exams, practice MCQs, and compete on real-time leaderboards. Free for all IT students and professionals." />
+    <meta property="og:url" content="https://it-resource-zone.vercel.app/" />
+    <meta property="og:image" content="https://it-resource-zone.vercel.app/favicon.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="IT Resource Zone – Online IT Exam Platform" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- ===================== TWITTER / X CARD ===================== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="IT Resource Zone – Free IT Exams & MCQ Practice" />
+    <meta name="twitter:description" content="Take live IT exams, practice MCQs, and compete on real-time leaderboards. Free for all IT students and professionals." />
+    <meta name="twitter:image" content="https://it-resource-zone.vercel.app/favicon.png" />
+    <meta name="twitter:image:alt" content="IT Resource Zone – Online IT Exam Platform" />
+
+    <!-- ===================== STRUCTURED DATA (JSON-LD) ===================== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://it-resource-zone.vercel.app/#website",
+          "url": "https://it-resource-zone.vercel.app/",
+          "name": "IT Resource Zone",
+          "description": "Free online platform for IT MCQ exams, live assessments, and leaderboards.",
+          "publisher": { "@id": "https://it-resource-zone.vercel.app/#person" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": { "@type": "EntryPoint", "urlTemplate": "https://it-resource-zone.vercel.app/exams?q={search_term_string}" },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Person",
+          "@id": "https://it-resource-zone.vercel.app/#person",
+          "name": "Atif Hasan",
+          "url": "https://it-resource-zone.vercel.app/",
+          "sameAs": []
+        },
+        {
+          "@type": "WebApplication",
+          "name": "IT Resource Zone",
+          "url": "https://it-resource-zone.vercel.app/",
+          "applicationCategory": "EducationalApplication",
+          "operatingSystem": "All",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "description": "Free IT MCQ exam platform with live exams, leaderboards, and detailed result analysis.",
+          "author": { "@id": "https://it-resource-zone.vercel.app/#person" }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ===================== SEARCH ENGINE VERIFICATION ===================== -->
+    <!-- Google: replace with actual value from Google Search Console -->
+    <meta name="google-site-verification" content="%VITE_GOOGLE_SITE_VERIFICATION%" />
+    <!-- Bing: replace with actual value from Bing Webmaster Tools -->
+    <meta name="msvalidate.01" content="%VITE_BING_SITE_VERIFICATION%" />
+
+    <!-- ===================== FAVICON / ICONS ===================== -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <meta name="theme-color" content="#6366F1" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)" />
+
+    <!-- ===================== FONTS & STYLES ===================== -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -42,3 +118,4 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+

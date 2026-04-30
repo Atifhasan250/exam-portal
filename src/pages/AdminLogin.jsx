@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('')
@@ -55,7 +55,9 @@ export default function AdminLogin() {
     <div className="bg-theme-bg min-h-screen flex items-center justify-center p-4 transition-theme">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <img src="/exam-portal.png" alt="Logo" className="h-16 w-16 object-cover rounded-2xl shadow-lg mx-auto mb-4" />
+          <Link to="/" className="inline-block">
+            <img src="/favicon.png" alt="Logo" className="h-16 w-16 object-cover rounded-2xl shadow-lg mx-auto mb-4" />
+          </Link>
           <h1 className="text-2xl font-extrabold text-theme-primary">Admin Portal</h1>
           <p className="text-theme-secondary text-sm mt-1">Sign in to manage exams</p>
         </div>

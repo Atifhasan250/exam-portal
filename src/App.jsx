@@ -1,11 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
+import ExamsPage from './pages/ExamsPage'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminExamView from './pages/AdminExamView'
 import ExamPage from './pages/ExamPage'
 import Leaderboard from './pages/Leaderboard'
 import ProfilePage from './pages/ProfilePage'
+import SubmissionDetails from './pages/SubmissionDetails'
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('admin_token')
@@ -19,9 +21,12 @@ export default function App() {
       <div className="flex-grow">
         <Routes>
           <Route path="/"               element={<HomePage />} />
+          <Route path="/exams"          element={<ExamsPage />} />
           <Route path="/exam/:id"       element={<ExamPage />} />
           <Route path="/leaderboard"    element={<Leaderboard />} />
+          <Route path="/leaderboard/:id" element={<Leaderboard />} />
           <Route path="/profile"        element={<ProfilePage />} />
+          <Route path="/profile/submission/:id" element={<SubmissionDetails />} />
           <Route path="/admin"          element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={
             <ProtectedRoute><AdminDashboard /></ProtectedRoute>
@@ -33,7 +38,7 @@ export default function App() {
         </Routes>
       </div>
       <footer className="text-center py-6 text-sm text-theme-secondary border-t border-theme-border/50 bg-theme-surface mt-auto">
-        &copy; 2026 Exam Portal | Made by <a href="https://atifs-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="font-bold text-theme-primary hover:text-theme-accent transition-colors underline">Atif Hasan</a>
+        &copy; 2026 IT Resource Zone | Made by <a href="https://atifs-portfolio.vercel.app/" target="_blank" rel="noopener noreferrer" className="font-bold text-theme-primary hover:text-theme-accent transition-colors underline">Atif Hasan</a>
       </footer>
     </div>
   )
