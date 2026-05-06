@@ -39,3 +39,7 @@ coverage
 
 # Vercel deployment directory
 .vercel
+
+# Next.js build output
+.next/
+.next/*

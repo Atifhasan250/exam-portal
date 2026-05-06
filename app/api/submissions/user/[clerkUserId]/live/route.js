@@ -1,0 +1,24 @@
+import { NextResponse } from 'next/server'
+import { connectDB } from '@/lib/db'
+import { logger } from '@/lib/logger'
+import Submission from '@/lib/models/Submission'
+
+// Returns array of examId strings where this user submitted a LIVE attempt
+export async function GET(_request, { params }) {
+  try {
+    const { clerkUserId } = await params
+    await connectDB()
+
+    const submissions = await Submission.find(
+      { clerkUserId, wasLive: true },
+      { examId: 1, _id: 0 },
+    ).lean()
+
+    const examIds = submissions.map((s) => s.examId?.toString()).filter(Boolean)
+
+    return NextResponse.json(examIds)
+  } catch (error) {
+    logger.error('[GET /api/submissions/user/[clerkUserId]/live]', { error })
+    return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
+  }
+}

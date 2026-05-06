@@ -1,0 +1,350 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #E8EDF8;
+  --color-surface: #FFFFFF;
+  --color-primary: #1A2040;
+  --color-secondary: #485070;
+  --color-accent: #4F46E5;
+  --color-accent-text: #FFFFFF;
+  --color-border: #BCC6DF;
+  --color-input-border: #BCC6DF;
+  --color-error-bg: #FEF2F2;
+  --color-error-text: #DC2626;
+  --color-error-border: #FEE2E2;
+  --color-success-bg: #ECFDF5;
+  --color-success-text: #059669;
+  --color-success-border: #D1FAE5;
+}
+
+.dark {
+  --color-bg: #070A14;
+  --color-surface: #0F1524;
+  --color-primary: #E8EAF6;
+  --color-secondary: #7080A0;
+  --color-accent: #6366F1;
+  --color-accent-text: #FFFFFF;
+  --color-border: #1E2A48;
+  --color-input-border: rgb(231, 227, 255);
+  --color-error-bg: #450a0a;
+  --color-error-text: #f87171;
+  --color-error-border: #7f1d1d;
+  --color-success-bg: #064e3b;
+  --color-success-text: #34d399;
+  --color-success-border: #065f46;
+}
+
+/* OTP boxes: remove container border, add border to each individual box */
+.dark [class*="cl-otpCodeField"],
+.dark [class*="cl-otpCodeFieldInputs"] {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.dark [class*="cl-otpCodeFieldInput"] {
+  border: 1px solid var(--color-input-border) !important;
+  border-radius: 0.75rem !important;
+}
+
+body {
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.no-copy {
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 10px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+body,
+.transition-theme {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.input-field:focus {
+  box-shadow: 0 0 0 2px var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+input,
+textarea,
+pre,
+code {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+  animation: circle-reveal 0.5s ease-in-out;
+}
+
+@keyframes circle-reveal {
+  from {
+    clip-path: circle(0% at var(--tx, 50%) var(--ty, 50%));
+  }
+
+  to {
+    clip-path: circle(var(--tr, 150%) at var(--tx, 50%) var(--ty, 50%));
+  }
+}
+
+@keyframes scale-in-center {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.scale-in-center {
+  animation: scale-in-center 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -600px 0;
+  }
+
+  100% {
+    background-position: 600px 0;
+  }
+}
+
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-surface) 50%, var(--color-border) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes modal-backdrop {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-backdrop {
+  animation: modal-backdrop 0.2s ease both;
+}
+
+.modal-panel {
+  animation: modal-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card-enter {
+  animation: card-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes option-select {
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.025);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.option-selected-anim {
+  animation: option-select 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes timer-danger {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15);
+  }
+}
+
+.timer-danger {
+  animation: timer-danger 0.9s ease-in-out infinite;
+}
+
+@keyframes rank-pop {
+  0% {
+    transform: scale(0) rotate(-15deg);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.rank-pop {
+  animation: rank-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.bg-theme-bg {
+  background-color: var(--color-bg);
+}
+
+.bg-theme-surface {
+  background-color: var(--color-surface);
+}
+
+.bg-theme-accent {
+  background-color: var(--color-accent);
+}
+
+.text-theme-primary {
+  color: var(--color-primary);
+}
+
+.text-theme-secondary {
+  color: var(--color-secondary);
+}
+
+.text-theme-accent {
+  color: var(--color-accent);
+}
+
+.text-theme-error-text {
+  color: var(--color-error-text);
+}
+
+.text-theme-success-text {
+  color: var(--color-success-text);
+}
+
+.border-theme-border {
+  border-color: var(--color-border);
+}
+
+.border-theme-error-border {
+  border-color: var(--color-error-border);
+}
+
+.border-theme-success-border {
+  border-color: var(--color-success-border);
+}
+
+.bg-theme-error-bg {
+  background-color: var(--color-error-bg);
+}
+
+.bg-theme-success-bg {
+  background-color: var(--color-success-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

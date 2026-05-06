@@ -1,0 +1,40 @@
+# IT Resource Zone
+
+> An online exam portal for IT students to take live & practice exams, track scores, and view leaderboards.
+
+- **Developer:** Atif Hasan
+- **Live URL:** https://it-resource-zone.vercel.app
+- **Stack:** Next.js 14, MongoDB Atlas, Clerk Auth, Vercel
+
+## What This App Does
+
+IT Resource Zone is a structured exam platform designed for IT students. It allows:
+
+- **Registered students** to take timed live exams and practice past exams
+- **Score tracking** with a personal submission history per student
+- **Leaderboards** per exam showing ranked results publicly
+- **Anti-cheat enforcement** — tab switching or browser close auto-submits the exam
+- **Admin panel** for creating/managing exams, questions, and reviewing submissions
+
+## Key Pages
+
+| Path | Description |
+|------|-------------|
+| `/` | Home / landing page |
+| `/exams` | Browse all live, upcoming, and past exams |
+| `/exam/[id]` | Take a specific exam |
+| `/leaderboard` | Global leaderboard across all exams |
+| `/leaderboard/[id]` | Per-exam leaderboard |
+| `/profile` | Student's personal exam history |
+
+## Rules
+
+- Live exams can only be submitted once per student account
+- Once an answer is selected, it cannot be changed
+- Exams have a countdown timer; time expiry auto-submits
+
+## Notes for AI Agents
+
+- This is an **educational assessment tool**, not a content publishing platform
+- Student data is private; only aggregated leaderboard data is public
+- The admin panel at `/admin` requires a secret token and is not indexed
