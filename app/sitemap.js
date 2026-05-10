@@ -4,7 +4,11 @@ export default async function sitemap() {
   const staticRoutes = [
     { url: `${baseUrl}/`, changeFrequency: 'weekly', priority: 1 },
     { url: `${baseUrl}/exams`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${baseUrl}/tasks`, changeFrequency: 'daily', priority: 0.85 },
+    { url: `${baseUrl}/resources`, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${baseUrl}/leaderboard`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/terms`, changeFrequency: 'yearly', priority: 0.3 },
   ]
 
   let dynamicRoutes = []

@@ -1,16 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClerk, useUser } from '@clerk/nextjs'
-import Navbar from '@/components/Navbar'
 import PageSkeleton from '@/components/PageSkeleton'
 import AuthCallout from '@/components/AuthCallout'
+import { getPlannerData } from '@/app/tasks/actions'
 
 export default function ProfilePage() {
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [plannerData, setPlannerData] = useState(null)
+  const [tasksLoading, setTasksLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [savingName, setSavingName] = useState(false)
@@ -22,6 +25,10 @@ export default function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
+
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   const router = useRouter()
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
@@ -38,7 +45,36 @@ export default function ProfilePage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
+    getPlannerData()
+      .then(data => {
+        setPlannerData(data)
+        setTasksLoading(false)
+      })
+      .catch(() => setTasksLoading(false))
   }, [user])
+
+  const taskSummary = useMemo(() => {
+    if (!plannerData) return null
+
+    let totalCompletedTasks = 0
+    let totalTasks = 0
+    plannerData.weeks?.forEach(w => {
+      w.tasks?.forEach(t => {
+        totalTasks++
+        if (t.completed) totalCompletedTasks++
+      })
+    })
+
+    let totalHabitsCompleted = 0
+    if (plannerData.habitHistory) {
+      Object.values(plannerData.habitHistory).forEach(day => {
+        totalHabitsCompleted += Object.values(day).filter(Boolean).length
+      })
+    }
+
+    return { totalCompletedTasks, totalTasks, totalHabitsCompleted }
+  }, [plannerData])
 
   // Auto-open name modal for new users who have no name set
   useEffect(() => {
@@ -54,7 +90,6 @@ export default function ProfilePage() {
   if (hasClerk && !user) {
     return (
       <div className="bg-theme-bg min-h-screen py-20 px-4">
-        <Navbar />
         <div className="max-w-4xl mx-auto px-4 mt-10">
           <AuthCallout title="Login first to see your profile" description="Your exam history is linked to your authenticated IT Resource Zone account." />
         </div>
@@ -107,9 +142,20 @@ export default function ProfilePage() {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    if (!user) return
+    setDeletingAccount(true)
+    try {
+      await user.delete()
+      // Clerk will automatically clear the session and redirect or re-render
+    } catch (err) {
+      console.error("Failed to delete account", err)
+      setDeletingAccount(false)
+    }
+  }
+
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
-      <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 mt-8">
         <div className="flex items-center space-x-3 mb-6">
@@ -119,8 +165,12 @@ export default function ProfilePage() {
           <h2 className="text-3xl font-extrabold text-theme-primary">Your Profile</h2>
         </div>
         <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm">
-          <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-theme-accent shrink-0">
-            <i className="fas fa-user text-4xl" />
+          <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-theme-accent shrink-0 overflow-hidden">
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <i className="fas fa-user text-4xl" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-center sm:justify-start gap-3">
@@ -140,9 +190,7 @@ export default function ProfilePage() {
             <p className="text-theme-secondary mt-1">You have attempted {submissions.length} exam{submissions.length === 1 ? '' : 's'} in total.</p>
             {hasClerk ? (
               <button
-                onClick={async () => {
-                  await signOut?.({ redirectUrl: '/' })
-                }}
+                onClick={() => setShowLogoutDialog(true)}
                 className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 transition-all font-bold text-sm"
               >
                 <i className="fas fa-sign-out-alt mr-2" />
@@ -153,6 +201,46 @@ export default function ProfilePage() {
         </div>
 
 
+        {/* Tasks History Section */}
+        <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Tasks History</h3>
+
+        {tasksLoading ? (
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center gap-6">
+            <div className="skeleton w-16 h-16 rounded-2xl shrink-0" />
+            <div className="flex-1 space-y-3 w-full">
+              <div className="skeleton h-5 w-1/3 rounded-lg" />
+              <div className="skeleton h-4 w-2/3 rounded-lg" />
+            </div>
+            <div className="skeleton h-10 w-32 rounded-xl shrink-0 mt-4 sm:mt-0" />
+          </div>
+        ) : taskSummary ? (
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:border-indigo-500/30">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                <i className="fas fa-check-double text-2xl" />
+              </div>
+              <div>
+                <h4 className="font-bold text-theme-primary text-lg">Productivity Summary</h4>
+                <p className="text-theme-secondary text-sm mt-1">
+                  <span className="font-bold text-theme-primary">{taskSummary.totalCompletedTasks}/{taskSummary.totalTasks}</span> weekly tasks completed and <span className="font-bold text-theme-primary">{taskSummary.totalHabitsCompleted}</span> daily habits checked off.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/tasks/history"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 shadow-md border border-theme-accent transition-all text-center flex items-center justify-center gap-2 shrink-0"
+            >
+              <i className="fas fa-chart-line" /> View Analytics
+            </Link>
+          </div>
+        ) : (
+          <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl mb-10 shadow-sm">
+            <i className="fas fa-tasks text-4xl text-theme-secondary opacity-40 mb-3" />
+            <p className="text-theme-secondary font-medium">No task data available.</p>
+          </div>
+        )}
+
+        {/* Exam History Section */}
         <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Exam History</h3>
 
         {loading ? (
@@ -241,6 +329,15 @@ export default function ProfilePage() {
         ) : null}
       </div>
 
+      <div className="max-w-4xl mx-auto px-4 text-center">
+        <button
+          onClick={() => setShowDeleteDialog(true)}
+          className="bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:bg-red-500/10 transition-colors px-6 py-3 rounded-xl font-bold shadow-sm inline-flex items-center gap-2"
+        >
+          <i className="fas fa-user-times" /> Delete Account
+        </button>
+      </div>
+
       {showEditModal ? (() => {
         const isNewUser = !user?.fullName && !user?.firstName
         return (
@@ -282,6 +379,73 @@ export default function ProfilePage() {
           </div>
         )
       })() : null}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutDialog && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={() => setShowLogoutDialog(false)} />
+          <div className="relative bg-theme-surface border border-theme-border rounded-3xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
+            <div className="w-16 h-16 rounded-full bg-theme-bg text-theme-secondary flex items-center justify-center mx-auto mb-6">
+              <i className="fas fa-sign-out-alt text-3xl" />
+            </div>
+            <h3 className="text-2xl font-black text-center mb-2">Logout?</h3>
+            <p className="text-theme-secondary text-center mb-8">
+              Are you sure you want to log out of your account?
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowLogoutDialog(false)}
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-bg text-theme-secondary hover:text-theme-primary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowLogoutDialog(false)
+                  await signOut?.({ redirectUrl: '/' })
+                }}
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 transition-colors shadow-md"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteDialog && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={() => !deletingAccount && setShowDeleteDialog(false)} />
+          <div className="relative bg-theme-surface border border-theme-border rounded-3xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
+            <div className="w-16 h-16 rounded-full bg-theme-error-bg text-theme-error-text flex items-center justify-center mx-auto mb-6">
+              <i className="fas fa-user-times text-3xl" />
+            </div>
+            <h3 className="text-2xl font-black text-center mb-2">Delete Account?</h3>
+            <p className="text-theme-secondary text-center mb-8">
+              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. All your exam history, tasks, and data will be permanently erased.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                disabled={deletingAccount}
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-bg text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-md disabled:opacity-50"
+              >
+                {deletingAccount ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

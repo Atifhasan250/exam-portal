@@ -2,13 +2,11 @@
 
 import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from '@/context/ThemeContext'
 import { safeHTML } from '@/utils/sanitize'
 
 export default function AdminExamView({ params }) {
   const { id } = use(params)
   const router = useRouter()
-  const { theme, toggleTheme } = useTheme()
   const [exam, setExam] = useState(null)
   const [loading, setLoading] = useState(true)
   const [questionToDelete, setQuestionToDelete] = useState(null)
@@ -74,21 +72,13 @@ export default function AdminExamView({ params }) {
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
-      <header className="bg-theme-surface border-b border-theme-border sticky top-0 z-50 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button onClick={() => router.push('/admin/dashboard')} className="w-9 h-9 rounded-full bg-theme-bg flex items-center justify-center border border-theme-border text-theme-secondary hover:text-theme-primary">
-              <i className="fas fa-arrow-left" />
-            </button>
-            <h1 className="text-lg font-bold text-theme-primary truncate">{exam?.title || 'Exam'}</h1>
-          </div>
-          <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary transition-all">
-            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
-          </button>
-        </div>
-      </header>
-
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-4">
+        <div className="flex items-center gap-3 mb-2">
+          <button onClick={() => router.push('/admin/dashboard')} className="w-9 h-9 rounded-full bg-theme-surface flex items-center justify-center border border-theme-border text-theme-secondary hover:text-theme-primary shrink-0">
+            <i className="fas fa-arrow-left" />
+          </button>
+          <h1 className="text-xl font-bold text-theme-primary truncate">{exam?.title || 'Exam'}</h1>
+        </div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-theme-secondary text-sm">{exam?.questions?.length || 0} question(s)</p>
           <p className="text-xs text-theme-secondary">Drag and drop to reorder</p>
@@ -127,7 +117,7 @@ export default function AdminExamView({ params }) {
       </main>
 
       {questionToDelete !== null ? (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 modal-backdrop">
           <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5 modal-panel">
             <div className="flex flex-col items-center text-center space-y-3">
               <div className="w-16 h-16 rounded-full bg-theme-error-bg flex items-center justify-center text-theme-error-text border-4 border-theme-error-border/30">

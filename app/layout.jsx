@@ -18,8 +18,8 @@ export const metadata = {
     template: '%s | IT Resource Zone',
   },
   description:
-    'IT Resource Zone is a free online platform for IT exams, practice, and rankings. Test your knowledge, compete live, and climb the leaderboard.',
-  keywords: ['IT exams', 'online quiz', 'practice tests', 'leaderboard', 'IT Resource Zone'],
+    'IT Resource Zone is a free online platform for IT exams, study planning, daily habits tracking, and learning resources. Test your knowledge, build consistency, and climb the leaderboard.',
+  keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'IT Resource Zone'],
   authors: [{ name: 'Atif Hasan', url: 'https://atifs-portfolio.vercel.app/' }],
   creator: 'Atif Hasan',
   icons: {
@@ -34,10 +34,10 @@ export const metadata = {
     siteName: 'IT Resource Zone',
     title: 'IT Resource Zone — Free Online IT Exams & Rankings',
     description:
-      'Test your IT knowledge with live and practice exams. Compete with peers and climb the leaderboard.',
+      'Test your IT knowledge, track daily study habits, and access curated IT resources. Compete with peers and climb the leaderboard.',
     images: [
       {
-        url: '/link%20preview.jpg',
+        url: '/link-preview.jpg',
         width: 1200,
         height: 630,
         alt: 'IT Resource Zone — Online IT Exams Platform',
@@ -48,8 +48,8 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'IT Resource Zone — Free Online IT Exams & Rankings',
     description:
-      'Test your IT knowledge with live and practice exams. Compete with peers and climb the leaderboard.',
-    images: ['/link%20preview.jpg'],
+      'Test your IT knowledge, track daily study habits, and access curated IT resources. Compete with peers and climb the leaderboard.',
+    images: ['/link-preview.jpg'],
   },
   robots: {
     index: true,

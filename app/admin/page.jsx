@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useTheme } from '@/context/ThemeContext'
 
 export default function AdminLoginPage() {
   const [username, setUsername] = useState('')
@@ -12,7 +11,6 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const { theme, toggleTheme } = useTheme()
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -41,7 +39,7 @@ export default function AdminLoginPage() {
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-theme-surface border border-theme-border rounded-2xl shadow-xl p-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-center mb-8">
           <Link href="/" className="flex items-center space-x-3">
             <Image src="/favicon.png" alt="Logo" width={40} height={40} className="rounded-xl object-contain" />
             <div>
@@ -49,9 +47,6 @@ export default function AdminLoginPage() {
               <h1 className="text-xl font-extrabold text-theme-primary">Admin Login</h1>
             </div>
           </Link>
-          <button onClick={toggleTheme} className="w-10 h-10 rounded-full flex items-center justify-center bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary transition-all">
-            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

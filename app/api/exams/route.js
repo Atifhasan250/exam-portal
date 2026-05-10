@@ -6,12 +6,14 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import Exam from '@/lib/models/Exam'
 
+export const revalidate = 30
+
 export async function GET() {
   try {
     await connectDB()
     const exams = await Exam.find({ published: true }, { questions: 0 }).sort({ createdAt: -1 })
     return NextResponse.json(exams, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
+      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
     })
   } catch (error) {
     logger.error('[GET /api/exams]', { error })

@@ -10,6 +10,8 @@ The platform features a secure, separated architecture for both student users (p
 - **Advanced Anti-Cheat Systems:** Built-in safeguards including automated exam submission upon detecting tab switching or browser closure during live assessments.
 - **Dynamic Leaderboards:** Real-time global and per-exam ranking systems based on performance metrics and submission times.
 - **Student Profiles:** Individualized dashboards tracking historical submissions, scores, and exam progress.
+- **Daily Habits & Task Planner:** Personal productivity tracking with advanced analytics, streaks, and consistency scoring.
+- **Resource Hub:** Curated directory of learning materials.
 - **Admin Management Dashboard:** Secure interface for creating exams, managing questions, adjusting schedules, and reviewing user submissions.
 - **Dark/Light Mode:** First-class support for both light and dark themes with persistent user preferences.
 - **SEO Optimized:** Implements modern AI crawler compatibility via Markdown content negotiation (`llms.txt`) and dynamic XML sitemaps.
@@ -80,13 +82,18 @@ The application will be available at `http://localhost:3000`.
 - `/` - Landing page
 - `/exams` - Consolidated view of live, upcoming, and past exams
 - `/exam/[id]` - Secure exam execution environment
+- `/tasks` - Daily habits and weekly study planner
+- `/tasks/history` - Advanced task analytics and historical data
+- `/resources` - Educational materials and references
 - `/leaderboard` - Global aggregated leaderboard
 - `/leaderboard/[id]` - Exam-specific leaderboard
 - `/profile` - Authenticated user profile and historical data
 
 ### Administrative Routes
 - `/admin` - Secure administrator authentication gateway
-- `/admin/dashboard` - Centralized exam and user management interface
+- `/admin/dashboard` - Centralized dashboard hub
+- `/admin/exams` - Comprehensive exam and question management
+- `/admin/users` - Detailed user list with individual progress tracking
 
 ## Notes on Architecture
 

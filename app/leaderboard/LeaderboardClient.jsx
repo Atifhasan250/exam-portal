@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/Navbar'
 
 export default function LeaderboardClient({ initialData, selectedExamId = null }) {
   const [data, setData] = useState(initialData)
@@ -52,7 +51,6 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
-      <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-12">
         {!selectedExamId ? (

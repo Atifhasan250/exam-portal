@@ -3,8 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/Navbar'
-import { safeHTML } from '@/utils/sanitize'
+import QuestionReviewCard from '@/components/QuestionReviewCard'
 
 export default function SubmissionDetails({ params }) {
   const { id } = use(params)
@@ -32,7 +31,7 @@ export default function SubmissionDetails({ params }) {
           <div className="skeleton h-10 w-64 rounded-xl" />
           <div className="skeleton h-32 w-full rounded-2xl" />
           <div className="space-y-4">
-            {[0, 1, 2].map((item) => <div key={item} className="skeleton h-28 w-full rounded-2xl" />)}
+            {[0, 1, 2].map((item) => <div key={item} className="skeleton h-48 w-full rounded-2xl" />)}
           </div>
         </div>
       </div>
@@ -51,6 +50,7 @@ export default function SubmissionDetails({ params }) {
 
   const { submission, questions } = data
   const percentage = (submission.score / submission.total) * 100
+
   const filteredQuestions = questions
     .map((question, index) => {
       const userAnswer = submission.answers ? submission.answers[index] : undefined
@@ -65,47 +65,48 @@ export default function SubmissionDetails({ params }) {
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
-      <Navbar />
-      <main className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
-        <div className="flex items-center space-x-3 mb-6">
+      <main className="max-w-4xl mx-auto px-4 mt-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center space-x-3">
           <Link href="/profile" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
             <i className="fas fa-arrow-left" />
           </Link>
-          <h2 className="text-3xl font-extrabold text-theme-primary truncate">{submission.examId?.title || 'Exam Details'}</h2>
-        </div>
-        <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col items-center text-center">
-          <p className="text-sm font-bold text-theme-secondary mb-1 uppercase tracking-widest">Score</p>
-          <div className="text-5xl font-black text-theme-primary mb-2">{submission.score}<span className="text-2xl text-theme-secondary">/{submission.total}</span></div>
-          <p className={`font-bold ${percentage >= 70 ? 'text-theme-success-text' : percentage >= 40 ? 'text-yellow-500' : 'text-theme-error-text'}`}>{percentage.toFixed(0)}%</p>
+          <h2 className="text-2xl font-extrabold text-theme-primary truncate">{submission.examId?.title || 'Exam Details'}</h2>
         </div>
 
+        {/* Score card */}
+        <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 shadow-sm text-center">
+          <div className="mb-3">
+            {percentage >= 70 ? <i className="fas fa-check-circle text-6xl text-theme-success-text" /> : percentage >= 40 ? <i className="fas fa-info-circle text-6xl text-yellow-500" /> : <i className="fas fa-times-circle text-6xl text-theme-error-text" />}
+          </div>
+          <div className="inline-flex items-end gap-1 bg-theme-bg border border-theme-border rounded-2xl px-10 py-5 mb-3">
+            <p className="text-5xl font-black text-theme-accent leading-none">{submission.score}</p>
+            <p className="text-2xl font-bold text-theme-secondary mb-1">/{submission.total}</p>
+          </div>
+          <p className={`font-bold text-sm ${percentage >= 70 ? 'text-theme-success-text' : percentage >= 40 ? 'text-yellow-500' : 'text-theme-error-text'}`}>{percentage.toFixed(0)}%</p>
+        </div>
+
+        {/* Question review */}
         {submission.answers ? (
-          <div className="space-y-4">
-            <div className="flex justify-center bg-theme-surface border border-theme-border rounded-xl p-1.5 shadow-sm max-w-sm mx-auto">
-              {['all', 'right', 'wrong'].map((value) => (
-                <button key={value} onClick={() => setFilter(value)} className={`flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text shadow-sm' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text shadow-sm' : 'bg-theme-bg border border-theme-border shadow-sm' : 'text-theme-secondary hover:text-theme-primary'}`}>
-                  {value}
-                </button>
-              ))}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-theme-primary">Answer Review</h3>
+              <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1 gap-1">
+                {['all', 'right', 'wrong'].map((value) => (
+                  <button key={value} onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text' : 'bg-theme-bg border border-theme-border text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'}`}>
+                    {value}
+                  </button>
+                ))}
+              </div>
             </div>
-
-            <div className="space-y-4 mt-6">
+            <div className="space-y-4">
               {filteredQuestions.length === 0 ? (
-                <div className="text-center py-10 text-theme-secondary">
+                <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl text-theme-secondary">
                   <i className="fas fa-folder-open text-4xl mb-3 opacity-40" />
                   <p>No questions found for this filter.</p>
                 </div>
-              ) : filteredQuestions.map(({ question, index, userAnswer, isCorrect }) => (
-                <div key={index} className={`p-5 rounded-2xl border ${isCorrect ? 'bg-theme-success-bg border-theme-success-border' : 'bg-theme-error-bg border-theme-error-border'}`}>
-                  <div className="font-bold text-theme-primary mb-4 text-sm sm:text-base leading-relaxed [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(`${index + 1}. ${question.question}`) }} />
-                  <div className="text-sm space-y-2.5">
-                    <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-semibold`}>
-                      Your answer: {userAnswer !== undefined ? <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(question.options[userAnswer]) }} /> : <i>Not answered</i>}
-                    </p>
-                    {!isCorrect ? <div className="text-theme-success-text font-semibold">Correct: <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(question.options[question.correct]) }} /></div> : null}
-                    {question.explanation ? <div className="text-theme-secondary mt-4 text-xs sm:text-sm border-t border-theme-border pt-3 leading-relaxed [&_p]:m-0 [&_p]:inline"><i className="fas fa-lightbulb mr-1.5 text-yellow-500" /><span dangerouslySetInnerHTML={{ __html: safeHTML(question.explanation) }} /></div> : null}
-                  </div>
-                </div>
+              ) : filteredQuestions.map(({ question, index, userAnswer }) => (
+                <QuestionReviewCard key={index} question={question} index={index} userAnswer={userAnswer} />
               ))}
             </div>
           </div>

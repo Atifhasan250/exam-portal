@@ -17,7 +17,7 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 
 - **Developer:** Atif Hasan
 - **URL:** https://it-resource-zone.vercel.app
-- **Stack:** Next.js 14, MongoDB Atlas, Clerk Auth
+- **Stack:** Next.js 15, MongoDB Atlas, Clerk Auth
 
 ## Core Features
 - Timed live exams (auto-submit on tab switch or browser close)
@@ -59,6 +59,13 @@ export default clerkMiddleware(async (auth, req) => {
         'Cache-Control': 'public, max-age=3600',
       },
     })
+  }
+
+  // Admin route protection: immediately redirect to login if no admin token cookie exists
+  if (pathname.startsWith('/admin') && pathname !== '/admin') {
+    if (!req.cookies.has('irz_admin_token')) {
+      return NextResponse.redirect(new URL('/admin', req.url))
+    }
   }
 
   if (!isClerkEnabled) {

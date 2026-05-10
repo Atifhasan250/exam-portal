@@ -5,6 +5,7 @@
 :root {
   --color-bg: #E8EDF8;
   --color-surface: #FFFFFF;
+  --color-footer-bg: #c8d3ea;
   --color-primary: #1A2040;
   --color-secondary: #485070;
   --color-accent: #4F46E5;
@@ -22,6 +23,7 @@
 .dark {
   --color-bg: #070A14;
   --color-surface: #0F1524;
+  --color-footer-bg: #0F1524;
   --color-primary: #E8EAF6;
   --color-secondary: #7080A0;
   --color-accent: #6366F1;

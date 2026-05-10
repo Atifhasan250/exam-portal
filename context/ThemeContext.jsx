@@ -5,10 +5,10 @@ import { createContext, useContext, useEffect, useState } from 'react'
 const ThemeCtx = createContext(null)
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState('light')
+  const [theme, setTheme] = useState('dark')
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem('theme') || 'light'
+    const savedTheme = window.localStorage.getItem('theme') || 'dark'
     setTheme(savedTheme)
   }, [])
 

@@ -2,10 +2,8 @@
 
 import { use, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { useTheme } from '@/context/ThemeContext'
 import PageSkeleton from '@/components/PageSkeleton'
 import AuthCallout from '@/components/AuthCallout'
 import { safeHTML } from '@/utils/sanitize'
@@ -34,7 +32,6 @@ function useCountUp(target, duration = 900) {
 export default function ExamPage({ params }) {
   const { id } = use(params)
   const router = useRouter()
-  const { theme, toggleTheme } = useTheme()
   const [exam, setExam] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -146,6 +143,7 @@ export default function ExamPage({ params }) {
       const response = await fetch(`/api/exams/${id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
         body: JSON.stringify({
           answers: answersRef.current,
           studentName:
@@ -198,25 +196,6 @@ export default function ExamPage({ params }) {
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
-      <header className="bg-theme-surface border-b border-theme-border sticky top-0 z-50 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            <Image src="/favicon.png" alt="Logo" width={32} height={32} className="object-contain shrink-0" />
-            <span className="font-bold text-theme-primary truncate text-sm sm:text-base">{exam?.title}</span>
-          </Link>
-          <div className="flex items-center space-x-3">
-            <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary transition-all">
-              <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
-            </button>
-            {screen === 'exam' ? (
-              <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent border-indigo-200 dark:border-indigo-500/20'}`}>
-                {mins}:{secs}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-4xl mx-auto p-4 md:p-8">
         {screen !== 'exam' ? (
           <div className="mb-6">
@@ -224,7 +203,15 @@ export default function ExamPage({ params }) {
               <i className="fas fa-arrow-left" />
             </Link>
           </div>
-        ) : null}
+        ) : (
+          /* Timer bar shown during exam instead of header */
+          <div className="flex items-center justify-between mb-6 bg-theme-surface border border-theme-border rounded-2xl px-5 py-3 shadow-sm">
+            <span className="font-semibold text-theme-secondary text-sm truncate">{exam?.title}</span>
+            <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent border-indigo-200 dark:border-indigo-500/20'}`}>
+              {mins}:{secs}
+            </div>
+          </div>
+        )}
 
         {screen === 'setup' ? (
           <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 shadow-sm space-y-6">
@@ -290,7 +277,7 @@ export default function ExamPage({ params }) {
               )
             })}
             <div className="flex justify-center pt-4 pb-10">
-              <button onClick={() => setModalOpen(true)} className="bg-theme-success-text hover:opacity-90 text-white font-bold py-4 px-14 rounded-xl shadow-lg transition-all">
+              <button onClick={() => setModalOpen(true)} className="bg-theme-accent hover:opacity-90 text-white font-bold py-4 px-14 rounded-xl shadow-lg transition-all">
                 Submit Exam
               </button>
             </div>
@@ -328,51 +315,73 @@ export default function ExamPage({ params }) {
   )
 }
 
+import QuestionReviewCard from '@/components/QuestionReviewCard'
+
 function ResultScreen({ result, studentName, examId, onBack }) {
   const percentage = (result.score / result.total) * 100
   const displayScore = useCountUp(result.score, 900)
+  const [filter, setFilter] = useState('all')
+
+  const filteredQuestions = result.questions
+    .map((question, index) => {
+      const userAnswer = result.answers ? result.answers[index] : undefined
+      const isCorrect = userAnswer === question.correct
+      return { question, index, userAnswer, isCorrect }
+    })
+    .filter(({ isCorrect }) => {
+      if (filter === 'right') return isCorrect
+      if (filter === 'wrong') return !isCorrect
+      return true
+    })
 
   return (
-    <div className="space-y-6 text-center">
-      <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 md:p-12 shadow-sm">
-        <div className="mb-6">
-          {percentage >= 70 ? <i className="fas fa-check-circle text-7xl text-theme-success-text" /> : percentage >= 40 ? <i className="fas fa-info-circle text-7xl text-yellow-500" /> : <i className="fas fa-times-circle text-7xl text-theme-error-text" />}
+    <div className="space-y-6">
+      {/* Score summary */}
+      <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 shadow-sm text-center">
+        <div className="mb-4">
+          {percentage >= 70 ? <i className="fas fa-check-circle text-6xl text-theme-success-text" /> : percentage >= 40 ? <i className="fas fa-info-circle text-6xl text-yellow-500" /> : <i className="fas fa-times-circle text-6xl text-theme-error-text" />}
         </div>
-        <h2 className="text-3xl font-bold text-theme-primary mb-1">Exam Completed!</h2>
-        <p className="text-theme-secondary mb-8">Results for: <span className="font-semibold text-theme-primary">{studentName}</span></p>
-        <div className="inline-block bg-theme-bg border border-theme-border rounded-2xl px-10 py-6 mb-6">
-          <p className="text-xs uppercase tracking-widest text-theme-secondary font-bold mb-1">Your Score</p>
-          <p className="text-6xl font-black text-theme-accent">{displayScore}<span className="text-3xl text-theme-secondary">/{result.total}</span></p>
+        <h2 className="text-2xl font-extrabold text-theme-primary mb-1">Exam Completed!</h2>
+        <p className="text-theme-secondary text-sm mb-6">Results for: <span className="font-semibold text-theme-primary">{studentName}</span></p>
+        <div className="inline-flex items-end gap-1 bg-theme-bg border border-theme-border rounded-2xl px-10 py-5 mb-6">
+          <p className="text-6xl font-black text-theme-accent leading-none">{displayScore}</p>
+          <p className="text-2xl font-bold text-theme-secondary mb-1">/{result.total}</p>
         </div>
-        <div className="mb-8">
+        <div>
           <Link href={`/leaderboard/${examId}`} className="inline-flex items-center space-x-2 text-theme-accent hover:text-theme-primary transition-colors font-bold bg-indigo-500/10 hover:bg-indigo-500/20 px-6 py-3 rounded-xl">
             <span>See leaderboard</span>
             <i className="fas fa-arrow-right" />
           </Link>
         </div>
-        <div className="text-left space-y-4 mt-8">
-          <h3 className="text-xl font-bold text-theme-primary border-b border-theme-border pb-3">Answer Review</h3>
-          {result.questions.map((question, index) => {
-            const userAnswer = result.answers ? result.answers[index] : undefined
-            const isCorrect = userAnswer === question.correct
-            return (
-              <div key={index} className={`p-5 rounded-2xl border ${isCorrect ? 'bg-theme-success-bg border-theme-success-border' : 'bg-theme-error-bg border-theme-error-border'}`}>
-                <div className="font-bold text-theme-primary mb-4 text-sm sm:text-base leading-relaxed [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(`${index + 1}. ${question.question}`) }} />
-                <div className="text-sm space-y-2.5">
-                  <p className={`${isCorrect ? 'text-theme-success-text' : 'text-theme-error-text'} font-semibold`}>
-                    Your answer: {userAnswer !== undefined ? <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(question.options[userAnswer]) }} /> : <i>Not answered</i>}
-                  </p>
-                  {!isCorrect ? <div className="text-theme-success-text font-semibold">Correct: <span className="font-medium [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(question.options[question.correct]) }} /></div> : null}
-                  {question.explanation ? <div className="text-theme-secondary mt-4 text-xs sm:text-sm border-t border-theme-border pt-3 leading-relaxed [&_p]:m-0 [&_p]:inline"><i className="fas fa-lightbulb mr-1.5 text-yellow-500" /><span dangerouslySetInnerHTML={{ __html: safeHTML(question.explanation) }} /></div> : null}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <button onClick={onBack} className="mt-10 text-theme-secondary hover:text-theme-primary flex items-center justify-center mx-auto space-x-2 transition-colors text-sm">
-          <i className="fas fa-arrow-left" /><span>Back to Home</span>
-        </button>
       </div>
+
+      {/* Answer review */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-theme-primary">Answer Review</h3>
+          <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1 gap-1">
+            {['all', 'right', 'wrong'].map((value) => (
+              <button key={value} onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text' : 'bg-theme-bg border border-theme-border text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'}`}>
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-4">
+          {filteredQuestions.length === 0 ? (
+            <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl text-theme-secondary">
+              <i className="fas fa-folder-open text-4xl mb-3 opacity-40" />
+              <p>No questions for this filter.</p>
+            </div>
+          ) : filteredQuestions.map(({ question, index, userAnswer }) => (
+            <QuestionReviewCard key={index} question={question} index={index} userAnswer={userAnswer} />
+          ))}
+        </div>
+      </div>
+
+      <button onClick={onBack} className="text-theme-secondary hover:text-theme-primary flex items-center justify-center mx-auto space-x-2 transition-colors text-sm pb-6">
+        <i className="fas fa-arrow-left" /><span>Back to Home</span>
+      </button>
     </div>
   )
 }

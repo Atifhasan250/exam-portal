@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import Navbar from '@/components/Navbar'
 
 export default function ExamsPage() {
   const [exams, setExams] = useState([])
@@ -70,14 +69,22 @@ export default function ExamsPage() {
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
-      <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-14">
-        <div className="flex items-center space-x-3">
-          <Link href="/" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
-            <i className="fas fa-arrow-left" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Link href="/" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shrink-0">
+              <i className="fas fa-arrow-left" />
+            </Link>
+            <h2 className="text-3xl font-extrabold text-theme-primary">All Exams</h2>
+          </div>
+          <Link
+            href="/leaderboard"
+            className="flex items-center justify-center gap-2 w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl text-sm font-semibold bg-theme-surface border border-theme-border text-theme-primary hover:border-yellow-500/50 hover:text-yellow-500 transition-all shadow-sm shrink-0"
+          >
+            <i className="fas fa-trophy text-yellow-500" />
+            <span className="hidden sm:inline">Leaderboard</span>
           </Link>
-          <h2 className="text-3xl font-extrabold text-theme-primary">All Exams</h2>
         </div>
 
         {loading ? (

@@ -11,6 +11,7 @@
 IT Resource Zone is a structured exam platform designed for IT students. It allows:
 
 - **Registered students** to take timed live exams and practice past exams
+- **Daily habit & study planner** tracking with advanced performance analytics
 - **Score tracking** with a personal submission history per student
 - **Leaderboards** per exam showing ranked results publicly
 - **Anti-cheat enforcement** — tab switching or browser close auto-submits the exam
@@ -23,6 +24,9 @@ IT Resource Zone is a structured exam platform designed for IT students. It allo
 | `/` | Home / landing page |
 | `/exams` | Browse all live, upcoming, and past exams |
 | `/exam/[id]` | Take a specific exam |
+| `/tasks` | Daily habits and weekly task planner |
+| `/tasks/history` | Advanced task and habit analytics |
+| `/resources` | Educational materials and useful links |
 | `/leaderboard` | Global leaderboard across all exams |
 | `/leaderboard/[id]` | Per-exam leaderboard |
 | `/profile` | Student's personal exam history |
