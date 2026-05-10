@@ -15,7 +15,6 @@ export default function TasksPage() {
   
   const [plannerData, setPlannerData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [tagDismissed, setTagDismissed] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
 
   const loadData = useCallback(async () => {
@@ -23,7 +22,6 @@ export default function TasksPage() {
       const data = await getPlannerData()
       if (data) {
         setPlannerData(data)
-        setTagDismissed(data.tagDismissed)
       }
     } catch (error) {
       console.error('Failed to load planner data:', error)
@@ -72,13 +70,6 @@ export default function TasksPage() {
       await updatePlannerData(newData)
     } catch (e) {
       console.error('Sync failed', e)
-    }
-  }
-
-  const handleDismissTag = () => {
-    setTagDismissed(true)
-    if (plannerData) {
-      syncData({ ...plannerData, tagDismissed: true })
     }
   }
 
@@ -155,7 +146,6 @@ export default function TasksPage() {
       const resetData = await resetPlannerData()
       if (resetData) {
         setPlannerData(resetData)
-        setTagDismissed(resetData.tagDismissed)
         setShowResetDialog(false)
       }
     } catch (e) {

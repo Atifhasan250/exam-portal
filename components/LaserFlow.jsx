@@ -527,7 +527,6 @@ export const LaserFlow = ({
       renderer.dispose();
       if (mount && mount.contains(canvas)) mount.removeChild(canvas);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dpr]);
 
   useEffect(() => {
