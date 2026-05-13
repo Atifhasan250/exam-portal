@@ -50,6 +50,8 @@ MONGO_URI=your_mongodb_connection_string
 # Admin Authentication
 ADMIN_USERNAME=your_secure_admin_username
 ADMIN_PASSWORD=your_secure_admin_password
+# Optional stronger alternative:
+# ADMIN_PASSWORD_HASH=scrypt:your_salt:your_derived_hex_hash
 JWT_SECRET=your_secure_jwt_secret
 
 # Clerk Authentication (Student Portal)

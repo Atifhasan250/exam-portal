@@ -2,8 +2,28 @@ import { connectDB } from '@/lib/db'
 import Exam from '@/lib/models/Exam'
 import Submission from '@/lib/models/Submission'
 import LeaderboardClient from './LeaderboardClient'
+import { buildPageMetadata } from '@/lib/site'
 
 export const revalidate = 60
+export const metadata = buildPageMetadata({
+  title: 'Leaderboard',
+  description:
+    'View live exam rankings, compare student results, and track performance across published live assessments.',
+  path: '/leaderboard',
+  keywords: ['exam leaderboard', 'student ranking', 'live exam results'],
+})
+
+function toPublicLeaderboardSubmission(submission) {
+  return {
+    _id: submission._id,
+    studentName: submission.studentName,
+    score: submission.score,
+    total: submission.total,
+    wrong: submission.wrong,
+    unanswered: submission.unanswered,
+    submittedAt: submission.submittedAt,
+  }
+}
 
 async function getLeaderboardData() {
   await connectDB()
@@ -28,10 +48,12 @@ async function getLeaderboardData() {
   }
 
   const data = exams
-    .map((exam) => ({ exam, submissions: grouped[exam._id.toString()]?.list || [] }))
+    .map((exam) => ({
+      exam,
+      submissions: (grouped[exam._id.toString()]?.list || []).map(toPublicLeaderboardSubmission),
+    }))
     .filter((item) => item.submissions.length > 0)
 
-  // Serialize for client (ObjectIds → strings, Dates → ISO strings)
   return JSON.parse(JSON.stringify(data))
 }
 

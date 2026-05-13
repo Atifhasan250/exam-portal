@@ -76,10 +76,16 @@ export async function updatePlannerData(data) {
 
   await connectDB()
 
-  // Find and update, or create if it somehow doesn't exist
+  // Whitelist allowed fields to prevent mass assignment attacks
+  // (e.g. a client sending { clerkUserId: 'someone_elses_id' })
+  const ALLOWED_FIELDS = ['habits', 'habitHistory', 'weeks', 'tagDismissed']
+  const safeData = Object.fromEntries(
+    Object.entries(data).filter(([key]) => ALLOWED_FIELDS.includes(key))
+  )
+
   const planner = await PlannerData.findOneAndUpdate(
     { clerkUserId: userId },
-    { $set: data },
+    { $set: safeData },
     { new: true, upsert: true, lean: true }
   )
 

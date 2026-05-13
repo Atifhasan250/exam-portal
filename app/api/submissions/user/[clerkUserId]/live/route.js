@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
+import { requireUserOrAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import Submission from '@/lib/models/Submission'
 
@@ -7,6 +8,9 @@ import Submission from '@/lib/models/Submission'
 export async function GET(_request, { params }) {
   try {
     const { clerkUserId } = await params
+    const authCheck = await requireUserOrAdmin(clerkUserId)
+    if (!authCheck.ok) return authCheck.response
+
     await connectDB()
 
     const submissions = await Submission.find(

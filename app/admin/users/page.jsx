@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -61,6 +62,17 @@ export default function AdminUsers() {
     setSelectedUser(null)
     setUserDetails(null)
   }
+
+  useEffect(() => {
+    if (selectedUser) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [selectedUser])
 
   const fmtDate = (date) => date ? new Date(date).toLocaleString([], { dateStyle: 'medium' }) : '—'
 
@@ -131,8 +143,9 @@ export default function AdminUsers() {
       </main>
 
       {/* User Details Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-start justify-center p-4 overflow-y-auto modal-backdrop">
+      {selectedUser && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-start justify-center p-4 overflow-y-auto modal-backdrop">
           <div className="bg-theme-surface border border-theme-border rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-2xl my-8 modal-panel relative">
 
             <button
@@ -284,8 +297,9 @@ export default function AdminUsers() {
               </div>
             ) : null}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null}
     </div>
   )
 }

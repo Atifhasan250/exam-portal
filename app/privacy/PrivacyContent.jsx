@@ -92,7 +92,7 @@ const sections = [
       },
       {
         heading: 'Account Deletion',
-        text: 'You have the right to request deletion of your account and all associated personal data. To do so, contact us at support@itresourcezone.com.',
+        text: 'You have the right to request deletion of your account and all associated personal data. To do so, contact us at itresourcezone@gmail.com.',
       },
       {
         heading: 'Data Portability',
@@ -123,7 +123,7 @@ const sections = [
     content: [
       {
         heading: 'Get in Touch',
-        text: 'If you have any questions about this Privacy Policy or how we handle your data, please contact us at support@itresourcezone.com. You can also reach us through our Telegram channel at t.me/Itzonei.',
+        text: 'If you have any questions about this Privacy Policy or how we handle your data, please contact us at itresourcezone@gmail.com.com. You can also reach us through our Telegram channel at t.me/Itzonei.',
       },
     ],
   },

@@ -1,8 +1,32 @@
+import { getSiteUrl } from '@/lib/site'
+
 export default function robots() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const baseUrl = getSiteUrl()
 
   return {
-    rules: { userAgent: '*', allow: '/', disallow: '/admin' },
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/admin/', '/api/admin/'],
+      },
+      {
+        userAgent: [
+          'Googlebot',
+          'Bingbot',
+          'Applebot',
+          'Amazonbot',
+          'ChatGPT-User',
+          'GPTBot',
+          'ClaudeBot',
+          'anthropic-ai',
+          'PerplexityBot',
+          'cohere-ai',
+        ],
+        allow: '/',
+        disallow: ['/admin/', '/api/admin/'],
+      },
+    ],
     sitemap: `${baseUrl}/sitemap.xml`,
   }
 }

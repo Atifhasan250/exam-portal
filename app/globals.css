@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Enable smooth scrolling globally */
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --color-bg: #E8EDF8;
   --color-surface: #FFFFFF;
@@ -53,15 +58,17 @@
 
 body {
   font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  /* user-select intentionally NOT set here — removing it from body restores
+     text selection across the whole app (accessibility + usability).
+     Anti-cheat selection blocking is scoped to .no-copy on exam screens only. */
 }
 
+/* Apply this class only to active exam question containers for anti-cheat */
 .no-copy {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
 }
 
@@ -349,4 +356,29 @@ code {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@keyframes scroll-dot {
+  0% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  75% {
+    transform: translateX(-50%) translateY(16px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 0;
+  }
+}
+
+.scroll-indicator-dot {
+  animation: scroll-dot 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

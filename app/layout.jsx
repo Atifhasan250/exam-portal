@@ -2,6 +2,8 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import AppProviders from '@/components/ThemeProvider'
 import AppChrome from '@/components/AppChrome'
+import { getSiteUrl } from '@/lib/site'
+import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -9,7 +11,7 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://it-resource-zone.vercel.app'
+const siteUrl = getSiteUrl()
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
@@ -22,6 +24,10 @@ export const metadata = {
   keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'IT Resource Zone'],
   authors: [{ name: 'Atif Hasan', url: 'https://atifs-portfolio.vercel.app/' }],
   creator: 'Atif Hasan',
+  // Canonical URL — tells search engines the authoritative address for this site
+  alternates: {
+    canonical: siteUrl,
+  },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',
@@ -32,7 +38,7 @@ export const metadata = {
     locale: 'en_US',
     url: siteUrl,
     siteName: 'IT Resource Zone',
-    title: 'IT Resource Zone — Free Online IT Exams & Rankings',
+    title: 'IT Resource Zone - Free Online IT Exams and Rankings',
     description:
       'Test your IT knowledge, track daily study habits, and access curated IT resources. Compete with peers and climb the leaderboard.',
     images: [
@@ -40,13 +46,13 @@ export const metadata = {
         url: '/link-preview.jpg',
         width: 1200,
         height: 630,
-        alt: 'IT Resource Zone — Online IT Exams Platform',
+        alt: 'IT Resource Zone - Online IT Exams Platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'IT Resource Zone — Free Online IT Exams & Rankings',
+    title: 'IT Resource Zone - Free Online IT Exams and Rankings',
     description:
       'Test your IT knowledge, track daily study habits, and access curated IT resources. Compete with peers and climb the leaderboard.',
     images: ['/link-preview.jpg'],
@@ -70,6 +76,55 @@ export const metadata = {
   },
 }
 
+// ── JSON-LD Structured Data ───────────────────────────────────────────────────
+// Schema.org markup tells Google exactly what this site is, enabling rich results.
+// Test at: https://search.google.com/test/rich-results
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'IT Resource Zone',
+  url: siteUrl,
+  description:
+    'Free online platform for IT exams, study planning, daily habits tracking, and learning resources.',
+  author: {
+    '@type': 'Person',
+    name: 'Atif Hasan',
+    url: 'https://atifs-portfolio.vercel.app/',
+  },
+}
+
+const webAppSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'IT Resource Zone',
+  url: siteUrl,
+  description:
+    'Take timed IT exams, track daily study habits, build weekly plans, and compete on the leaderboard. Free for all beginner IT students.',
+  applicationCategory: 'EducationApplication',
+  operatingSystem: 'Web',
+  inLanguage: 'en',
+  isAccessibleForFree: true,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'BDT',
+  },
+  author: {
+    '@type': 'Person',
+    name: 'Atif Hasan',
+    url: 'https://atifs-portfolio.vercel.app/',
+  },
+  featureList: [
+    'Live timed IT exams',
+    'Instant exam results and score tracking',
+    'Leaderboard with rankings',
+    'Weekly study planner',
+    'Daily habit tracker',
+    'Free learning resources',
+  ],
+}
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
@@ -79,11 +134,21 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
+        {/* JSON-LD structured data — machine-readable site description for Google rich results */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+        />
       </head>
       <body className={inter.className}>
         <AppProviders>
           <AppChrome>{children}</AppChrome>
         </AppProviders>
+        <Analytics />
       </body>
     </html>
   )

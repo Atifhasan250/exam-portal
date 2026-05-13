@@ -4,6 +4,18 @@ import { logger } from '@/lib/logger'
 import Exam from '@/lib/models/Exam'
 import Submission from '@/lib/models/Submission'
 
+function toPublicLeaderboardSubmission(submission) {
+  return {
+    _id: submission._id,
+    studentName: submission.studentName,
+    score: submission.score,
+    total: submission.total,
+    wrong: submission.wrong,
+    unanswered: submission.unanswered,
+    submittedAt: submission.submittedAt,
+  }
+}
+
 export async function GET() {
   try {
     await connectDB()
@@ -28,7 +40,10 @@ export async function GET() {
     }
 
     const data = exams
-      .map((exam) => ({ exam, submissions: grouped[exam._id.toString()]?.list || [] }))
+      .map((exam) => ({
+        exam,
+        submissions: (grouped[exam._id.toString()]?.list || []).map(toPublicLeaderboardSubmission),
+      }))
       .filter((item) => item.submissions.length > 0)
 
     return NextResponse.json(data, {

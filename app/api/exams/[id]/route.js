@@ -9,6 +9,15 @@ import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
 
+function toPublicQuestion(question) {
+  return {
+    _id: question._id,
+    question: question.question,
+    options: question.options,
+    order: question.order,
+  }
+}
+
 export async function GET(_request, { params }) {
   try {
     const { id } = await params
@@ -19,7 +28,10 @@ export async function GET(_request, { params }) {
     }
 
     const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
-    return NextResponse.json({ ...exam, questions })
+    return NextResponse.json({
+      ...exam,
+      questions: questions.map(toPublicQuestion),
+    })
   } catch (error) {
     logger.error('[GET /api/exams/[id]]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })

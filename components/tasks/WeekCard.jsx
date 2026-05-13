@@ -21,6 +21,7 @@ export default function WeekCard({
   })
 
   const [menuTask, setMenuTask] = useState(null)
+  const [deleteConfirmTask, setDeleteConfirmTask] = useState(null) // replaces window.confirm()
 
   const handleToggle = (taskId) => {
     onToggleTask(weekIndex, taskId)
@@ -227,10 +228,8 @@ export default function WeekCard({
                   <div className="h-px bg-theme-border" />
                   <button
                     onClick={() => {
-                      if (confirm('Are you sure you want to delete this task?')) {
-                        onDeleteTask(weekIndex, task.id)
-                      }
                       setMenuTask(null)
+                      setDeleteConfirmTask(task)
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2 font-medium"
                   >
@@ -260,6 +259,38 @@ export default function WeekCard({
 
       {showAddModal && renderModal('Add New Task', false)}
       {showEditModal && renderModal('Edit Task', true)}
+
+      {/* Delete Confirmation Modal — replaces window.confirm() */}
+      {deleteConfirmTask && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl w-full max-w-sm p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-4">
+              <i className="fas fa-trash" />
+            </div>
+            <h3 className="text-lg font-bold text-theme-primary text-center mb-2">Delete Task?</h3>
+            <p className="text-sm text-theme-secondary text-center mb-6">
+              &ldquo;{deleteConfirmTask.desc}&rdquo; will be permanently removed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmTask(null)}
+                className="flex-1 bg-theme-bg border border-theme-border text-theme-primary py-3 rounded-xl font-bold hover:bg-theme-surface transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteTask(weekIndex, deleteConfirmTask.id)
+                  setDeleteConfirmTask(null)
+                }}
+                className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

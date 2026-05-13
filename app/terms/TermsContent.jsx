@@ -102,7 +102,7 @@ const sections = [
     content: [
       {
         heading: 'Account Termination',
-        text: 'We reserve the right to suspend or terminate your account at any time for violation of these Terms of Service, without prior notice. You may also delete your account at any time by contacting support@itresourcezone.com.',
+        text: 'We reserve the right to suspend or terminate your account at any time for violation of these Terms of Service, without prior notice. You may also delete your account at any time by contacting itresourcezone@gmail.com.',
       },
       {
         heading: 'Effect of Termination',
@@ -124,7 +124,7 @@ const sections = [
     content: [
       {
         heading: 'Questions',
-        text: 'If you have any questions about these Terms of Service, please contact us at support@itresourcezone.com or reach out through our Telegram channel at t.me/Itzonei.',
+        text: 'If you have any questions about these Terms of Service, please contact us at itresourcezone@gmail.com or reach out through our Telegram channel at t.me/Itzonei.',
       },
     ],
   },

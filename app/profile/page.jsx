@@ -146,10 +146,16 @@ export default function ProfilePage() {
     if (!user) return
     setDeletingAccount(true)
     try {
-      await user.delete()
-      // Clerk will automatically clear the session and redirect or re-render
+      const response = await fetch('/api/account', {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete account')
+      }
+      router.push('/')
     } catch (err) {
-      console.error("Failed to delete account", err)
+      console.error('Failed to delete account', err)
       setDeletingAccount(false)
     }
   }
@@ -340,8 +346,10 @@ export default function ProfilePage() {
 
       {showEditModal ? (() => {
         const isNewUser = !user?.fullName && !user?.firstName
-        return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 modal-backdrop">
+
+        if (typeof document === 'undefined') return null
+        return createPortal(
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 modal-backdrop">
             <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel">
               {isNewUser ? (
                 <>
@@ -376,7 +384,8 @@ export default function ProfilePage() {
                 </button>
               ) : null}
             </div>
-          </div>
+          </div>,
+          document.body
         )
       })() : null}
 
@@ -424,7 +433,7 @@ export default function ProfilePage() {
             </div>
             <h3 className="text-2xl font-black text-center mb-2">Delete Account?</h3>
             <p className="text-theme-secondary text-center mb-8">
-              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. All your exam history, tasks, and data will be permanently erased.
+              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. Your sign-in account will be deleted immediately. Full deletion of saved exam and task records is still being improved.
             </p>
             <div className="flex gap-4">
               <button
