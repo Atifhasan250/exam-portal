@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Admin | IT Resource Zone',
+  title: 'Sign Up | IT Resource Zone',
   robots: {
     index: false,
     follow: false,
@@ -10,6 +10,6 @@ export const metadata = {
   },
 }
 
-export default function AdminLayout({ children }) {
+export default function SignUpLayout({ children }) {
   return children
 }

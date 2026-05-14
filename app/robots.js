@@ -8,7 +8,7 @@ export default function robots() {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin/', '/api/admin/'],
+        disallow: ['/admin', '/admin/', '/api/admin/'],
       },
       {
         userAgent: [
@@ -24,7 +24,7 @@ export default function robots() {
           'cohere-ai',
         ],
         allow: '/',
-        disallow: ['/admin/', '/api/admin/'],
+        disallow: ['/admin', '/admin/', '/api/admin/'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
