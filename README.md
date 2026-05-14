@@ -1,5 +1,7 @@
 # IT Resource Zone
 
+Live site: `https://irz.atifhasan.com`
+
 IT Resource Zone is a comprehensive, production-ready online examination platform designed for IT students and professionals. Built with Next.js 14 App Router, it provides a seamless experience for taking live assessments, practicing past exams, and competing on global and per-exam leaderboards. 
 
 The platform features a secure, separated architecture for both student users (powered by Clerk) and administrative management (powered by custom JWT authentication).
@@ -18,7 +20,7 @@ The platform features a secure, separated architecture for both student users (p
 
 ## Technology Stack
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 15 (App Router)
 - **UI Library:** React 19
 - **Database:** MongoDB (via Mongoose with connection pooling and transactions)
 - **Authentication (Students):** Clerk
@@ -50,8 +52,8 @@ MONGO_URI=your_mongodb_connection_string
 # Admin Authentication
 ADMIN_USERNAME=your_secure_admin_username
 ADMIN_PASSWORD=your_secure_admin_password
-# Optional stronger alternative:
-# ADMIN_PASSWORD_HASH=scrypt:your_salt:your_derived_hex_hash
+# Required in production:
+ADMIN_PASSWORD_HASH=scrypt:your_salt:your_derived_hex_hash
 JWT_SECRET=your_secure_jwt_secret
 
 # Clerk Authentication (Student Portal)
@@ -63,10 +65,31 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
 # Site Configuration
+# In Vercel production, keep this exact custom domain. Do not use the Vercel
+# subdomain here, or robots/sitemap/canonical URLs may point at the wrong host.
+NEXT_PUBLIC_SITE_URL=https://irz.atifhasan.com
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=your_google_verification_code
 NEXT_PUBLIC_BING_SITE_VERIFICATION=your_bing_verification_code
+
+# Persistent rate limiting for admin login
+UPSTASH_REDIS_REST_URL=your_upstash_rest_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
 ```
+
+Generate a production admin password hash with:
+
+```bash
+node -e "const crypto=require('crypto'); const password=process.argv[1]; const salt=crypto.randomBytes(16).toString('hex'); const hash=crypto.scryptSync(password,salt,64).toString('hex'); console.log(`scrypt:${salt}:${hash}`)" "your-admin-password"
+```
+
+## SEO Deployment Checklist
+
+- Set `NEXT_PUBLIC_SITE_URL=https://irz.atifhasan.com` in Vercel production environment variables.
+- Submit `https://irz.atifhasan.com/sitemap.xml` in Google Search Console.
+- Use URL Inspection for `https://irz.atifhasan.com/` after major deploys and request indexing.
+- Keep `robots.txt`, `sitemap.xml`, canonical URLs, OpenGraph URLs, and JSON-LD URLs on the custom domain.
+- Keep `/resources` noindexed until it contains real useful resource links and copy.
 
 ## Running the Application
 

@@ -5,6 +5,7 @@ import { getClerkSession } from '@/lib/auth'
 import { rateLimit } from '@/lib/rateLimit'
 import { validate, submitExamSchema } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
@@ -20,15 +21,27 @@ export async function POST(request, { params }) {
 
   try {
     const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
     await connectDB()
     const exam = await Exam.findById(id).lean()
     if (!exam) {
+      return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
+    }
+    if (!exam.published) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
     const { userId } = await getClerkSession()
     if (!userId) {
       return NextResponse.json({ error: 'Please sign in before taking an exam.' }, { status: 401 })
+    }
+
+    const now = new Date()
+    const liveStart = exam.liveStart ? new Date(exam.liveStart) : null
+    const liveEnd = exam.liveEnd ? new Date(exam.liveEnd) : null
+    if (liveStart && now < liveStart) {
+      return NextResponse.json({ error: 'This exam has not started yet.' }, { status: 403 })
     }
 
     // ── Validate input ──────────────────────────────────────────────
@@ -39,6 +52,15 @@ export async function POST(request, { params }) {
     const { answers, studentName } = parsed.data
 
     const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
+    const invalidAnswer = Object.entries(answers).some(([key, value]) => {
+      if (!/^\d+$/.test(key)) return true
+      const index = Number(key)
+      return index < 0 || index >= questions.length || value >= questions[index].options.length
+    })
+
+    if (invalidAnswer) {
+      return NextResponse.json({ error: 'Invalid answers submitted' }, { status: 400 })
+    }
 
     let score = 0
     let wrong = 0
@@ -49,9 +71,7 @@ export async function POST(request, { params }) {
       else wrong += 1
     })
 
-    const now = new Date()
-    const wasLive = exam.liveStart && exam.liveEnd &&
-      now >= new Date(exam.liveStart) && now <= new Date(exam.liveEnd)
+    const wasLive = Boolean(liveStart && liveEnd && now >= liveStart && now <= liveEnd)
 
     // ── Transaction: duplicate check + create (atomic) ──────────────
     const session = await mongoose.startSession()
@@ -86,9 +106,16 @@ export async function POST(request, { params }) {
         )
       })
 
-      return NextResponse.json({ score, total: questions.length, wrong, unanswered, questions })
+      return NextResponse.json({
+        score,
+        total: questions.length,
+        wrong,
+        unanswered,
+        reviewAvailable: !wasLive,
+        questions: wasLive ? [] : questions,
+      })
     } catch (txError) {
-      if (txError.message === 'DUPLICATE_SUBMISSION') {
+      if (txError.message === 'DUPLICATE_SUBMISSION' || txError.code === 11000) {
         return NextResponse.json(
           { error: 'You have already completed this live exam.' },
           { status: 409 },

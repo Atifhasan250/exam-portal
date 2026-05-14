@@ -7,8 +7,7 @@ import { useEffect, useRef } from 'react'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user } = hasClerk ? useUser() : { user: null }
+  const { user } = useUser()
   const navRef = useRef(null)
   const pillRef = useRef(null)
 

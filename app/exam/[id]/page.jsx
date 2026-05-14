@@ -1,10 +1,18 @@
 import { buildPageMetadata } from '@/lib/site'
+import { isValidObjectId } from '@/lib/routeParams'
 import { connectDB } from '@/lib/db'
 import Exam from '@/lib/models/Exam'
 import ExamPageClient from './ExamPageClient'
 
 export async function generateMetadata({ params }) {
   const { id } = await params
+  if (!isValidObjectId(id)) {
+    return buildPageMetadata({
+      title: 'Exam Not Found',
+      description: 'The requested exam could not be found.',
+      path: `/exam/${id}`,
+    })
+  }
 
   try {
     await connectDB()

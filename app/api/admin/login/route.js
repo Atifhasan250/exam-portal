@@ -1,10 +1,11 @@
 import crypto from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { assertServerEnv, hasAdminPasswordConfigured } from '@/lib/env'
+import { assertAdminSecurityEnv, assertServerEnv, hasAdminPasswordConfigured } from '@/lib/env'
 import { rateLimit } from '@/lib/rateLimit'
 import { setAdminCookie, signAdminToken } from '@/lib/auth'
 import { validate, adminLoginSchema } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { enforceSameOrigin } from '@/lib/requestSecurity'
 
 function timingSafeEqual(a, b) {
   const aBuf = Buffer.from(a)
@@ -28,8 +29,12 @@ function verifyPassword(password) {
 }
 
 export async function POST(request) {
+  const originCheck = enforceSameOrigin(request)
+  if (originCheck) return originCheck
+
   try {
     assertServerEnv()
+    assertAdminSecurityEnv()
     if (!hasAdminPasswordConfigured()) {
       throw new Error('Missing environment variable: ADMIN_PASSWORD or ADMIN_PASSWORD_HASH')
     }
@@ -46,6 +51,7 @@ export async function POST(request) {
       max: 5,
       keyParts: [username.toLowerCase()],
       message: 'Too many login attempts. Try again in 15 minutes.',
+      requirePersistent: true,
     })
     if (limited) return limited
 

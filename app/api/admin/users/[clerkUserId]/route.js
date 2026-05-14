@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
+import { getRankedLiveSubmissions } from '@/lib/leaderboard'
 import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
 import { clerkClient } from '@clerk/nextjs/server'
@@ -71,7 +72,7 @@ export async function GET(_request, { params }) {
 
     // 3. Fetch Exam History
     const submissions = await Submission.find({ clerkUserId })
-      .populate('examId', 'title questionCount duration')
+      .populate('examId', 'title duration')
       .sort({ submittedAt: -1 })
       .lean()
 
@@ -82,16 +83,9 @@ export async function GET(_request, { params }) {
 
       let rank = null
       if (sub.wasLive) {
-        // Calculate exact rank based on live leaderboard rules
-        const higherRankCount = await Submission.countDocuments({
-          examId: sub.examId._id,
-          wasLive: true,
-          $or: [
-            { score: { $gt: sub.score } },
-            { score: sub.score, submittedAt: { $lt: sub.submittedAt } }
-          ]
-        })
-        rank = higherRankCount + 1
+        const ranked = await getRankedLiveSubmissions({ examId: sub.examId._id })
+        const rankIndex = ranked.findIndex((item) => item._id.toString() === sub._id.toString())
+        rank = rankIndex >= 0 ? rankIndex + 1 : null
       }
 
       examHistory.push({
@@ -99,7 +93,7 @@ export async function GET(_request, { params }) {
         examId: sub.examId._id,
         examTitle: sub.examId.title,
         score: sub.score,
-        totalQuestions: sub.examId.questionCount || 0,
+        totalQuestions: sub.total,
         wasLive: sub.wasLive,
         submittedAt: sub.submittedAt,
         rank

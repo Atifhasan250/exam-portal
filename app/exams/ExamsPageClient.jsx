@@ -11,8 +11,7 @@ export default function ExamsPageClient() {
   const [submittedLiveIds, setSubmittedLiveIds] = useState(new Set())
   const [now, setNow] = useState(new Date())
   const router = useRouter()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user } = hasClerk ? useUser() : { user: null }
+  const { user } = useUser()
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000)
@@ -55,7 +54,7 @@ export default function ExamsPageClient() {
   const fmtDate = (date) => new Date(date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 
   const handleTakeExam = (examId) => {
-    if (hasClerk && !user) {
+    if (!user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${examId}`)}`)
       return
     }

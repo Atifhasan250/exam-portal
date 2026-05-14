@@ -188,7 +188,7 @@ export default function AdminExamView({ params }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-theme-secondary cursor-move"><i className="fas fa-grip-vertical" /></span>
-                <button onClick={() => setQuestionToDelete(index)} className="flex-shrink-0 w-8 h-8 rounded-lg bg-theme-error-bg text-theme-error-text border border-theme-error-border flex items-center justify-center hover:opacity-80 transition-all text-xs">
+                <button onClick={() => setQuestionToDelete(question._id)} className="flex-shrink-0 w-8 h-8 rounded-lg bg-theme-error-bg text-theme-error-text border border-theme-error-border flex items-center justify-center hover:opacity-80 transition-all text-xs">
                   <i className="fas fa-trash" />
                 </button>
               </div>
@@ -205,7 +205,9 @@ export default function AdminExamView({ params }) {
                 <i className="fas fa-trash-alt text-2xl" />
               </div>
               <h3 className="text-xl font-bold text-theme-primary">Delete Question?</h3>
-              <p className="text-theme-secondary text-sm">Are you sure you want to permanently delete question <strong>{questionToDelete + 1}</strong>? This action cannot be undone.</p>
+              <p className="text-theme-secondary text-sm">
+                Are you sure you want to permanently delete this question?
+              </p>
             </div>
             <div className="flex space-x-3 pt-2">
               <button onClick={() => setQuestionToDelete(null)} className="flex-1 bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary py-2.5 rounded-xl font-bold transition-all">Cancel</button>

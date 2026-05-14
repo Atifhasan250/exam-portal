@@ -25,6 +25,7 @@ coverage
 .env.test.local
 .env.production.local
 *.local
+scratch.cjs
 
 # Editor directories and files
 .vscode/*

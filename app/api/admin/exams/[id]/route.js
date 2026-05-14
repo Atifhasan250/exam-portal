@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
+import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 
@@ -11,6 +12,8 @@ export async function GET(_request, { params }) {
 
   try {
     const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
     await connectDB()
     const exam = await Exam.findById(id).lean()
     if (!exam) {

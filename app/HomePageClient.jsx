@@ -6,8 +6,7 @@ import { useTheme } from '@/context/ThemeContext'
 import LaserFlow from '@/components/LaserFlow'
 
 export default function HomePageClient() {
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user } = hasClerk ? useUser() : { user: null }
+  const { user } = useUser()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -73,7 +72,7 @@ export default function HomePageClient() {
                   <i className="fas fa-rocket" />
                   <span>Browse Exams</span>
                 </Link>
-                {hasClerk && !user ? (
+                {!user ? (
                   <Link
                     href="/sign-up"
                     className="w-full sm:w-auto px-8 py-4 bg-theme-bg text-theme-primary border border-theme-border font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:border-theme-primary/40 hover:bg-theme-surface active:scale-95 shadow-sm transition-all duration-300 flex items-center justify-center space-x-2"

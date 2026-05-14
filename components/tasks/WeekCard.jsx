@@ -2,6 +2,18 @@
 
 import { useState } from 'react'
 
+function normalizeSafeResourceUrl(value) {
+  if (!value) return null
+
+  try {
+    const url = new URL(value.startsWith('http') ? value : `https://${value}`)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
 export default function WeekCard({
   week,
   weekIndex,
@@ -188,9 +200,9 @@ export default function WeekCard({
                 </p>
               )}
 
-              {task.resource && (
+              {normalizeSafeResourceUrl(task.resource) && (
                 <a
-                  href={task.resource.startsWith('http') ? task.resource : `https://${task.resource}`}
+                  href={normalizeSafeResourceUrl(task.resource)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}

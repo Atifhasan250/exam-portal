@@ -31,9 +31,8 @@ export default function ProfilePage() {
   const [deletingAccount, setDeletingAccount] = useState(false)
 
   const router = useRouter()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user, isLoaded } = hasClerk ? useUser() : { user: null, isLoaded: true }
-  const { signOut } = hasClerk ? useClerk() : { signOut: null }
+  const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
 
   useEffect(() => {
     if (!user) return
@@ -87,7 +86,7 @@ export default function ProfilePage() {
   }, [user?.id, isLoaded])
 
   if (!isLoaded) return <PageSkeleton />
-  if (hasClerk && !user) {
+  if (!user) {
     return (
       <div className="bg-theme-bg min-h-screen py-20 px-4">
         <div className="max-w-4xl mx-auto px-4 mt-10">
@@ -194,15 +193,13 @@ export default function ProfilePage() {
               </button>
             </div>
             <p className="text-theme-secondary mt-1">You have attempted {submissions.length} exam{submissions.length === 1 ? '' : 's'} in total.</p>
-            {hasClerk ? (
-              <button
-                onClick={() => setShowLogoutDialog(true)}
-                className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 transition-all font-bold text-sm"
-              >
-                <i className="fas fa-sign-out-alt mr-2" />
-                Logout
-              </button>
-            ) : null}
+            <button
+              onClick={() => setShowLogoutDialog(true)}
+              className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 transition-all font-bold text-sm"
+            >
+              <i className="fas fa-sign-out-alt mr-2" />
+              Logout
+            </button>
           </div>
         </div>
 
@@ -305,34 +302,32 @@ export default function ProfilePage() {
 
       <div className="max-w-4xl mx-auto px-4 mb-8 mt-12">
         {/* Security / Password section */}
-        {hasClerk ? (
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-bold text-theme-primary mb-6"><i className="fas fa-lock mr-2 text-theme-secondary" /> Security</h3>
-            <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
-              {passwordError && <div className="p-3 bg-theme-error-bg text-theme-error-text text-sm rounded-xl">{passwordError}</div>}
-              {passwordSuccess && <div className="p-3 bg-theme-success-bg text-theme-success-text text-sm rounded-xl">{passwordSuccess}</div>}
+        <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 shadow-sm">
+          <h3 className="text-xl font-bold text-theme-primary mb-6"><i className="fas fa-lock mr-2 text-theme-secondary" /> Security</h3>
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+            {passwordError && <div className="p-3 bg-theme-error-bg text-theme-error-text text-sm rounded-xl">{passwordError}</div>}
+            {passwordSuccess && <div className="p-3 bg-theme-success-bg text-theme-success-text text-sm rounded-xl">{passwordSuccess}</div>}
 
-              <div>
-                <label className="block text-sm font-bold text-theme-secondary mb-1.5">Current Password</label>
-                <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
-              </div>
+            <div>
+              <label className="block text-sm font-bold text-theme-secondary mb-1.5">Current Password</label>
+              <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
+            </div>
 
-              <div>
-                <label className="block text-sm font-bold text-theme-secondary mb-1.5">New Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
-              </div>
+            <div>
+              <label className="block text-sm font-bold text-theme-secondary mb-1.5">New Password</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
+            </div>
 
-              <div>
-                <label className="block text-sm font-bold text-theme-secondary mb-1.5">Confirm New Password</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
-              </div>
+            <div>
+              <label className="block text-sm font-bold text-theme-secondary mb-1.5">Confirm New Password</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
+            </div>
 
-              <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-white px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
-                {passwordLoading ? 'Updating...' : 'Change Password'}
-              </button>
-            </form>
-          </div>
-        ) : null}
+            <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-white px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
+              {passwordLoading ? 'Updating...' : 'Change Password'}
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 text-center">

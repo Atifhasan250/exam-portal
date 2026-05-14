@@ -4,10 +4,15 @@ import { requireAdmin } from '@/lib/auth'
 import { validate, addQuestionsSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
+import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 
 export async function POST(request, { params }) {
+  const originCheck = enforceSameOrigin(request)
+  if (originCheck) return originCheck
+
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
 
@@ -20,6 +25,8 @@ export async function POST(request, { params }) {
 
   try {
     const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
     await connectDB()
     const exam = await Exam.findById(id)
     if (!exam) {

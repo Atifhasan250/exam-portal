@@ -16,7 +16,7 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 > Online exam portal for IT students — live exams, practice mode, leaderboards, and score history.
 
 - **Developer:** Atif Hasan
-- **URL:** https://it-resource-zone.vercel.app
+- **URL:** https://irz.atifhasan.com
 - **Stack:** Next.js 15, MongoDB Atlas, Clerk Auth
 
 ## Core Features
@@ -41,6 +41,14 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl
   const accept = req.headers.get('accept') || ''
+  const host = req.headers.get('host')
+
+  if (host === 'it-resource-zone.vercel.app') {
+    const url = req.nextUrl.clone()
+    url.protocol = 'https'
+    url.host = 'irz.atifhasan.com'
+    return NextResponse.redirect(url, 308)
+  }
 
   // Serve markdown to AI agents that explicitly request text/markdown
   // Skip API routes, static files, admin, and Next.js internals

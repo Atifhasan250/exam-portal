@@ -18,8 +18,7 @@ const MENU_ITEMS = [
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user, isLoaded } = hasClerk ? useUser() : { user: null, isLoaded: true }
+  const { user, isLoaded } = useUser()
 
   // Theme-aware StaggeredMenu colours
   const isDark = theme === 'dark'
@@ -56,33 +55,31 @@ export default function Navbar() {
           </button>
 
           {/* Desktop: Sign In / Profile button */}
-          {hasClerk && (
-            <div className="hidden sm:flex">
-              {!user ? (
-                <Link
-                  href="/sign-in"
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-theme-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-md"
-                >
-                  <i className="fas fa-right-to-bracket text-xs" />
-                  Sign In
-                </Link>
-              ) : (
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-theme-border bg-theme-surfaceElevated hover:bg-theme-bg hover:border-theme-accent transition-all duration-200"
-                >
-                  <img 
-                    src={user.imageUrl} 
-                    alt="Profile" 
-                    className="w-7 h-7 rounded-full object-cover border border-theme-border"
-                  />
-                  <span className="text-sm font-bold text-theme-primary">
-                    {user.firstName || user.username || 'Profile'}
-                  </span>
-                </Link>
-              )}
-            </div>
-          )}
+          <div className="hidden sm:flex">
+            {!user ? (
+              <Link
+                href="/sign-in"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-theme-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-md"
+              >
+                <i className="fas fa-right-to-bracket text-xs" />
+                Sign In
+              </Link>
+            ) : (
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-theme-border bg-theme-surfaceElevated hover:bg-theme-bg hover:border-theme-accent transition-all duration-200"
+              >
+                <img
+                  src={user.imageUrl}
+                  alt="Profile"
+                  className="w-7 h-7 rounded-full object-cover border border-theme-border"
+                />
+                <span className="text-sm font-bold text-theme-primary">
+                  {user.firstName || user.username || 'Profile'}
+                </span>
+              </Link>
+            )}
+          </div>
 
           {/* Desktop: StaggeredMenu toggle */}
           <div className="hidden sm:flex">

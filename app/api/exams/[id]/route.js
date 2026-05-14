@@ -5,6 +5,8 @@ import { requireAdmin } from '@/lib/auth'
 import { validate, updateExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
+import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
@@ -21,6 +23,8 @@ function toPublicQuestion(question) {
 export async function GET(_request, { params }) {
   try {
     const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
     await connectDB()
     const exam = await Exam.findOne({ _id: id, published: true }).lean()
     if (!exam) {
@@ -39,11 +43,16 @@ export async function GET(_request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+  const originCheck = enforceSameOrigin(request)
+  if (originCheck) return originCheck
+
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
 
   try {
     const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
     await connectDB()
 
     // ── Validate input ──────────────────────────────────────────────
@@ -51,10 +60,12 @@ export async function PUT(request, { params }) {
     const parsed = validate(updateExamSchema, raw)
     if (!parsed.success) return parsed.response
 
-    const { title, duration, liveStart, liveEnd } = parsed.data
+    const set = Object.fromEntries(
+      Object.entries(parsed.data).filter(([, value]) => value !== undefined),
+    )
     const exam = await Exam.findByIdAndUpdate(
       id,
-      { $set: { title, duration, liveStart, liveEnd } },
+      { $set: set },
       { new: true },
     )
 
@@ -62,7 +73,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
-    logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title })
+    logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
 
     return NextResponse.json(exam)
   } catch (error) {
@@ -72,11 +83,16 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const originCheck = enforceSameOrigin(request)
+  if (originCheck) return originCheck
+
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
 
   try {
     const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
     await connectDB()
 
     // ── Transaction: delete exam + questions + submissions atomically ─

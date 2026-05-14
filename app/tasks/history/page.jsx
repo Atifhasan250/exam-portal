@@ -16,8 +16,7 @@ import {
 } from '@/lib/analytics'
 
 export default function HistoryPage() {
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user, isLoaded } = hasClerk ? useUser() : { user: null, isLoaded: true }
+  const { user, isLoaded } = useUser()
 
   const [habits, setHabits] = useState([])
   const [habitHistory, setHabitHistory] = useState({})

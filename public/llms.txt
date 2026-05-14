@@ -3,7 +3,7 @@
 > An online exam portal for IT students to take live & practice exams, track scores, and view leaderboards.
 
 - **Developer:** Atif Hasan
-- **Live URL:** https://it-resource-zone.vercel.app
+- **Live URL:** https://irz.atifhasan.com
 - **Stack:** Next.js 14, MongoDB Atlas, Clerk Auth, Vercel
 
 ## What This App Does

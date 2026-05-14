@@ -3,10 +3,14 @@ import { NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { connectDB } from '@/lib/db'
 import { logger } from '@/lib/logger'
+import { enforceSameOrigin } from '@/lib/requestSecurity'
 import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
 
-export async function DELETE() {
+export async function DELETE(request) {
+  const originCheck = enforceSameOrigin(request)
+  if (originCheck) return originCheck
+
   try {
     const { userId } = await auth()
     if (!userId) {

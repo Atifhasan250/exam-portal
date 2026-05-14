@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth'
 import { validate, createExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
+import { enforceSameOrigin } from '@/lib/requestSecurity'
 import Exam from '@/lib/models/Exam'
 
 export const revalidate = 30
@@ -22,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const originCheck = enforceSameOrigin(request)
+  if (originCheck) return originCheck
+
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
 
