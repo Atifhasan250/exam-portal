@@ -26,7 +26,7 @@ export async function POST(request) {
     const parsed = validate(youtubePreviewSchema, raw)
     if (!parsed.success) return parsed.response
 
-    const video = await previewYouTubeVideo(parsed.data.url)
+    const video = await previewYouTubeVideo(parsed.data.url, parsed.data.language)
     return NextResponse.json(video)
   } catch (error) {
     logger.error('[POST /api/admin/resources/youtube/preview]', { error })

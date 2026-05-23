@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
 let youtubeApiPromise = null
@@ -28,13 +29,21 @@ function loadYouTubeApi() {
   return youtubeApiPromise
 }
 
-export default function ResourceVideoPlayer({ resource, initialProgress }) {
-  const playerNodeId = useRef(`yt-page-player-${resource._id}`)
+export default function ResourceVideoPlayer({ resource, initialProgress, previousResource, nextResource }) {
+  const playerNodeId = `yt-page-player-${resource._id}`
   const playerRef = useRef(null)
   const startSecondsRef = useRef(initialProgress?.progressSeconds || 0)
   const savedSecondsRef = useRef(initialProgress?.progressSeconds || 0)
   const [currentSeconds, setCurrentSeconds] = useState(initialProgress?.progressSeconds || 0)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const nextProgressSeconds = initialProgress?.progressSeconds || 0
+    startSecondsRef.current = nextProgressSeconds
+    savedSecondsRef.current = nextProgressSeconds
+    setCurrentSeconds(nextProgressSeconds)
+    setSaving(false)
+  }, [initialProgress?.progressSeconds, resource._id])
 
   useEffect(() => {
     if (!resource.youtubeId) return undefined
@@ -73,7 +82,7 @@ export default function ResourceVideoPlayer({ resource, initialProgress }) {
 
     loadYouTubeApi().then((YT) => {
       if (cancelled || !YT?.Player) return
-      playerRef.current = new YT.Player(playerNodeId.current, {
+      playerRef.current = new YT.Player(playerNodeId, {
         videoId: resource.youtubeId,
         playerVars: {
           rel: 0,
@@ -115,17 +124,25 @@ export default function ResourceVideoPlayer({ resource, initialProgress }) {
       if (playerRef.current?.destroy) playerRef.current.destroy()
       playerRef.current = null
     }
-  }, [resource._id, resource.youtubeId, resource.durationSeconds])
+  }, [playerNodeId, resource._id, resource.youtubeId, resource.durationSeconds])
 
   const percent = resource.durationSeconds ? Math.min(100, Math.round((currentSeconds / resource.durationSeconds) * 100)) : 0
 
   return (
     <div className="space-y-5">
       <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-theme-border shadow-xl">
-        <div id={playerNodeId.current} className="w-full h-full" />
+        <div id={playerNodeId} className="w-full h-full" />
       </div>
 
       <div className="bg-theme-surface border border-theme-border rounded-2xl p-4">
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="flex justify-start">
+            <ResourceNavButton resource={previousResource} direction="previous" />
+          </div>
+          <div className="flex justify-end">
+            <ResourceNavButton resource={nextResource} direction="next" />
+          </div>
+        </div>
         <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-sm font-bold text-theme-primary">Progress</span>
           <span className="text-sm text-theme-secondary">{saving ? 'Saving...' : `${percent}%`}</span>
@@ -135,6 +152,43 @@ export default function ResourceVideoPlayer({ resource, initialProgress }) {
         </div>
       </div>
     </div>
+  )
+}
+
+function ResourceNavButton({ resource, direction }) {
+  const isPrevious = direction === 'previous'
+  const label = isPrevious ? 'Previous' : 'Next'
+  const icon = isPrevious ? 'fa-arrow-left' : 'fa-arrow-right'
+  const content = (
+    <>
+      {isPrevious ? <i className={`fas ${icon} text-xs shrink-0`} /> : null}
+      <span>{label}</span>
+      {!isPrevious ? <i className={`fas ${icon} text-xs shrink-0`} /> : null}
+    </>
+  )
+
+  if (!resource?.href) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        disabled
+        className="h-11 w-full sm:w-32 rounded-xl bg-transparent border border-transparent text-theme-secondary text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed opacity-30"
+      >
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <Link
+      href={resource.href}
+      title={resource.title}
+      aria-label={label}
+      className="h-11 w-full sm:w-32 rounded-xl border border-theme-accent bg-theme-accent text-white text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-theme-accent/30 hover:brightness-110"
+    >
+      {content}
+    </Link>
   )
 }
 

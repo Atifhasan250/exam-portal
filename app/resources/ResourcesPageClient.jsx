@@ -1,18 +1,28 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import ResourceCard from '@/components/resources/ResourceCard'
 import ResourceViewer from '@/components/resources/ResourceViewer'
 
-export default function ResourcesPageClient() {
-  const [categories, setCategories] = useState([])
-  const [resources, setResources] = useState([])
-  const [latestResources, setLatestResources] = useState([])
+const RESOURCE_PAGE_SIZE = 80
+
+export default function ResourcesPageClient({
+  initialCategories = [],
+  initialResources = [],
+  initialHasMoreResources = false,
+  initialDataReady = false,
+}) {
+  const skippedInitialResourcesFetch = useRef(false)
+  const [categories, setCategories] = useState(initialCategories)
+  const [resources, setResources] = useState(initialResources)
   const [progress, setProgress] = useState([])
   const [selectedResource, setSelectedResource] = useState(null)
   const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialDataReady && initialCategories.length === 0)
+  const [loadingResources, setLoadingResources] = useState(!initialDataReady)
+  const [loadingMoreResources, setLoadingMoreResources] = useState(false)
+  const [hasMoreResources, setHasMoreResources] = useState(initialHasMoreResources)
 
   const refreshProgress = useCallback(async () => {
     try {
@@ -26,22 +36,54 @@ export default function ResourcesPageClient() {
 
   useEffect(() => {
     let active = true
+    const categoryRequest = initialCategories.length
+      ? Promise.resolve(initialCategories)
+      : fetch('/api/resources/categories').then((response) => response.json())
+
     Promise.all([
-      fetch('/api/resources/categories').then((response) => response.json()),
-      fetch('/api/resources?limit=80').then((response) => response.json()),
-      fetch('/api/resources?sort=latest&limit=5').then((response) => response.json()),
+      categoryRequest,
       fetch('/api/resources/progress', { cache: 'no-store' }).then((response) => response.json()).catch(() => []),
-    ]).then(([categoryData, resourceData, latestData, progressData]) => {
+    ]).then(([categoryData, progressData]) => {
       if (!active) return
       setCategories(Array.isArray(categoryData) ? categoryData : [])
-      setResources(Array.isArray(resourceData) ? resourceData : [])
-      setLatestResources(Array.isArray(latestData) ? latestData : [])
       setProgress(Array.isArray(progressData) ? progressData : [])
       setLoading(false)
     }).catch(() => setLoading(false))
 
     return () => { active = false }
   }, [])
+
+  const fetchResources = useCallback(async ({ offset = 0, append = false } = {}) => {
+    const params = new URLSearchParams({
+      limit: String(RESOURCE_PAGE_SIZE),
+      offset: String(offset),
+    })
+    const value = query.trim()
+    if (value) params.set('q', value)
+
+    append ? setLoadingMoreResources(true) : setLoadingResources(true)
+    try {
+      const response = await fetch(`/api/resources?${params.toString()}`)
+      const data = await response.json()
+      const items = Array.isArray(data) ? data : []
+      setResources((current) => (append ? [...current, ...items] : items))
+      setHasMoreResources(response.headers.get('X-Has-More') === 'true')
+    } catch {
+      if (!append) setResources([])
+      setHasMoreResources(false)
+    } finally {
+      append ? setLoadingMoreResources(false) : setLoadingResources(false)
+    }
+  }, [query])
+
+  useEffect(() => {
+    if (!skippedInitialResourcesFetch.current) {
+      skippedInitialResourcesFetch.current = true
+      if (initialDataReady && !query.trim()) return
+    }
+
+    fetchResources({ offset: 0 })
+  }, [fetchResources, initialDataReady, query])
 
   useEffect(() => {
     const handleVisible = () => {
@@ -63,27 +105,6 @@ export default function ResourcesPageClient() {
     new Map(progress.map((item) => [getProgressResourceId(item), item]))
   ), [progress])
 
-  const filteredResources = useMemo(() => {
-    const value = query.trim().toLowerCase()
-    if (!value) return resources
-    return resources.filter((resource) => (
-      [
-        resource.title,
-        resource.description,
-        resource.url,
-        resource.channelTitle,
-        resource.categoryId?.name,
-        resource.categoryId?.slug,
-        ...(resource.tags || []),
-        ...(resource.topicTags || []),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(value)
-    ))
-  }, [resources, query])
-
   const isSearching = query.trim().length > 0
 
   const continueItems = progress
@@ -92,10 +113,7 @@ export default function ResourcesPageClient() {
     .slice(0, 3)
     .map((item) => ({ ...item.resourceId, progressItem: item }))
 
-  const featuredResources = filteredResources.filter((resource) => resource.featured).slice(0, 6)
-  const visibleLatestResources = query
-    ? latestResources.filter((resource) => filteredResources.some((item) => item._id === resource._id))
-    : latestResources
+  const featuredResources = resources.filter((resource) => resource.featured).slice(0, 6)
 
   const onProgressSaved = (nextProgress) => {
     setProgress((current) => {
@@ -109,19 +127,16 @@ export default function ResourcesPageClient() {
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-8">
         <section className="space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Resources</h1>
-              <p className="text-theme-secondary mt-2 max-w-2xl">
-                Find beginner-friendly videos, notes, and useful links organized for IT students.
-              </p>
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Resources</h1>
             </div>
-            <div className="relative w-full lg:w-[420px]">
+            <div className="relative w-[46vw] min-w-[150px] max-w-[210px] sm:w-[320px] sm:max-w-none lg:w-[420px]">
               <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-theme-secondary" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="input-field pl-11"
+                className="input-field pl-11 text-sm sm:text-base"
                 style={{ paddingLeft: '2.75rem' }}
                 placeholder="Search web dev, cyber security, PDF notes..."
               />
@@ -129,37 +144,35 @@ export default function ResourcesPageClient() {
           </div>
         </section>
 
-        {loading ? <LoadingGrid /> : null}
+        {loading || loadingResources ? <LoadingGrid /> : null}
 
-        {!loading && isSearching ? (
+        {!loading && !loadingResources && isSearching ? (
           <>
-            <SectionTitle title="Search Results" subtitle={`${filteredResources.length} matching resource(s)`} />
-            <ResourceGrid resources={filteredResources} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
-            {filteredResources.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
+            <SectionTitle title="Search Results" subtitle={`${resources.length} matching resource(s)`} />
+            <ResourceGrid resources={resources} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+            {resources.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
+            {hasMoreResources ? <LoadMoreButton loading={loadingMoreResources} onClick={() => fetchResources({ offset: resources.length, append: true })} /> : null}
           </>
         ) : null}
 
-        {!loading && !isSearching && continueItems.length > 0 ? (
-          <SectionTitle title="Continue Learning" subtitle="Pick up from where you stopped." />
-        ) : null}
-        {!loading && !isSearching && continueItems.length > 0 ? (
-          <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
-        ) : null}
-
-        {!loading && !isSearching ? (
+        {!loading && !loadingResources && !isSearching ? (
           <>
             <SectionTitle title="Categories" subtitle="Choose a topic and follow the resources in a clean order." />
             <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((category) => (
                 <Link key={category._id} href={`/resources/${category.slug}`} className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:border-theme-accent/40 transition-all">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-theme-bg flex items-center justify-center shrink-0" style={{ color: category.color || 'var(--color-accent)' }}>
-                      <i className={`fas ${category.icon || 'fa-book-open'}`} />
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-theme-bg flex items-center justify-center shrink-0" style={{ color: category.color || 'var(--color-accent)' }}>
+                        <i className={`fas ${category.icon || 'fa-book-open'}`} />
+                      </div>
+                      <h2 className="text-xl font-extrabold truncate">{category.name}</h2>
                     </div>
-                    <span className="text-xs font-bold text-theme-secondary">{category.resourceCounts?.total || 0} items</span>
+                    <span className="text-xs font-bold text-theme-secondary shrink-0">{category.resourceCounts?.total || 0} items</span>
                   </div>
-                  <h2 className="text-xl font-extrabold mt-4">{category.name}</h2>
-                  <p className="text-sm text-theme-secondary mt-2 line-clamp-2">{category.description || 'Curated learning resources for this topic.'}</p>
+                  {category.description?.trim() ? (
+                    <p className="text-sm text-theme-secondary mt-2 line-clamp-2">{category.description.trim()}</p>
+                  ) : null}
                   <div className="flex flex-wrap gap-2 mt-4 text-xs font-bold text-theme-secondary">
                     <span>{category.resourceCounts?.youtube || 0} videos</span>
                     <span>•</span>
@@ -174,18 +187,17 @@ export default function ResourcesPageClient() {
           </>
         ) : null}
 
-        {!loading && !isSearching && featuredResources.length > 0 ? (
+        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
+          <SectionTitle title="Continue Watching" subtitle="Pick up from where you stopped." />
+        ) : null}
+        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
+          <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+        ) : null}
+
+        {!loading && !loadingResources && !isSearching && featuredResources.length > 0 ? (
           <>
             <SectionTitle title="Start Here" subtitle="Featured resources for a smoother first step." />
             <ResourceGrid resources={featuredResources} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
-          </>
-        ) : null}
-
-        {!loading && !isSearching ? (
-          <>
-            <SectionTitle title="Latest Resources" subtitle="Recently added videos, notes, and links." />
-            <ResourceGrid resources={visibleLatestResources} allResources={[...resources, ...latestResources]} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
-            {visibleLatestResources.length === 0 ? <EmptyState text="No resources found for this search." /> : null}
           </>
         ) : null}
       </main>
@@ -244,6 +256,20 @@ function EmptyState({ text }) {
     <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center text-theme-secondary">
       <i className="fas fa-folder-open text-3xl mb-3 opacity-60" />
       <p className="font-medium">{text}</p>
+    </div>
+  )
+}
+
+function LoadMoreButton({ loading, onClick }) {
+  return (
+    <div className="flex justify-center">
+      <button
+        onClick={onClick}
+        disabled={loading}
+        className="px-5 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+      >
+        {loading ? 'Loading...' : 'Load More'}
+      </button>
     </div>
   )
 }

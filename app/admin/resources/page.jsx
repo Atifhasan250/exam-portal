@@ -45,6 +45,7 @@ const emptyResource = {
   type: 'youtube',
   title: '',
   description: '',
+  transcriptText: '',
   url: '',
   thumbnailUrl: '',
   youtubeId: '',
@@ -122,6 +123,10 @@ export default function AdminResourcesPage() {
       if (categoryResponse.status === 401 || resourceResponse.status === 401) {
         router.push('/admin')
         return
+      }
+
+      if (!categoryResponse.ok || !resourceResponse.ok) {
+        throw new Error('Resource CMS load failed')
       }
 
       const [categoryData, resourceData] = await Promise.all([
@@ -257,7 +262,8 @@ export default function AdminResourcesPage() {
       categoryId: getCategoryId(resource),
       type: resource.type || 'youtube',
       title: resource.title || '',
-      description: resource.description || '',
+      description: resource.type === 'youtube' ? '' : resource.description || '',
+      transcriptText: resource.transcriptText || '',
       url: resource.url || '',
       thumbnailUrl: resource.thumbnailUrl || '',
       youtubeId: resource.youtubeId || '',
@@ -300,19 +306,21 @@ export default function AdminResourcesPage() {
       const response = await fetch('/api/admin/resources/youtube/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: youtubeUrl }),
+        body: JSON.stringify({ url: youtubeUrl, language: resourceForm.language }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(formatApiError(data, 'YouTube preview failed'))
+      const mappedVideo = mapYouTubeToForm(data)
 
       setResourceForm((current) => ({
         ...current,
-        ...mapYouTubeToForm(data),
+        ...mappedVideo,
         categoryId: current.categoryId || categories[0]?._id || '',
         published: current.published,
         featured: current.featured,
+        transcriptText: mappedVideo.transcriptText || current.transcriptText,
       }))
-      setMessage('YouTube metadata loaded. Review and save it.')
+      setMessage(data.transcriptText ? 'YouTube metadata and transcript loaded. Review and save it.' : 'YouTube metadata loaded. Transcript was not available.')
     } catch (err) {
       setError(err.message)
     }
@@ -338,7 +346,7 @@ export default function AdminResourcesPage() {
       const existingResponse = await fetch(`/api/admin/assets?fileHash=${fileHash}`)
       const existingAsset = await readResponseBody(existingResponse)
 
-      if (!existingResponse.ok) {
+      if (!existingResponse.ok && existingResponse.status !== 404) {
         setError(formatApiError(existingAsset, 'Could not check for an existing asset.'))
         return
       }
@@ -582,7 +590,7 @@ export default function AdminResourcesPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2">
                       <IconButton title="Move up" icon="fa-arrow-up" disabled={index === 0} onClick={() => moveItem('categories', category._id, -1)} />
                       <IconButton title="Move down" icon="fa-arrow-down" disabled={index === categories.length - 1} onClick={() => moveItem('categories', category._id, 1)} />
                       <StatusPill active={category.published} activeLabel="Published" inactiveLabel="Draft" />
@@ -764,7 +772,23 @@ function ResourceForm({ form, setForm, categories, youtubeUrl, setYoutubeUrl, fe
       ) : null}
 
       <Field label="Title"><input className="input-field" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></Field>
-      <Field label="Description"><textarea className="input-field min-h-24" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field>
+      {form.type === 'youtube' ? (
+        <Field label="Transcript / subtitles">
+          <div className="space-y-2">
+            <textarea
+              className="input-field min-h-32"
+              value={form.transcriptText}
+              onChange={(event) => setForm({ ...form, transcriptText: event.target.value })}
+              placeholder="Fetch metadata to auto-load subtitles when available, or paste transcript text here."
+            />
+            <p className="text-xs text-theme-secondary">
+              {form.transcriptText?.trim() ? `${form.transcriptText.trim().length.toLocaleString()} transcript characters ready to save.` : 'No transcript saved for this resource yet.'}
+            </p>
+          </div>
+        </Field>
+      ) : (
+        <Field label="Description"><textarea className="input-field min-h-24" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field>
+      )}
       <Field label={form.type === 'youtube' ? 'Source URL' : 'Resource URL'}>
         <input className="input-field" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} placeholder="https://..." />
       </Field>
@@ -790,6 +814,8 @@ function ResourceForm({ form, setForm, categories, youtubeUrl, setYoutubeUrl, fe
 }
 
 function ResourceRow({ resource, index, total, onMove, onEdit, onDelete }) {
+  const transcriptLength = resource.transcriptText?.trim().length || 0
+
   return (
     <div className="border border-theme-border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0 overflow-hidden">
       <div className="flex gap-3 min-w-0 flex-1">
@@ -799,6 +825,7 @@ function ResourceRow({ resource, index, total, onMove, onEdit, onDelete }) {
             <span className="px-2 py-1 rounded-lg bg-theme-bg text-xs font-bold text-theme-secondary">{typeLabels[resource.type] || resource.type}</span>
             <StatusPill active={resource.published} activeLabel="Published" inactiveLabel="Draft" />
             {resource.featured ? <span className="px-2 py-1 rounded-lg bg-theme-success-bg text-xs font-bold text-theme-success-text">Featured</span> : null}
+            {transcriptLength ? <span className="px-2 py-1 rounded-lg bg-theme-accent/10 text-xs font-bold text-theme-accent">Transcript</span> : null}
           </div>
           <h3 className="font-bold text-theme-primary truncate max-w-full">{resource.title}</h3>
           <p className="text-xs text-theme-secondary truncate">
@@ -899,7 +926,7 @@ function IconButton({ title, icon, disabled, danger, onClick }) {
 
 function StatusPill({ active, activeLabel, inactiveLabel }) {
   return (
-    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${active ? 'bg-theme-success-bg text-theme-success-text' : 'bg-theme-bg text-theme-secondary'}`}>
+    <span className={`h-9 px-3 rounded-xl inline-flex items-center justify-center text-xs font-bold shrink-0 ${active ? 'bg-theme-success-bg text-theme-success-text' : 'bg-theme-bg text-theme-secondary'}`}>
       {active ? activeLabel : inactiveLabel}
     </span>
   )
@@ -927,6 +954,7 @@ function SelectLanguage({ value, onChange }) {
     <select className="input-field" value={value} onChange={(event) => onChange(event.target.value)}>
       <option value="bn">Bangla</option>
       <option value="en">English</option>
+      <option value="hi">Hindi</option>
       <option value="mixed">Mixed</option>
       <option value="other">Other</option>
     </select>
@@ -938,7 +966,8 @@ function resourceFormToPayload(form) {
     categoryId: form.categoryId,
     type: form.type,
     title: form.title,
-    description: form.description || (form.type === 'youtube' ? form.url : ''),
+    description: form.type === 'youtube' ? '' : form.description || '',
+    transcriptText: form.type === 'youtube' ? form.transcriptText || '' : '',
     url: form.url,
     thumbnailUrl: form.thumbnailUrl,
     youtubeId: form.youtubeId,
@@ -969,7 +998,7 @@ async function prepareResourceForSave(form, youtubeUrl, categories) {
   const response = await fetch('/api/admin/resources/youtube/preview', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: sourceUrl }),
+    body: JSON.stringify({ url: sourceUrl, language: form.language }),
   })
   const data = await response.json()
   if (!response.ok) throw new Error(formatApiError(data, 'Could not fetch YouTube metadata'))
@@ -980,6 +1009,7 @@ async function prepareResourceForSave(form, youtubeUrl, categories) {
     categoryId: form.categoryId || categories[0]?._id || '',
     published: form.published,
     featured: form.featured,
+    transcriptText: data.transcriptText || form.transcriptText,
     level: form.level,
     language: form.language,
     tagsInput: form.tagsInput,
@@ -991,7 +1021,8 @@ function mapYouTubeToForm(video) {
   return {
     type: 'youtube',
     title: video.title || '',
-    description: video.description || '',
+    description: '',
+    transcriptText: video.transcriptText || '',
     url: video.url || '',
     thumbnailUrl: video.thumbnailUrl || '',
     youtubeId: video.youtubeId || '',
