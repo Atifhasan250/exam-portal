@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, reorderItemsSchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 
 export async function PUT(request) {
@@ -19,9 +20,33 @@ export async function PUT(request) {
     if (!parsed.success) return parsed.response
 
     await connectDB()
-    await Promise.all(parsed.data.orderedIds.map((id, index) => (
-      ResourceCategory.updateOne({ _id: id }, { $set: { order: index + 1 } })
-    )))
+    const matchedCount = await ResourceCategory.countDocuments({ _id: { $in: parsed.data.orderedIds } })
+    if (matchedCount !== parsed.data.orderedIds.length) {
+      return NextResponse.json({ error: 'One or more categories were not found.' }, { status: 404 })
+    }
+
+    const categoryCount = await ResourceCategory.countDocuments({})
+    if (categoryCount !== parsed.data.orderedIds.length) {
+      return NextResponse.json(
+        { error: 'Reorder requires the full category list.' },
+        { status: 400 },
+      )
+    }
+
+    const result = await ResourceCategory.bulkWrite(parsed.data.orderedIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { order: index + 1 } },
+      },
+    })), { ordered: true })
+
+    if (result.matchedCount !== parsed.data.orderedIds.length) {
+      return NextResponse.json({ error: 'Category reorder scope changed. Refresh and try again.' }, { status: 409 })
+    }
+
+    await logAdminAction(request, adminCheck.admin, 'REORDER_RESOURCE_CATEGORIES', undefined, {
+      count: parsed.data.orderedIds.length,
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

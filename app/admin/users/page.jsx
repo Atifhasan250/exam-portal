@@ -8,6 +8,7 @@ import Link from 'next/link'
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [userOffset, setUserOffset] = useState(0)
   const [userTotal, setUserTotal] = useState(0)
@@ -49,7 +50,7 @@ export default function AdminUsers() {
   }, [router])
 
   const loadMoreUsers = async () => {
-    setLoading(true)
+    setLoadingMore(true)
     try {
       const response = await fetch(`/api/admin/users?limit=${USER_PAGE_SIZE}&offset=${userOffset}`)
       if (!response.ok) throw new Error('Failed to fetch users')
@@ -62,7 +63,7 @@ export default function AdminUsers() {
     } catch (err) {
       setError(err.message)
     } finally {
-      setLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -167,10 +168,10 @@ export default function AdminUsers() {
             {hasMoreUsers ? (
               <button
                 onClick={loadMoreUsers}
-                disabled={loading}
+                disabled={loadingMore}
                 className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:border-theme-accent/50 transition-all font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
               >
-                {loading ? 'Loading...' : 'Load More Users'}
+                {loadingMore ? 'Loading...' : 'Load More Users'}
               </button>
             ) : null}
           </div>

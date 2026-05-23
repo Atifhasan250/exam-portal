@@ -55,6 +55,12 @@ export function parseJSON(text) {
 export function parseCSV(text) {
   const rows = parseCSVRows(text.trim())
   const questions = []
+  const expectedHeaders = ['question', 'option1', 'option2', 'option3', 'option4', 'option5', 'correct', 'explanation']
+  const headers = rows[0]?.map((field) => field.trim().toLowerCase())
+
+  if (!headers || headers.length !== expectedHeaders.length || !expectedHeaders.every((header, index) => headers[index] === header)) {
+    throw new Error('CSV must start with this header: question,option1,option2,option3,option4,option5,correct,explanation')
+  }
 
   for (let i = 1; i < rows.length; i += 1) {
     const fields = rows[i]

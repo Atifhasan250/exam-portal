@@ -26,6 +26,7 @@ export default function ExamsPageClient() {
       if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
         setExams(parsed.items || [])
         setLoading(false)
+        return
       }
     }
 

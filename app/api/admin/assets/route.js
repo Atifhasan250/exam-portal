@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, imageKitAssetSchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import UploadedAsset from '@/lib/models/UploadedAsset'
 import { serialize } from '@/lib/resourceUtils'
 
@@ -48,6 +49,13 @@ export async function POST(request) {
       },
       { new: true, upsert: true, lean: true },
     )
+
+    await logAdminAction(request, adminCheck.admin, 'REGISTER_ASSET', asset._id, {
+      fileName: asset.fileName,
+      mimeType: asset.mimeType,
+      size: asset.size,
+      folder: asset.folder,
+    })
 
     return NextResponse.json(serialize(asset), { status: 201 })
   } catch (error) {

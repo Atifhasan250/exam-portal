@@ -32,11 +32,14 @@ function loadYouTubeApi() {
 export default function ResourceViewer({ resource, progress, onClose, onProgressSaved }) {
   const playerNodeId = useRef(`yt-player-${resource?._id || Date.now()}`)
   const playerRef = useRef(null)
+  const onProgressSavedRef = useRef(onProgressSaved)
   const startSecondsRef = useRef(progress?.progressSeconds || 0)
   const savedSecondsRef = useRef(progress?.progressSeconds || 0)
   const [mounted, setMounted] = useState(false)
   const [currentSeconds, setCurrentSeconds] = useState(progress?.progressSeconds || 0)
   const [saving, setSaving] = useState(false)
+
+  onProgressSavedRef.current = onProgressSaved
 
   useEffect(() => {
     setMounted(true)
@@ -61,6 +64,7 @@ export default function ResourceViewer({ resource, progress, onClose, onProgress
     savedSecondsRef.current = progress?.progressSeconds || 0
     setCurrentSeconds(progress?.progressSeconds || 0)
 
+    const notifyProgressSaved = (savedProgress) => onProgressSavedRef.current?.(savedProgress)
     const saveCurrentProgress = (force = false, forceCompleted = false, silent = false) => {
       const player = playerRef.current
       if (!player?.getCurrentTime) return
@@ -77,7 +81,7 @@ export default function ResourceViewer({ resource, progress, onClose, onProgress
         resource._id,
         currentTime,
         completed,
-        onProgressSaved,
+        notifyProgressSaved,
         silent ? () => {} : setSaving,
         { keepalive: silent },
       )
@@ -135,7 +139,7 @@ export default function ResourceViewer({ resource, progress, onClose, onProgress
       if (playerRef.current?.destroy) playerRef.current.destroy()
       playerRef.current = null
     }
-  }, [resource, onProgressSaved])
+  }, [resource])
 
   if (!resource || !mounted) return null
 
@@ -173,7 +177,7 @@ export default function ResourceViewer({ resource, progress, onClose, onProgress
                 href={resource.url || resource.imagekitUrl}
                 target="_blank"
                 rel="noreferrer"
-                onClick={() => saveProgress(resource._id, 1, true, onProgressSaved, setSaving)}
+                onClick={() => saveProgress(resource._id, 1, true, (savedProgress) => onProgressSavedRef.current?.(savedProgress), setSaving)}
                 className="px-4 py-3 rounded-xl bg-theme-accent text-white font-bold text-center"
               >
                 Open

@@ -24,7 +24,7 @@ export const metadata = {
   keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'IT Resource Zone'],
   authors: [{ name: 'Atif Hasan', url: 'https://atifs-portfolio.vercel.app/' }],
   creator: 'Atif Hasan',
-  // Canonical URL — tells search engines the authoritative address for this site
+  // Canonical URL tells search engines the authoritative address for this site
   alternates: {
     canonical: siteUrl,
   },
@@ -76,7 +76,7 @@ export const metadata = {
   },
 }
 
-// ── JSON-LD Structured Data ───────────────────────────────────────────────────
+// JSON-LD Structured Data
 // Schema.org markup tells Google exactly what this site is, enabling rich results.
 // Test at: https://search.google.com/test/rich-results
 
@@ -134,7 +134,7 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
-        {/* JSON-LD structured data — machine-readable site description for Google rich results */}
+        {/* JSON-LD structured data for Google rich results */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -73,6 +73,23 @@ const typeLabels = {
   file: 'File',
 }
 
+const MAX_UPLOAD_SIZE = 50 * 1024 * 1024
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/octet-stream',
+  'application/zip',
+  'application/x-zip-compressed',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+])
+
+function isAllowedUpload(file) {
+  const mimeType = file?.type || 'application/octet-stream'
+  return mimeType.startsWith('image/') || ALLOWED_UPLOAD_MIME_TYPES.has(mimeType)
+}
+
 export default function AdminResourcesPage() {
   const router = useRouter()
   const [categories, setCategories] = useState([])
@@ -93,7 +110,7 @@ export default function AdminResourcesPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setError('')
     setLoading(true)
     try {
@@ -122,11 +139,11 @@ export default function AdminResourcesPage() {
       setError('Could not load resources. Check the server logs and try again.')
     }
     setLoading(false)
-  }
+  }, [router])
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   const filteredResources = useMemo(() => {
     const q = resourceFilter.q.trim().toLowerCase()
@@ -304,13 +321,27 @@ export default function AdminResourcesPage() {
 
   const uploadResourceFile = async (file) => {
     if (!file) return
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setError('File must be 50 MB or smaller.')
+      return
+    }
+    if (!isAllowedUpload(file)) {
+      setError('Only image, PDF, text, ZIP, Office, or generic files can be uploaded.')
+      return
+    }
+
     setUploading(true)
     setError('')
     setMessage('')
     try {
       const fileHash = await sha256File(file)
       const existingResponse = await fetch(`/api/admin/assets?fileHash=${fileHash}`)
-      const existingAsset = await existingResponse.json()
+      const existingAsset = await readResponseBody(existingResponse)
+
+      if (!existingResponse.ok) {
+        setError(formatApiError(existingAsset, 'Could not check for an existing asset.'))
+        return
+      }
 
       if (existingAsset?._id) {
         applyAssetToResourceForm(existingAsset, file)
@@ -448,6 +479,17 @@ export default function AdminResourcesPage() {
   }
 
   const moveItem = async (kind, id, direction) => {
+    if (kind === 'resources') {
+      if (!resourceFilter.categoryId) {
+        setError('Select a category before reordering resources.')
+        return
+      }
+      if (resourceFilter.type || resourceFilter.q.trim()) {
+        setError('Clear type and search filters before reordering resources.')
+        return
+      }
+    }
+
     const list = kind === 'categories' ? [...categories] : [...filteredResources]
     const index = list.findIndex((item) => item._id === id)
     const targetIndex = index + direction
@@ -463,7 +505,10 @@ export default function AdminResourcesPage() {
     const response = await fetch(endpoint, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderedIds: next.map((entry) => entry._id) }),
+      body: JSON.stringify({
+        orderedIds: next.map((entry) => entry._id),
+        ...(kind === 'resources' ? { categoryId: resourceFilter.categoryId } : {}),
+      }),
     })
     if (!response.ok) {
       const data = await response.json()
@@ -989,6 +1034,17 @@ function formatApiError(data, fallback) {
   }
 
   return data?.error || fallback
+}
+
+async function readResponseBody(response) {
+  const text = await response.text()
+  if (!text) return null
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { error: text }
+  }
 }
 
 function inferResourceType(mimeType) {

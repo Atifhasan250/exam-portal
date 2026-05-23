@@ -18,12 +18,16 @@ async function repairResourceAssetCounts() {
   ])
   const countMap = new Map(counts.map((item) => [item._id.toString(), item.count]))
   const assets = await UploadedAsset.find({}, { _id: 1 }).lean()
+  const batchSize = 500
 
-  for (const asset of assets) {
-    await UploadedAsset.updateOne(
-      { _id: asset._id },
-      { $set: { referenceCount: countMap.get(asset._id.toString()) || 0 } },
-    )
+  for (let index = 0; index < assets.length; index += batchSize) {
+    const operations = assets.slice(index, index + batchSize).map((asset) => ({
+      updateOne: {
+        filter: { _id: asset._id },
+        update: { $set: { referenceCount: countMap.get(asset._id.toString()) || 0 } },
+      },
+    }))
+    if (operations.length) await UploadedAsset.bulkWrite(operations, { ordered: false })
   }
 
   console.log(`Repaired reference counts for ${assets.length} uploaded assets.`)

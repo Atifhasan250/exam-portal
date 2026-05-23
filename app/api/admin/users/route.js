@@ -9,8 +9,12 @@ export async function GET(request) {
     if (!authCheck.ok) return authCheck.response
 
     const { searchParams } = new URL(request.url)
-    const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 100, 1), 100)
-    const offset = Math.max(Number(searchParams.get('offset')) || 0, 0)
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
+    const rawLimit = !limitParam?.trim() ? NaN : Number(limitParam)
+    const rawOffset = !offsetParam?.trim() ? NaN : Number(offsetParam)
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? Math.trunc(rawLimit) : 100, 1), 100)
+    const offset = Math.max(Number.isFinite(rawOffset) ? Math.trunc(rawOffset) : 0, 0)
     const query = searchParams.get('q')?.trim().slice(0, 100) || undefined
 
     const client = await clerkClient()

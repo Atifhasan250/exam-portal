@@ -22,6 +22,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
       if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
         setData(parsed.items || [])
         setLoading(false)
+        return
       }
     }
 

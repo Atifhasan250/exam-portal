@@ -8,14 +8,9 @@ const isProtectedRoute = createRouteMatcher([
   '/profile/submission(.*)',
 ])
 
-const isClerkEnabled = Boolean(
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-  process.env.CLERK_SECRET_KEY,
-)
-
 const MARKDOWN_CONTENT = `# IT Resource Zone
 
-> Online exam portal for IT students — live exams, practice mode, leaderboards, and score history.
+> Online exam portal for IT students - live exams, practice mode, leaderboards, and score history.
 
 - **Developer:** Atif Hasan
 - **URL:** https://irz.atifhasan.com
@@ -29,10 +24,10 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 - Admin panel for exam/question management
 
 ## Public Routes
-- / — Home
-- /exams — All exams (live, upcoming, past)
-- /leaderboard — Global leaderboard
-- /leaderboard/[id] — Per-exam leaderboard
+- / - Home
+- /exams - All exams (live, upcoming, past)
+- /leaderboard - Global leaderboard
+- /leaderboard/[id] - Per-exam leaderboard
 
 ## Constraints
 - Live exams: one submission per student account
@@ -62,7 +57,7 @@ async function verifyAdminJwt(token) {
     const header = decodeBase64UrlJson(encodedHeader)
     const payload = decodeBase64UrlJson(encodedPayload)
     if (header.alg !== 'HS256' || header.typ !== 'JWT') return false
-    if (payload.exp && payload.exp * 1000 <= Date.now()) return false
+    if (typeof payload.exp !== 'number' || payload.exp * 1000 <= Date.now()) return false
 
     const key = await crypto.subtle.importKey(
       'raw',
@@ -133,10 +128,6 @@ export default clerkMiddleware(async (auth, req) => {
       })
       return response
     }
-  }
-
-  if (!isClerkEnabled) {
-    return NextResponse.next()
   }
 
   if (isProtectedRoute(req)) {

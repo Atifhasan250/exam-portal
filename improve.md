@@ -16,18 +16,17 @@ The codebase is a real production-oriented Next.js App Router application, not a
 
 The biggest improvement since the older audit is that high-risk exam integrity issues have mostly been addressed. Live exams now require a server attempt, live answers are locked server-side, the submission API derives the student display name from Clerk, public live exam details hide questions until the attempt starts, resource search input is escaped, account deletion removes more user data, and index sync imports all models.
 
-The remaining important issues are narrower but still worth fixing before trusting live rankings at higher stakes:
+The remaining important issues are now mostly compatibility, scale, and cleanup work:
 
-1. `POST /api/exams/[id]/submit` does not call `enforceSameOrigin()`.
-2. Live attempts can still be submitted after `ExamAttempt.expiresAt` while the exam live window is open.
-3. Resuming an existing live attempt returns current question order instead of the stored attempt order.
-4. Deleting an exam does not delete related `ExamAttempt` documents.
-5. Attempt integrity events can be spammed and grow without a cap.
-6. Practice submissions are unlimited and can grow the database quickly.
-7. Some admin/import utilities have parsing and consistency weaknesses.
-8. There are visible/source encoding artifacts such as mojibake copyright, arrow, and checkmark text.
+1. Admin exam mutations still have legacy compatibility routes under `/api/exams/*`.
+2. Leaderboard reads still need pagination, caching, or final snapshots before very large cohorts.
+3. CSP still depends on some broad provider allowances and Font Awesome is still loaded from a CDN.
+4. ImageKit upload auth is still broad, although upload registration now validates size, MIME type, and folder.
+5. Profile submission APIs still expose a best-submission summary rather than explicit full attempt history.
+6. Admin resource and asset lists still need pagination once content volume grows.
+7. Automated behavioral tests are still missing.
 
-Overall assessment: the platform is good for a student learning portal and much stronger than the previous audit suggested. For high-integrity live exams, finish the remaining attempt expiry, resume-order, event-capping, and CSRF hardening work.
+Overall assessment: the platform is good for a student learning portal and much stronger than the previous audit suggested. The highest-risk live exam integrity issues are now addressed; the remaining work is mainly scale hardening, dependency cleanup, and route/API clarity.
 
 ## Architecture Overview
 
@@ -163,7 +162,7 @@ Overall assessment: the platform is good for a student learning portal and much 
 
 ## High Priority Findings
 
-### ~~1. Submission Endpoint Needs Same-Origin Protection~~
+### ✅ ~~1. Submission Endpoint Needs Same-Origin Protection~~
 
 Status: Done. `POST /api/exams/[id]/submit` now enforces same-origin requests before rate limiting and mutation logic.
 
@@ -193,7 +192,7 @@ if (originCheck) return originCheck
 - Import it from `@/lib/requestSecurity`.
 - Confirm `navigator.sendBeacon()` still sends the needed origin behavior in production. If not, handle beacon submission through a small dedicated endpoint or adjust the origin helper carefully.
 
-### ~~2. Live Attempts Can Submit After Attempt Expiry~~
+### ✅ ~~2. Live Attempts Can Submit After Attempt Expiry~~
 
 Status: Done. Live submission now rejects attempts after `expiresAt` plus a 30-second grace period and marks the attempt as `expired`.
 
@@ -236,7 +235,7 @@ if (attemptGraceEnd < now) {
 }
 ```
 
-### ~~3. Resuming Existing Attempts Can Return The Wrong Question Order~~
+### ✅ ~~3. Resuming Existing Attempts Can Return The Wrong Question Order~~
 
 Status: Done. Existing live attempts now return questions in the stored `questionIds` order.
 
@@ -260,7 +259,7 @@ Recommendation:
 - Consider locking published live exams from question edits/reorders once the live window starts.
 - Add a guard in admin UI/API: no question mutation when an exam is currently live unless explicitly forced.
 
-### ~~4. Exam Deletion Leaves ExamAttempt Documents Behind~~
+### ✅ ~~4. Exam Deletion Leaves ExamAttempt Documents Behind~~
 
 Status: Done. Exam deletion now removes related `ExamAttempt` documents inside the delete transaction.
 
@@ -287,7 +286,7 @@ Recommendation:
 await ExamAttempt.deleteMany({ examId: id }).session(session)
 ```
 
-### ~~5. Attempt Events Are Unbounded And Not Rate-Limited~~
+### ✅ ~~5. Attempt Events Are Unbounded And Not Rate-Limited~~
 
 Status: Done. Attempt events are rate-limited per user/attempt, rejected after expiry, and capped to the most recent 100 events.
 
@@ -322,7 +321,7 @@ $push: {
 
 - Consider storing a small summary on the attempt, such as `visibilityHiddenCount`, instead of relying only on raw events.
 
-### ~~6. Practice Submissions Are Unlimited~~
+### ✅ ~~6. Practice Submissions Are Unlimited~~
 
 Status: Done. Practice submissions now keep the best attempt per user/exam, increment `attemptCount`, rate-limit repeated practice submits, and clean older duplicate practice rows for that user/exam on the next submit.
 
@@ -349,7 +348,7 @@ Recommendation:
 - Add rate limiting keyed by `userId` and `examId`.
 - Consider a separate `PracticeAttempt` model if practice analytics become important.
 
-### ~~7. Admin Question Import Route Has Error-Handling Gaps~~
+### ✅ ~~7. Admin Question Import Route Has Error-Handling Gaps~~
 
 Status: Done. The question import route now validates the exam id before body parsing and handles malformed JSON within the route error path.
 
@@ -371,7 +370,7 @@ Recommendation:
 - Move `request.json()`, Zod validation, and param validation inside the same `try`.
 - Validate `id` before parsing larger request bodies.
 
-### ~~8. CSV Question Parser Has Fragile Column Logic~~
+### ✅ ~~8. CSV Question Parser Has Fragile Column Logic~~
 
 Status: Done. CSV import now requires the exported 8-column format, validates option and correct-index consistency, and supports quoted commas plus escaped quotes.
 
@@ -397,7 +396,9 @@ Recommendation:
 
 ## Medium Priority Findings
 
-### 9. Admin Resource And Category Reorder Does Not Verify The Full Set
+### ✅ 9. Admin Resource And Category Reorder Does Not Verify The Full Set
+
+Status: Done. Reorder requests now reject duplicate IDs, require all referenced rows to exist, use `bulkWrite()`, and keep resource reorders scoped to a single category.
 
 Files:
 
@@ -421,6 +422,8 @@ Recommendation:
 - Use `bulkWrite()` for cleaner ordered updates.
 
 ### 10. Admin Audit Coverage Is Incomplete
+
+Status: Mostly done. Resource/category create-update-delete, resource/category reorder, asset registration, and playlist import actions now write concise audit events. ImageKit auth requests are not logged to avoid noisy per-upload-token audit entries.
 
 Files:
 
@@ -452,6 +455,8 @@ Recommendation:
 
 ### 11. Admin Mutations Are Split Between Public-Looking And Admin API Paths
 
+Status: Partially done. `README.md` now documents the route convention and the compatibility rules for legacy `/api/exams/*` admin mutations. The route migration itself is intentionally deferred because it is a larger compatibility change.
+
 Files:
 
 - `app/api/exams/route.js`
@@ -476,7 +481,9 @@ Recommendation:
 - Keep public read and public submit routes under `/api/exams/*`.
 - Add a short route convention section to `README.md`.
 
-### 12. Clerk Optional Mode Is Inconsistent
+### ✅ 12. Clerk Optional Mode Is Inconsistent
+
+Status: Done. Clerk is now treated as required: server env validation includes Clerk keys, middleware always protects Clerk-owned routes, sign-in/sign-up always render Clerk, and the exam client no longer has Clerk-less bypass branches.
 
 Files:
 
@@ -501,7 +508,9 @@ Recommendation:
   - Or implement a real no-Clerk provider/auth abstraction.
 - If Clerk is required, remove most `hasClerk` branching from client exam code.
 
-### 13. Mongo Transactions Require The Right Database Deployment
+### ✅ 13. Mongo Transactions Require The Right Database Deployment
+
+Status: Done. `README.md` now documents that MongoDB must support transactions, such as Atlas or a local replica set.
 
 Files:
 
@@ -526,7 +535,9 @@ Recommendation:
 - Add a local Docker compose example using a replica set if local Mongo is expected.
 - Consider graceful non-transaction fallback only for local development if needed.
 
-### 14. Resource Search Is Escaped But Still Regex-Based
+### ✅ 14. Resource Search Is Escaped But Still Regex-Based
+
+Status: Done for the public resource API. Public resource search now uses Mongo `$text` against the existing text index instead of regex scans.
 
 File:
 
@@ -570,7 +581,9 @@ Recommendation:
 - Cache or snapshot final rankings after a live exam ends.
 - Consider storing rank metadata after finalization if leaderboard reads become frequent.
 
-### 16. Rate Limiter Instances Are Recreated Per Call
+### ✅ 16. Rate Limiter Instances Are Recreated Per Call
+
+Status: Done. Upstash limiter instances are now cached by `name/window/max` while keeping the existing in-memory fallback behavior.
 
 File:
 
@@ -612,7 +625,9 @@ Recommendation:
 - Narrow `img-src` and `connect-src` to known domains over time.
 - Keep a note for any provider that genuinely needs a broad directive.
 
-### 18. Public Exam List Could Use Lean And A Public DTO
+### ✅ 18. Public Exam List Could Use Lean And A Public DTO
+
+Status: Done. The public exam list now uses `.lean()` and maps documents through an explicit public DTO.
 
 File:
 
@@ -635,7 +650,9 @@ Recommendation:
 
 ## Lower Priority / Cleanup Findings
 
-### 19. Encoding Artifacts Are Visible In Source And UI
+### ✅ 19. Encoding Artifacts Are Visible In Source And UI
+
+Status: Done for the visible footer and touched source comments. The footer copyright now uses an HTML entity, the exam error back link uses an HTML entity, and touched comments/markdown snippets were normalized to ASCII where practical. Remaining non-ASCII text found by search is valid Unicode UI copy or comments rather than mojibake.
 
 Examples:
 
@@ -658,7 +675,9 @@ Recommendation:
   - checkmark marker -> `(done)` or a real checkmark symbol
 - Since the project already contains many non-ASCII artifacts, do this as a dedicated cleanup pass.
 
-### 20. README Still Mentions Next.js 14 In One Place
+### ✅ 20. README Still Mentions Next.js 14 In One Place
+
+Status: Done. The README introduction now says Next.js 15.
 
 File:
 
@@ -698,6 +717,8 @@ Recommendation:
 
 ### 22. ImageKit Upload Auth Is Broad For Admins
 
+Status: Partially done. Admin uploads now validate file size, allowed MIME types, and `/resources` folder scope in both the client upload flow and asset registration schema. The ImageKit auth token itself is still generic because direct-upload scoping is provider/API constrained here.
+
 Files:
 
 - `app/api/admin/imagekit/auth/route.js`
@@ -719,7 +740,9 @@ Recommendation:
 - Keep server-side validation in `app/api/admin/assets/route.js`.
 - Log asset registration and playlist import actions.
 
-### 23. Resource URLs Allow Plain HTTP
+### ✅ 23. Resource URLs Allow Plain HTTP
+
+Status: Done. Resource URL validation now accepts HTTPS URLs by default and allows plain HTTP only for localhost development hosts.
 
 File:
 
@@ -879,33 +902,25 @@ Add focused tests for:
 
 ### Immediate
 
-1. Add `enforceSameOrigin()` to `POST /api/exams/[id]/submit`.
-2. Reject expired live attempts in submit.
-3. Return existing attempt questions in stored `questionIds` order.
-4. Delete `ExamAttempt` rows when deleting an exam.
-5. Cap and rate-limit attempt integrity events.
-6. Fix `parseCSV()` validation and import errors.
+1. Add focused tests for live attempt lifecycle, submission security, and practice retention.
+2. Add pagination/cursors for admin resources/assets and public leaderboard.
+3. Decide whether profile APIs should expose full attempt history in addition to best submissions.
 
 ### Short Term
 
-1. Add tests for live attempt lifecycle and submission.
-2. Add audit logs for resource/category/asset/playlist admin actions.
-3. Add pagination/cursors for admin resources/assets and public leaderboard.
-4. Move admin exam mutations under `/api/admin/exams/*`.
-5. Decide and implement practice submission retention behavior.
-6. Normalize encoding artifacts.
+1. Move legacy admin exam mutations under `/api/admin/exams/*` with compatibility redirects or client updates.
+2. Tighten CSP in report-only mode first.
+3. Replace Font Awesome CDN with a local/package icon system.
+4. Add leaderboard snapshots after live exams end.
 
 ### Medium Term
 
-1. Tighten CSP in report-only mode first.
-2. Replace Font Awesome CDN with local/package icons.
-3. Use Mongo text search for resources.
-4. Cache Upstash limiter instances.
-5. Add leaderboard snapshots after live exams end.
-6. Decide whether Clerk is required and simplify auth paths accordingly.
+1. Add deeper admin audit reporting views.
+2. Add cursor-based loading to any admin screen that still assumes small datasets.
+3. Revisit ImageKit direct upload policy if stricter signed-upload constraints are available.
 
 ## Final Assessment
 
-The codebase is much healthier than the older audit implied. The most dangerous earlier issues are already fixed or partially fixed: live attempts exist, live answers lock server-side, display names are trusted from Clerk, resource APIs use DTOs, account deletion is more complete, and index sync covers current models.
+The codebase is much healthier than the older audit implied. The most dangerous earlier issues are fixed: live attempts exist, live answers lock server-side, display names are trusted from Clerk, resource APIs use DTOs, account deletion is more complete, index sync covers current models, and the live attempt expiry/resume/event/CSRF gaps have been closed.
 
-The app is ready for normal educational use after the immediate items are addressed. For serious live exams where rankings must be trusted, finish the remaining server-side attempt expiry, resume order, event limiting, and same-origin hardening work before treating results as high-integrity.
+The app is ready for normal educational use. For serious live exams with large cohorts, the next meaningful step is automated behavioral tests plus leaderboard pagination or snapshots.

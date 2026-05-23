@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, updateResourceCategorySchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import Resource from '@/lib/models/Resource'
 import { serialize, slugify } from '@/lib/resourceUtils'
@@ -30,6 +31,12 @@ export async function PUT(request, { params }) {
 
     const category = await ResourceCategory.findByIdAndUpdate(id, { $set: update }, { new: true, lean: true })
     if (!category) return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+
+    await logAdminAction(request, adminCheck.admin, 'UPDATE_RESOURCE_CATEGORY', category._id, {
+      name: category.name,
+      slug: category.slug,
+      published: category.published,
+    })
 
     return NextResponse.json(serialize(category))
   } catch (error) {
@@ -64,6 +71,11 @@ export async function DELETE(request, { params }) {
 
     const category = await ResourceCategory.findByIdAndDelete(id).lean()
     if (!category) return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+
+    await logAdminAction(request, adminCheck.admin, 'DELETE_RESOURCE_CATEGORY', id, {
+      name: category.name,
+      slug: category.slug,
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

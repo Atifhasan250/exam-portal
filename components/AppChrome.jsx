@@ -75,7 +75,7 @@ export default function AppChrome({ children }) {
                   </span>
                 </Link>
                 <p className="text-sm text-theme-secondary leading-relaxed max-w-xs">
-                  Instant results, real-time exam scores and detailed analytics — we help students reach their brightest potential.
+                  Instant results, real-time exam scores and detailed analytics - we help students reach their brightest potential.
                 </p>
                 {/* Socials */}
                 <div className="flex items-center space-x-2 pt-1">
@@ -178,7 +178,7 @@ export default function AppChrome({ children }) {
             {/* Bottom bar */}
             <div className="border-t border-theme-border">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-theme-secondary">
-                <span>© {year} IT Resource Zone. All rights reserved.</span>
+                <span>&copy; {year} IT Resource Zone. All rights reserved.</span>
                 <div className="flex items-center gap-4">
                   <Link href="/privacy" className="hover:text-theme-accent transition-colors">
                     Privacy Policy

@@ -8,7 +8,6 @@ import { clerkAppearance } from '@/lib/clerkTheme'
 
 export default function SignUpPage() {
   const { theme, toggleTheme } = useTheme()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
 
   return (
     <div className="bg-theme-bg min-h-[100dvh] flex flex-col px-4 pt-24 pb-8 sm:p-12 transition-theme relative overflow-y-auto overflow-x-hidden">
@@ -65,19 +64,13 @@ export default function SignUpPage() {
               </button>
             </div>
 
-            {hasClerk ? (
-              <div className="auth-clerk w-full mt-2 sm:mt-4">
-                <SignUp
-                  appearance={clerkAppearance}
-                  fallbackRedirectUrl="/profile"
-                  signInUrl="/sign-in"
-                />
-              </div>
-            ) : (
-              <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center text-theme-secondary mt-2 sm:mt-4">
-                Clerk is not configured yet. Add your Clerk publishable and secret keys to enable sign-up.
-              </div>
-            )}
+            <div className="auth-clerk w-full mt-2 sm:mt-4">
+              <SignUp
+                appearance={clerkAppearance}
+                fallbackRedirectUrl="/profile"
+                signInUrl="/sign-in"
+              />
+            </div>
           </div>
 
           {/* Footer Text */}

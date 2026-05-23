@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, createResourceSchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import Resource from '@/lib/models/Resource'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import UploadedAsset from '@/lib/models/UploadedAsset'
@@ -83,6 +84,11 @@ export async function POST(request) {
           updatedBy: adminCheck.admin?.username || 'admin',
         })
 
+        if (payload.assetId) {
+          const asset = await UploadedAsset.findOne({ _id: payload.assetId }, { _id: 1 }).session(session).lean()
+          if (!asset) throw new Error('ASSET_NOT_FOUND')
+        }
+
         const created = await Resource.create([payload], { session })
         resource = created[0]
         if (resource.assetId) {
@@ -97,10 +103,20 @@ export async function POST(request) {
       if (txError.message === 'CATEGORY_NOT_FOUND') {
         return NextResponse.json({ error: 'Category not found' }, { status: 404 })
       }
+      if (txError.message === 'ASSET_NOT_FOUND') {
+        return NextResponse.json({ error: 'Uploaded asset not found' }, { status: 400 })
+      }
       throw txError
     } finally {
       await session.endSession()
     }
+
+    await logAdminAction(request, adminCheck.admin, 'CREATE_RESOURCE', resource._id, {
+      title: resource.title,
+      type: resource.type,
+      categoryId: resource.categoryId?.toString(),
+      published: resource.published,
+    })
 
     return NextResponse.json(serialize(resource), { status: 201 })
   } catch (error) {

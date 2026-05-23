@@ -49,7 +49,6 @@ export default function ExamPageClient({ params }) {
   const timerRef = useRef(null)
   const attemptIdRef = useRef(null)
   const pendingAnswerRef = useRef(new Set())
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
   const { user, isLoaded } = useUser()
 
   useEffect(() => { answersRef.current = answers }, [answers])
@@ -118,7 +117,7 @@ export default function ExamPageClient({ params }) {
   }
 
   const startExam = async () => {
-    if (hasClerk && !user) {
+    if (!user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${id}`)}`)
       return
     }
@@ -180,7 +179,7 @@ export default function ExamPageClient({ params }) {
     // useRef guard prevents race condition: timer expiry + tab-switch firing
     // simultaneously can both pass the state check before React re-renders
     if (submittingRef.current) return
-    if (hasClerk && !user) return
+    if (!user) return
 
     recordAttemptEvent(reason, beacon)
     const payload = JSON.stringify({
@@ -257,7 +256,7 @@ export default function ExamPageClient({ params }) {
   }
 
   if (!isLoaded || loading) return <PageSkeleton />
-  if (hasClerk && !user) {
+  if (!user) {
     return (
       <div className="bg-theme-bg min-h-screen py-20 px-4">
         <AuthCallout title="Sign in to take this exam" description="Exam submissions are now tied to your IT Resource Zone account so your results and live attempt limits are enforced securely." />
@@ -468,7 +467,7 @@ function ErrorScreen({ message, onBack }) {
     <div className="min-h-screen bg-theme-bg flex flex-col items-center justify-center space-y-4 text-theme-primary px-6 text-center">
       <i className="fas fa-exclamation-triangle text-4xl text-theme-error-text" />
       <p className="font-bold text-xl max-w-sm">{message}</p>
-      <button onClick={onBack} className="text-theme-accent underline text-sm">← Back to Home</button>
+      <button onClick={onBack} className="text-theme-accent underline text-sm">&larr; Back to Home</button>
     </div>
   )
 }

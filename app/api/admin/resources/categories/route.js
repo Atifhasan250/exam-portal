@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, createResourceCategorySchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import Resource from '@/lib/models/Resource'
 import { serialize, slugify } from '@/lib/resourceUtils'
@@ -48,6 +49,12 @@ export async function POST(request) {
       ...parsed.data,
       slug: parsed.data.slug || slugify(parsed.data.name),
       order: raw.order === undefined ? (maxOrder?.order || 0) + 1 : parsed.data.order,
+    })
+
+    await logAdminAction(request, adminCheck.admin, 'CREATE_RESOURCE_CATEGORY', category._id, {
+      name: category.name,
+      slug: category.slug,
+      published: category.published,
     })
 
     return NextResponse.json(serialize(category), { status: 201 })

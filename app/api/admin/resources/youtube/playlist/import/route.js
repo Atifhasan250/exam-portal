@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { rateLimit } from '@/lib/rateLimit'
 import { validate, youtubePlaylistImportSchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import Resource from '@/lib/models/Resource'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import { serialize } from '@/lib/resourceUtils'
@@ -48,7 +49,10 @@ export async function POST(request) {
     }
 
     const youtubeIds = uniqueVideos.map((video) => video.youtubeId)
-    const existing = await Resource.find({ youtubeId: { $in: youtubeIds } }, { youtubeId: 1 }).lean()
+    const existing = await Resource.find(
+      { categoryId: parsed.data.categoryId, youtubeId: { $in: youtubeIds } },
+      { youtubeId: 1 },
+    ).lean()
     const existingIds = new Set(existing.map((resource) => resource.youtubeId))
     const maxOrder = await Resource.findOne({ categoryId: parsed.data.categoryId }, { order: 1 }).sort({ order: -1 }).lean()
     let order = maxOrder?.order || 0
@@ -66,6 +70,14 @@ export async function POST(request) {
       }))
 
     const inserted = docs.length ? await Resource.insertMany(docs, { ordered: false }) : []
+
+    await logAdminAction(request, adminCheck.admin, 'IMPORT_RESOURCE_PLAYLIST', parsed.data.categoryId, {
+      categoryId: parsed.data.categoryId,
+      playlistId: parsed.data.playlistId,
+      importedCount: inserted.length,
+      skippedExistingCount: existingIds.size,
+      skippedDuplicateInPayloadCount,
+    })
 
     return NextResponse.json(serialize({
       importedCount: inserted.length,

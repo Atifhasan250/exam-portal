@@ -6,7 +6,6 @@ import Resource from '@/lib/models/Resource'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import {
   RESOURCE_TYPES,
-  escapeRegex,
   isObjectId,
   normalizeSearchQuery,
   serialize,
@@ -24,7 +23,10 @@ export async function GET(request) {
     const q = normalizeSearchQuery(searchParams.get('q'))
     const featured = searchParams.get('featured')
     const sort = searchParams.get('sort')?.trim()
-    const limit = Math.min(Number(searchParams.get('limit')) || 100, 200)
+    const limitParam = searchParams.get('limit')
+    const rawLimit = !limitParam?.trim() ? NaN : Number(limitParam)
+    const parsedLimit = Number.isFinite(rawLimit) ? Math.trunc(rawLimit) : 100
+    const limit = Math.max(1, Math.min(parsedLimit, 200))
 
     const query = { published: true }
 
@@ -43,18 +45,17 @@ export async function GET(request) {
     }
 
     if (q && q.length >= 2) {
-      const safePattern = escapeRegex(q)
-      query.$or = [
-        { title: { $regex: safePattern, $options: 'i' } },
-        { description: { $regex: safePattern, $options: 'i' } },
-        { tags: { $regex: safePattern, $options: 'i' } },
-        { topicTags: { $regex: safePattern, $options: 'i' } },
-      ]
+      query.$text = { $search: q }
     }
 
-    const resources = await Resource.find(query)
+    const projection = query.$text ? { score: { $meta: 'textScore' } } : undefined
+    const sortSpec = query.$text
+      ? { score: { $meta: 'textScore' }, featured: -1, order: 1, createdAt: -1 }
+      : sort === 'latest' ? { createdAt: -1 } : { featured: -1, order: 1, createdAt: -1 }
+
+    const resources = await Resource.find(query, projection)
       .populate('categoryId', 'name slug icon color')
-      .sort(sort === 'latest' ? { createdAt: -1 } : { featured: -1, order: 1, createdAt: -1 })
+      .sort(sortSpec)
       .limit(limit)
       .lean()
 

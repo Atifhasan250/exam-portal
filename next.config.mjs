@@ -71,7 +71,7 @@ const nextConfig = {
               // Clerk user avatars come from img.clerk.com and Google/social providers
               "img-src 'self' data: blob: https:",
               // Clerk API, WebSocket, and Vercel analytics
-              "connect-src 'self' https://*.clerk.accounts.dev https://clerk.*.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io",
+              "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io",
               "worker-src 'self' blob:",
               "frame-src https://*.clerk.accounts.dev https://www.youtube.com https://www.youtube-nocookie.com",
               "frame-ancestors 'none'",

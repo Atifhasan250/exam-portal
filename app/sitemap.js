@@ -45,8 +45,8 @@ export default async function sitemap() {
     }))
 
     dynamicRoutes = [...examRoutes, ...categoryRoutes, ...videoRoutes]
-  } catch {
-    // Silently skip dynamic routes on DB error.
+  } catch (error) {
+    console.error('Failed to load dynamic routes for sitemap', error)
   }
 
   return [...staticRoutes, ...dynamicRoutes]

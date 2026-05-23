@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, updateResourceSchema } from '@/lib/validation'
+import { logAdminAction } from '@/lib/auditLog'
 import Resource from '@/lib/models/Resource'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import ResourceProgress from '@/lib/models/ResourceProgress'
@@ -46,11 +47,17 @@ export async function PUT(request, { params }) {
           updatedBy: adminCheck.admin?.username || 'admin',
         })
 
+        const oldAssetId = existing.assetId?.toString()
+        const requestedAssetId = payload.assetId?.toString()
+        if (requestedAssetId && requestedAssetId !== oldAssetId) {
+          const asset = await UploadedAsset.findOne({ _id: requestedAssetId }, { _id: 1 }).session(session).lean()
+          if (!asset) throw new Error('ASSET_NOT_FOUND')
+        }
+
         resource = await Resource.findByIdAndUpdate(id, { $set: payload }, { new: true })
           .session(session)
           .lean()
 
-        const oldAssetId = existing.assetId?.toString()
         const newAssetId = resource.assetId?.toString()
         if (oldAssetId !== newAssetId) {
           if (oldAssetId) {
@@ -76,10 +83,20 @@ export async function PUT(request, { params }) {
       if (txError.message === 'RESOURCE_NOT_FOUND') {
         return NextResponse.json({ error: 'Resource not found' }, { status: 404 })
       }
+      if (txError.message === 'ASSET_NOT_FOUND') {
+        return NextResponse.json({ error: 'Uploaded asset not found' }, { status: 400 })
+      }
       throw txError
     } finally {
       await session.endSession()
     }
+
+    await logAdminAction(request, adminCheck.admin, 'UPDATE_RESOURCE', resource._id, {
+      title: resource.title,
+      type: resource.type,
+      categoryId: resource.categoryId?.toString(),
+      published: resource.published,
+    })
 
     return NextResponse.json(serialize(resource))
   } catch (error) {
@@ -104,11 +121,13 @@ export async function DELETE(request, { params }) {
 
     await connectDB()
 
+    let deletedResource
     const session = await mongoose.startSession()
     try {
       await session.withTransaction(async () => {
         const resource = await Resource.findByIdAndDelete(id).session(session).lean()
         if (!resource) throw new Error('RESOURCE_NOT_FOUND')
+        deletedResource = resource
 
         await ResourceProgress.deleteMany({ resourceId: id }).session(session)
 
@@ -128,6 +147,12 @@ export async function DELETE(request, { params }) {
     } finally {
       await session.endSession()
     }
+
+    await logAdminAction(request, adminCheck.admin, 'DELETE_RESOURCE', id, {
+      title: deletedResource.title,
+      type: deletedResource.type,
+      categoryId: deletedResource.categoryId?.toString(),
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

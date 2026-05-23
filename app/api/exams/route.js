@@ -12,13 +12,36 @@ export const revalidate = 30
 export async function GET() {
   try {
     await connectDB()
-    const exams = await Exam.find({ published: true }, { questions: 0 }).sort({ createdAt: -1 })
-    return NextResponse.json(exams, {
+    const exams = await Exam.find({ published: true }, {
+      _id: 1,
+      title: 1,
+      duration: 1,
+      liveStart: 1,
+      liveEnd: 1,
+      published: 1,
+      createdAt: 1,
+      updatedAt: 1,
+    }).sort({ createdAt: -1 }).lean()
+
+    return NextResponse.json(exams.map(toPublicExam), {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
     })
   } catch (error) {
     logger.error('[GET /api/exams]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
+  }
+}
+
+function toPublicExam(exam) {
+  return {
+    _id: exam._id.toString(),
+    title: exam.title,
+    duration: exam.duration,
+    liveStart: exam.liveStart || null,
+    liveEnd: exam.liveEnd || null,
+    published: Boolean(exam.published),
+    createdAt: exam.createdAt,
+    updatedAt: exam.updatedAt,
   }
 }
 

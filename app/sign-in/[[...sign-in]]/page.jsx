@@ -8,7 +8,6 @@ import { clerkAppearance } from '@/lib/clerkTheme'
 
 export default function SignInPage() {
   const { theme, toggleTheme } = useTheme()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
 
   return (
     <div className="bg-theme-bg min-h-screen flex items-center justify-center px-4 pt-24 pb-8 sm:py-12 transition-theme relative overflow-hidden">
@@ -65,19 +64,13 @@ export default function SignInPage() {
               </button>
             </div>
 
-            {hasClerk ? (
-              <div className="auth-clerk w-full mt-2 sm:mt-4">
-                <SignIn
-                  appearance={clerkAppearance}
-                  fallbackRedirectUrl="/"
-                  signUpUrl="/sign-up"
-                />
-              </div>
-            ) : (
-              <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center text-theme-secondary mt-2 sm:mt-4">
-                Clerk is not configured yet. Add your Clerk publishable and secret keys to enable sign-in.
-              </div>
-            )}
+            <div className="auth-clerk w-full mt-2 sm:mt-4">
+              <SignIn
+                appearance={clerkAppearance}
+                fallbackRedirectUrl="/"
+                signUpUrl="/sign-up"
+              />
+            </div>
           </div>
 
           {/* Footer Text */}

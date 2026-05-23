@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { cache } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { notFound } from 'next/navigation'
 import { connectDB } from '@/lib/db'
@@ -88,7 +89,7 @@ export default async function ResourceWatchPage({ params }) {
   )
 }
 
-async function getResourceBySlug(slug) {
+const getResourceBySlug = cache(async (slug) => {
   await connectDB()
   const idCandidate = slug.split('-').at(-1)
   const query = {
@@ -103,7 +104,7 @@ async function getResourceBySlug(slug) {
   return Resource.findOne(query)
     .populate('categoryId', 'name slug icon color')
     .lean()
-}
+})
 
 function Detail({ label, value }) {
   if (!value) return null
