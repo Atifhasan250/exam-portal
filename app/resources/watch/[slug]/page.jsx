@@ -1,13 +1,12 @@
 import Link from 'next/link'
-import { cache } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { notFound } from 'next/navigation'
 import { connectDB } from '@/lib/db'
-import Resource from '@/lib/models/Resource'
 import ResourceProgress from '@/lib/models/ResourceProgress'
 import ResourceVideoPlayer from '@/components/resources/ResourceVideoPlayer'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { isObjectId, publicResourceSlug, serialize } from '@/lib/resourceUtils'
+import { publicResourceSlug, serialize } from '@/lib/resourceUtils'
+import { getCachedResourceBySlug, getCachedSiblingResources } from '@/lib/publicCache'
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
@@ -45,12 +44,12 @@ export default async function ResourceWatchPage({ params }) {
   const { previousResource, nextResource } = await getSiblingResources(resource)
   const serializedResource = serialize(resource)
   const { transcriptText = '', ...playerResource } = serializedResource
-  const resourceDescription = resource.description?.trim()
   const transcriptExcerpt = excerpt(transcriptText, 2800)
   const videoSchema = buildVideoSchema(resource)
   const breadcrumbSchema = buildBreadcrumbSchema(resource)
 
   const { userId } = await auth()
+  if (userId) await connectDB()
   const progress = userId
     ? await ResourceProgress.findOne({ clerkUserId: userId, resourceId: resource._id }).lean()
     : null
@@ -96,12 +95,6 @@ export default async function ResourceWatchPage({ params }) {
             <Detail label="Language" value={languageLabel(resource.language)} />
             <Detail label="Duration" value={formatDuration(resource.durationSeconds)} />
             <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
-            {resourceDescription ? (
-              <div className="border-t border-theme-border pt-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Description</p>
-                <p className="text-sm text-theme-secondary leading-relaxed">{resourceDescription}</p>
-              </div>
-            ) : null}
             {transcriptExcerpt ? (
               <details className="border-t border-theme-border pt-3 group">
                 <summary className="cursor-pointer list-none text-xs font-bold uppercase tracking-wide text-theme-secondary flex items-center justify-between gap-3">
@@ -124,49 +117,8 @@ export default async function ResourceWatchPage({ params }) {
   )
 }
 
-const getResourceBySlug = cache(async (slug) => {
-  await connectDB()
-  const idCandidate = slug.split('-').at(-1)
-  const query = {
-    published: true,
-    type: 'youtube',
-    $or: [
-      { slug },
-      ...(isObjectId(idCandidate) ? [{ _id: idCandidate }] : []),
-    ],
-  }
-
-  return Resource.findOne(query)
-    .populate('categoryId', 'name slug icon color')
-    .lean()
-})
-
-const getSiblingResources = cache(async (resource) => {
-  const categoryId = typeof resource.categoryId === 'object' ? resource.categoryId?._id : resource.categoryId
-  if (!categoryId) return { previousResource: null, nextResource: null }
-
-  const resources = await Resource.find(
-    { categoryId, published: true, type: 'youtube' },
-    { _id: 1, title: 1, slug: 1, order: 1, createdAt: 1 },
-  )
-    .sort({ order: 1, createdAt: -1 })
-    .lean()
-
-  const currentIndex = resources.findIndex((item) => item._id.toString() === resource._id.toString())
-
-  return {
-    previousResource: toWatchNavResource(currentIndex > 0 ? resources[currentIndex - 1] : null),
-    nextResource: toWatchNavResource(currentIndex >= 0 && currentIndex < resources.length - 1 ? resources[currentIndex + 1] : null),
-  }
-})
-
-function toWatchNavResource(resource) {
-  if (!resource) return null
-  return {
-    title: resource.title,
-    href: `/resources/watch/${publicResourceSlug(resource)}`,
-  }
-}
+const getResourceBySlug = getCachedResourceBySlug
+const getSiblingResources = getCachedSiblingResources
 
 function Detail({ label, value }) {
   if (!value) return null

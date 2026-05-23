@@ -13,6 +13,7 @@ import UploadedAsset from '@/lib/models/UploadedAsset'
 import { serialize } from '@/lib/resourceUtils'
 import { normalizeResourcePayload } from '@/lib/resourcePayload'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 
 export async function PUT(request, { params }) {
   const originCheck = enforceSameOrigin(request)
@@ -110,6 +111,7 @@ export async function PUT(request, { params }) {
       categoryId: resource.categoryId?.toString(),
       published: resource.published,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json(serialize(resource))
   } catch (error) {
@@ -178,6 +180,7 @@ export async function DELETE(request, { params }) {
       type: deletedResource.type,
       categoryId: deletedResource.categoryId?.toString(),
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json({ ok: true })
   } catch (error) {

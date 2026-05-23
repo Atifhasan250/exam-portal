@@ -1,19 +1,11 @@
 import Link from 'next/link'
-import { connectDB } from '@/lib/db'
-import Exam from '@/lib/models/Exam'
+import { getCachedHomeRecentExams } from '@/lib/publicCache'
 
 export default async function HomeRecentExams() {
   let exams
 
   try {
-    await connectDB()
-    exams = await Exam.find(
-      { published: true },
-      { title: 1, duration: 1, liveStart: 1, liveEnd: 1, createdAt: 1 },
-    )
-      .sort({ createdAt: -1 })
-      .limit(6)
-      .lean()
+    exams = await getCachedHomeRecentExams()
   } catch {
     return null
   }
@@ -38,7 +30,7 @@ export default async function HomeRecentExams() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam) => (
             <Link
-              key={exam._id.toString()}
+              key={exam._id}
               href={`/exam/${exam._id}`}
               className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:border-theme-accent/50 hover:-translate-y-0.5 transition-all"
             >

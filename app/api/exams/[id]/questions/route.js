@@ -6,6 +6,7 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 
@@ -43,6 +44,7 @@ export async function POST(request, { params }) {
     const allQuestions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
 
     await logAdminAction(request, adminCheck.admin, 'ADD_QUESTIONS', exam._id, { count: questions.length })
+    await invalidateExamCaches(exam._id.toString())
 
     return NextResponse.json({ ...exam.toObject(), questions: allQuestions })
   } catch (error) {

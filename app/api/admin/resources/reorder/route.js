@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, reorderItemsSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 import Resource from '@/lib/models/Resource'
 
 export async function PUT(request) {
@@ -80,6 +81,7 @@ export async function PUT(request) {
       categoryId,
       count: parsed.data.orderedIds.length,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json({ ok: true })
   } catch (error) {

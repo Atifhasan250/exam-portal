@@ -10,6 +10,7 @@ import Resource from '@/lib/models/Resource'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import { serialize } from '@/lib/resourceUtils'
 import { normalizeResourcePayload } from '@/lib/resourcePayload'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 
 export async function POST(request) {
   const originCheck = enforceSameOrigin(request)
@@ -78,6 +79,7 @@ export async function POST(request) {
       skippedExistingCount: existingIds.size,
       skippedDuplicateInPayloadCount,
     })
+    if (inserted.length) await invalidateResourceCaches()
 
     return NextResponse.json(serialize({
       importedCount: inserted.length,

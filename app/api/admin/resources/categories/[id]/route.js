@@ -10,6 +10,7 @@ import ResourceCategory from '@/lib/models/ResourceCategory'
 import Resource from '@/lib/models/Resource'
 import { serialize, slugify } from '@/lib/resourceUtils'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 
 export async function PUT(request, { params }) {
   const originCheck = enforceSameOrigin(request)
@@ -38,6 +39,7 @@ export async function PUT(request, { params }) {
       slug: category.slug,
       published: category.published,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json(serialize(category))
   } catch (error) {
@@ -93,6 +95,7 @@ export async function DELETE(request, { params }) {
       name: category.name,
       slug: category.slug,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json({ ok: true })
   } catch (error) {

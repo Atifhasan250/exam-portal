@@ -7,43 +7,27 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import {
+  getCachedPublicExamDetail,
+  invalidateExamCaches,
+  publicExamWithRuntimeAccess,
+} from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
 import ExamAttempt from '@/lib/models/ExamAttempt'
-
-function toPublicQuestion(question) {
-  return {
-    _id: question._id,
-    question: question.question,
-    options: question.options,
-    order: question.order,
-  }
-}
 
 export async function GET(_request, { params }) {
   try {
     const { id } = await params
     if (!isValidObjectId(id)) return invalidIdResponse('exam id')
 
-    await connectDB()
-    const exam = await Exam.findOne({ _id: id, published: true }).lean()
+    const exam = publicExamWithRuntimeAccess(await getCachedPublicExamDetail(id))
     if (!exam) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
-    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
-    const now = new Date()
-    const liveStart = exam.liveStart ? new Date(exam.liveStart) : null
-    const liveEnd = exam.liveEnd ? new Date(exam.liveEnd) : null
-    const protectLiveQuestions = Boolean(liveStart && liveEnd && now <= liveEnd)
-
-    return NextResponse.json({
-      ...exam,
-      questionCount: questions.length,
-      requiresAttempt: protectLiveQuestions,
-      questions: protectLiveQuestions ? [] : questions.map(toPublicQuestion),
-    })
+    return NextResponse.json(exam)
   } catch (error) {
     logger.error('[GET /api/exams/[id]]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
@@ -82,6 +66,7 @@ export async function PUT(request, { params }) {
     }
 
     await logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
+    await invalidateExamCaches(exam._id.toString())
 
     return NextResponse.json(exam)
   } catch (error) {
@@ -117,6 +102,7 @@ export async function DELETE(request, { params }) {
     }
 
     await logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
+    await invalidateExamCaches(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

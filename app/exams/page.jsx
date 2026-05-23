@@ -1,7 +1,6 @@
 import ExamsPageClient from './ExamsPageClient'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { connectDB } from '@/lib/db'
-import Exam from '@/lib/models/Exam'
+import { getCachedPublishedExams } from '@/lib/publicCache'
 
 export const revalidate = 30
 
@@ -33,28 +32,7 @@ export default async function ExamsPage() {
 
 async function getInitialExams() {
   try {
-    await connectDB()
-    const exams = await Exam.find({ published: true }, {
-      _id: 1,
-      title: 1,
-      duration: 1,
-      liveStart: 1,
-      liveEnd: 1,
-      published: 1,
-      createdAt: 1,
-      updatedAt: 1,
-    }).sort({ createdAt: -1 }).lean()
-
-    return JSON.parse(JSON.stringify(exams.map((exam) => ({
-      _id: exam._id.toString(),
-      title: exam.title,
-      duration: exam.duration,
-      liveStart: exam.liveStart || null,
-      liveEnd: exam.liveEnd || null,
-      published: Boolean(exam.published),
-      createdAt: exam.createdAt,
-      updatedAt: exam.updatedAt,
-    }))))
+    return await getCachedPublishedExams()
   } catch (err) {
     console.error('Failed to load initial exams', err)
     return []

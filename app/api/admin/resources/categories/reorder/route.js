@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, reorderItemsSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 
 export async function PUT(request) {
@@ -47,6 +48,7 @@ export async function PUT(request) {
     await logAdminAction(request, adminCheck.admin, 'REORDER_RESOURCE_CATEGORIES', undefined, {
       count: parsed.data.orderedIds.length,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json({ ok: true })
   } catch (error) {

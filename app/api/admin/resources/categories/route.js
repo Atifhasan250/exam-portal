@@ -8,6 +8,7 @@ import { logAdminAction } from '@/lib/auditLog'
 import ResourceCategory from '@/lib/models/ResourceCategory'
 import Resource from '@/lib/models/Resource'
 import { serialize, slugify } from '@/lib/resourceUtils'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 
 export async function GET() {
   const adminCheck = await requireAdmin()
@@ -56,6 +57,7 @@ export async function POST(request) {
       slug: category.slug,
       published: category.published,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json(serialize(category), { status: 201 })
   } catch (error) {

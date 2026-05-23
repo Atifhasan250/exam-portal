@@ -5,43 +5,21 @@ import { validate, createExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { getCachedPublishedExams, invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 
 export const revalidate = 30
 
 export async function GET() {
   try {
-    await connectDB()
-    const exams = await Exam.find({ published: true }, {
-      _id: 1,
-      title: 1,
-      duration: 1,
-      liveStart: 1,
-      liveEnd: 1,
-      published: 1,
-      createdAt: 1,
-      updatedAt: 1,
-    }).sort({ createdAt: -1 }).lean()
+    const exams = await getCachedPublishedExams()
 
-    return NextResponse.json(exams.map(toPublicExam), {
+    return NextResponse.json(exams, {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
     })
   } catch (error) {
     logger.error('[GET /api/exams]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
-  }
-}
-
-function toPublicExam(exam) {
-  return {
-    _id: exam._id.toString(),
-    title: exam.title,
-    duration: exam.duration,
-    liveStart: exam.liveStart || null,
-    liveEnd: exam.liveEnd || null,
-    published: Boolean(exam.published),
-    createdAt: exam.createdAt,
-    updatedAt: exam.updatedAt,
   }
 }
 
@@ -64,6 +42,7 @@ export async function POST(request) {
     await exam.save()
 
     await logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
+    await invalidateExamCaches(exam._id.toString())
 
     return NextResponse.json(exam, { status: 201 })
   } catch (error) {

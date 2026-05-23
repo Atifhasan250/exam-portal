@@ -1,10 +1,8 @@
 import CategoryResourcesClient from './CategoryResourcesClient'
-import { connectDB } from '@/lib/db'
-import Resource from '@/lib/models/Resource'
-import ResourceCategory from '@/lib/models/ResourceCategory'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { publicResourceSlug, serialize, toPublicResources } from '@/lib/resourceUtils'
+import { publicResourceSlug } from '@/lib/resourceUtils'
 import { notFound } from 'next/navigation'
+import { getCachedCategoryBySlug, getCachedInitialCategoryPageData } from '@/lib/publicCache'
 
 export const revalidate = 60
 
@@ -80,66 +78,14 @@ export default async function CategoryResourcesPage({ params }) {
 
 async function getInitialCategoryPageData(slug) {
   try {
-    await connectDB()
-
-    const category = await ResourceCategory.findOne({ slug, published: true }).lean()
-    if (!category) return { category: null, categoryFound: false, categories: [], resources: [], hasMoreResources: false, initialDataReady: true }
-
-    const [categories, resources, totalCount] = await Promise.all([
-      getPublishedCategoriesWithCounts(),
-      Resource.find({ published: true, categoryId: category._id })
-        .populate('categoryId', 'name slug icon color')
-        .sort({ order: 1, createdAt: -1 })
-        .limit(100)
-        .lean(),
-      Resource.countDocuments({ published: true, categoryId: category._id }),
-    ])
-
-    return {
-      category: serialize(category),
-      categoryFound: true,
-      categories,
-      resources: serialize(toPublicResources(resources)),
-      hasMoreResources: resources.length < totalCount,
-      initialDataReady: true,
-    }
+    return await getCachedInitialCategoryPageData(slug)
   } catch {
     return { category: null, categoryFound: true, categories: [], resources: [], hasMoreResources: false, initialDataReady: false }
   }
 }
 
 async function getCategoryBySlug(slug) {
-  try {
-    await connectDB()
-    return await ResourceCategory.findOne({ slug, published: true }).lean() || null
-  } catch {
-    return undefined
-  }
-}
-
-async function getPublishedCategoriesWithCounts() {
-  const categories = await ResourceCategory.find({ published: true })
-    .sort({ order: 1, name: 1 })
-    .lean()
-
-  const counts = await Resource.aggregate([
-    { $match: { published: true, categoryId: { $in: categories.map((category) => category._id) } } },
-    { $group: { _id: { categoryId: '$categoryId', type: '$type' }, count: { $sum: 1 } } },
-  ])
-
-  const countMap = new Map()
-  for (const item of counts) {
-    const key = item._id.categoryId.toString()
-    const current = countMap.get(key) || { total: 0, youtube: 0, pdf: 0, link: 0, image: 0, file: 0 }
-    current[item._id.type] = item.count
-    current.total += item.count
-    countMap.set(key, current)
-  }
-
-  return serialize(categories.map((category) => ({
-    ...category,
-    resourceCounts: countMap.get(category._id.toString()) || { total: 0, youtube: 0, pdf: 0, link: 0, image: 0, file: 0 },
-  })))
+  return getCachedCategoryBySlug(slug)
 }
 
 function buildCategorySchemas(category, resources) {

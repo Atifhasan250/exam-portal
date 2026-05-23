@@ -1,11 +1,8 @@
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { isValidObjectId } from '@/lib/routeParams'
-import { connectDB } from '@/lib/db'
-import Exam from '@/lib/models/Exam'
-import Question from '@/lib/models/Question'
 import ExamPageClient from './ExamPageClient'
-import { cache } from 'react'
 import { notFound } from 'next/navigation'
+import { getCachedPublicExamDetail, publicExamSummary } from '@/lib/publicCache'
 
 export const revalidate = 60
 
@@ -71,35 +68,10 @@ async function ExamPageWithData({ params }) {
   )
 }
 
-const getPublicExamSummary = cache(async (id) => {
-  await connectDB()
-  const exam = await Exam.findOne(
-    { _id: id, published: true },
-    { title: 1, duration: 1, liveStart: 1, liveEnd: 1, createdAt: 1, updatedAt: 1 },
-  ).lean()
-
-  if (!exam) return null
-
-  const questionCount = await Question.countDocuments({ examId: exam._id })
-
-  const now = new Date()
-  const liveStart = exam.liveStart ? new Date(exam.liveStart) : null
-  const liveEnd = exam.liveEnd ? new Date(exam.liveEnd) : null
-  const protectLiveQuestions = Boolean(liveStart && liveEnd && now <= liveEnd)
-
-  return JSON.parse(JSON.stringify({
-    _id: exam._id.toString(),
-    title: exam.title,
-    duration: exam.duration,
-    liveStart: exam.liveStart || null,
-    liveEnd: exam.liveEnd || null,
-    createdAt: exam.createdAt,
-    updatedAt: exam.updatedAt,
-    questionCount,
-    questions: undefined,
-    requiresAttempt: protectLiveQuestions,
-  }))
-})
+async function getPublicExamSummary(id) {
+  const exam = await getCachedPublicExamDetail(id)
+  return publicExamSummary(exam)
+}
 
 function buildExamSchemas(exam) {
   const siteUrl = getSiteUrl()

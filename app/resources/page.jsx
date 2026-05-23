@@ -1,9 +1,7 @@
 import ResourcesPageClient from './ResourcesPageClient'
-import { connectDB } from '@/lib/db'
-import Resource from '@/lib/models/Resource'
-import ResourceCategory from '@/lib/models/ResourceCategory'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { publicResourceSlug, serialize, toPublicResources } from '@/lib/resourceUtils'
+import { publicResourceSlug } from '@/lib/resourceUtils'
+import { getCachedInitialResourcePageData } from '@/lib/publicCache'
 
 export const revalidate = 60
 
@@ -43,52 +41,10 @@ export default async function ResourcesPage() {
 
 async function getInitialResourcePageData() {
   try {
-    await connectDB()
-
-    const [categories, resources, totalCount] = await Promise.all([
-      getPublishedCategoriesWithCounts(),
-      Resource.find({ published: true })
-        .populate('categoryId', 'name slug icon color')
-        .sort({ order: 1, createdAt: -1 })
-        .limit(80)
-        .lean(),
-      Resource.countDocuments({ published: true }),
-    ])
-
-    return {
-      categories,
-      resources: serialize(toPublicResources(resources)),
-      hasMoreResources: resources.length < totalCount,
-      initialDataReady: true,
-    }
+    return await getCachedInitialResourcePageData()
   } catch {
     return { categories: [], resources: [], hasMoreResources: false, initialDataReady: false }
   }
-}
-
-async function getPublishedCategoriesWithCounts() {
-  const categories = await ResourceCategory.find({ published: true })
-    .sort({ order: 1, name: 1 })
-    .lean()
-
-  const counts = await Resource.aggregate([
-    { $match: { published: true, categoryId: { $in: categories.map((category) => category._id) } } },
-    { $group: { _id: { categoryId: '$categoryId', type: '$type' }, count: { $sum: 1 } } },
-  ])
-
-  const countMap = new Map()
-  for (const item of counts) {
-    const key = item._id.categoryId.toString()
-    const current = countMap.get(key) || { total: 0, youtube: 0, pdf: 0, link: 0, image: 0, file: 0 }
-    current[item._id.type] = item.count
-    current.total += item.count
-    countMap.set(key, current)
-  }
-
-  return serialize(categories.map((category) => ({
-    ...category,
-    resourceCounts: countMap.get(category._id.toString()) || { total: 0, youtube: 0, pdf: 0, link: 0, image: 0, file: 0 },
-  })))
 }
 
 function buildResourcesSchemas(categories, resources) {

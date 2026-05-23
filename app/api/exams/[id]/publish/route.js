@@ -6,6 +6,7 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 
 export async function PUT(request, { params }) {
@@ -40,6 +41,7 @@ export async function PUT(request, { params }) {
       exam._id,
       { title: exam.title },
     )
+    await invalidateExamCaches(exam._id.toString())
 
     return NextResponse.json(exam)
   } catch (error) {

@@ -8,6 +8,7 @@ import { validate, submitExamSchema } from '@/lib/validation'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateLeaderboardCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
@@ -276,6 +277,8 @@ export async function POST(request, { params }) {
           )
         }
       })
+
+      await invalidateLeaderboardCaches(exam._id.toString())
 
       return NextResponse.json({
         score,

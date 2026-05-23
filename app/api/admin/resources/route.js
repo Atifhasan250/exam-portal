@@ -12,6 +12,7 @@ import UploadedAsset from '@/lib/models/UploadedAsset'
 import { RESOURCE_TYPES, escapeRegex, normalizeSearchQuery, serialize } from '@/lib/resourceUtils'
 import { normalizeResourcePayload } from '@/lib/resourcePayload'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateResourceCaches } from '@/lib/publicCache'
 
 export async function GET(request) {
   const adminCheck = await requireAdmin()
@@ -117,6 +118,7 @@ export async function POST(request) {
       categoryId: resource.categoryId?.toString(),
       published: resource.published,
     })
+    await invalidateResourceCaches()
 
     return NextResponse.json(serialize(resource), { status: 201 })
   } catch (error) {
