@@ -47,8 +47,10 @@ export default function ExamPageClient({ params }) {
   const [toast, setToast] = useState({ show: false, text: '' })
   const [lastSelected, setLastSelected] = useState({})
   const timerRef = useRef(null)
+  const attemptIdRef = useRef(null)
+  const pendingAnswerRef = useRef(new Set())
   const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
-  const { user, isLoaded } = hasClerk ? useUser() : { user: null, isLoaded: true }
+  const { user, isLoaded } = useUser()
 
   useEffect(() => { answersRef.current = answers }, [answers])
   useEffect(() => { window.scrollTo(0, 0) }, [screen])
@@ -77,14 +79,15 @@ export default function ExamPageClient({ params }) {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        recordAttemptEvent('visibility-hidden')
         showToast('Tab switch detected. Submitting exam...')
-        setTimeout(() => submitExam(), 3500)
+        setTimeout(() => submitExam({ reason: 'visibility-hidden' }), 3500)
       }
     }
 
-    const handleBeforeUnload = (event) => {
-      event.preventDefault()
-      submitExam()
+    const handleBeforeUnload = () => {
+      recordAttemptEvent('beforeunload', true)
+      submitExam({ reason: 'beforeunload', beacon: true })
     }
 
     const blockContext = (event) => event.preventDefault()
@@ -96,12 +99,14 @@ export default function ExamPageClient({ params }) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('pagehide', handleBeforeUnload)
     document.addEventListener('contextmenu', blockContext)
     document.addEventListener('keydown', blockKeys)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('pagehide', handleBeforeUnload)
       document.removeEventListener('contextmenu', blockContext)
       document.removeEventListener('keydown', blockKeys)
     }
@@ -112,10 +117,33 @@ export default function ExamPageClient({ params }) {
     setTimeout(() => setToast({ show: false, text: '' }), 3500)
   }
 
-  const startExam = () => {
+  const startExam = async () => {
     if (hasClerk && !user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${id}`)}`)
       return
+    }
+
+    if (exam.requiresAttempt) {
+      setSubmitting(true)
+      try {
+        const response = await fetch(`/api/exams/${id}/attempts/start`, { method: 'POST' })
+        const data = await response.json()
+        if (!response.ok) {
+          setError(data.error || 'Failed to start exam attempt')
+          return
+        }
+
+        attemptIdRef.current = data.attemptId
+        setExam((previous) => ({ ...previous, questions: data.questions || [] }))
+        if (data.expiresAt) {
+          setTimeLeft(Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000)))
+        }
+      } catch {
+        setError('Failed to start exam attempt')
+        return
+      } finally {
+        setSubmitting(false)
+      }
     }
 
     setScreen('exam')
@@ -123,7 +151,7 @@ export default function ExamPageClient({ params }) {
       setTimeLeft((previous) => {
         if (previous <= 1) {
           clearInterval(timerRef.current)
-          submitExam()
+          submitExam({ reason: 'timer-expired' })
           return 0
         }
         return previous - 1
@@ -131,11 +159,42 @@ export default function ExamPageClient({ params }) {
     }, 1000)
   }
 
-  const submitExam = async () => {
+  const recordAttemptEvent = (type, beacon = false) => {
+    const attemptId = attemptIdRef.current
+    if (!attemptId) return
+    const url = `/api/exams/${id}/attempts/${attemptId}/events`
+    const payload = JSON.stringify({ type, occurredAt: new Date().toISOString() })
+    if (beacon && navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }))
+      return
+    }
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {})
+  }
+
+  const submitExam = async ({ reason = 'manual-submit', beacon = false } = {}) => {
     // useRef guard prevents race condition: timer expiry + tab-switch firing
     // simultaneously can both pass the state check before React re-renders
     if (submittingRef.current) return
     if (hasClerk && !user) return
+
+    recordAttemptEvent(reason, beacon)
+    const payload = JSON.stringify({
+      answers: answersRef.current,
+      attemptId: attemptIdRef.current || undefined,
+    })
+
+    if (beacon && navigator.sendBeacon) {
+      navigator.sendBeacon(
+        `/api/exams/${id}/submit`,
+        new Blob([payload], { type: 'application/json' }),
+      )
+      return
+    }
 
     submittingRef.current = true
     setSubmitting(true)
@@ -148,15 +207,7 @@ export default function ExamPageClient({ params }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         keepalive: true,
-        body: JSON.stringify({
-          answers: answersRef.current,
-          studentName:
-            user?.fullName ||
-            [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
-            user?.username ||
-            user?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
-            'Student',
-        }),
+        body: payload,
       })
       const data = await response.json()
       if (!response.ok) {
@@ -164,6 +215,8 @@ export default function ExamPageClient({ params }) {
         setError(data.error || 'Failed to submit exam')
         return
       }
+      sessionStorage.removeItem('exams_cache')
+      sessionStorage.removeItem('leaderboard_cache')
       setResult({ ...data, answers: answersRef.current })
     } catch {
       setResult(null)
@@ -173,8 +226,32 @@ export default function ExamPageClient({ params }) {
     }
   }
 
-  const saveAnswer = (questionIndex, optionIndex) => {
+  const saveAnswer = async (questionIndex, optionIndex) => {
     if (answers[questionIndex] !== undefined) return
+    const pendingKey = String(questionIndex)
+    if (pendingAnswerRef.current.has(pendingKey)) return
+
+    if (attemptIdRef.current) {
+      pendingAnswerRef.current.add(pendingKey)
+      try {
+        const response = await fetch(`/api/exams/${id}/attempts/${attemptIdRef.current}/answers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ questionIndex, optionIndex }),
+        })
+        const data = await response.json()
+        if (!response.ok) {
+          showToast(data.error || 'Could not lock answer.')
+          return
+        }
+      } catch {
+        showToast('Could not lock answer. Check your connection.')
+        return
+      } finally {
+        pendingAnswerRef.current.delete(pendingKey)
+      }
+    }
+
     setAnswers((previous) => ({ ...previous, [questionIndex]: optionIndex }))
     setLastSelected((previous) => ({ ...previous, [questionIndex]: optionIndex }))
   }
@@ -226,7 +303,7 @@ export default function ExamPageClient({ params }) {
             <div className="grid sm:grid-cols-2 gap-4">
               {[
                 { icon: 'fa-clock', label: 'Duration', val: `${exam.duration} Minutes` },
-                { icon: 'fa-question-circle', label: 'Questions', val: exam.questions?.length || 0 },
+                { icon: 'fa-question-circle', label: 'Questions', val: exam.questionCount ?? exam.questions?.length ?? 0 },
                 { icon: 'fa-lock', label: 'Answers', val: 'Cannot be changed once selected' },
                 { icon: 'fa-shield-alt', label: 'Auto-Submit', val: 'Tab switch or browser close will submit your exam', warn: true },
               ].map((item) => (
@@ -236,8 +313,8 @@ export default function ExamPageClient({ params }) {
                 </div>
               ))}
             </div>
-            <button onClick={startExam} className="w-full bg-theme-accent text-white font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg">
-              <span>Begin Examination</span><i className="fas fa-arrow-right text-sm" />
+            <button onClick={startExam} disabled={submitting} className="w-full bg-theme-accent text-white font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-60">
+              <span>{submitting ? 'Starting...' : 'Begin Examination'}</span><i className="fas fa-arrow-right text-sm" />
             </button>
           </div>
         ) : null}
@@ -303,7 +380,7 @@ export default function ExamPageClient({ params }) {
             <p className="text-theme-secondary mb-6 text-sm">You won&apos;t be able to change your answers afterward.</p>
             <div className="flex space-x-3">
               <button onClick={() => setModalOpen(false)} className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl hover:bg-theme-bg font-semibold transition-all">Cancel</button>
-              <button onClick={submitExam} disabled={submitting} className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all disabled:opacity-60">
+              <button onClick={() => submitExam()} disabled={submitting} className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all disabled:opacity-60">
                 {submitting ? 'Submitting...' : 'Confirm'}
               </button>
             </div>

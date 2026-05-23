@@ -1,10 +1,44 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import path from 'node:path'
 
+function hostnameFromUrl(value) {
+  if (!value) return null
+
+  try {
+    return new URL(value).hostname
+  } catch {
+    return null
+  }
+}
+
+const imageKitHost = hostnameFromUrl(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT)
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: path.join(process.cwd()),
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
+      { protocol: 'https', hostname: 'yt3.ggpht.com' },
+      { protocol: 'https', hostname: 'img.clerk.com' },
+      { protocol: 'https', hostname: 'images.clerk.dev' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'ik.imagekit.io' },
+      { protocol: 'https', hostname: '*.imagekit.io' },
+      imageKitHost ? { protocol: 'https', hostname: imageKitHost } : null,
+    ].filter(Boolean),
+  },
   async headers() {
+    const allowUnsafeEval = process.env.NODE_ENV !== 'production'
+    const scriptSrc = [
+      "script-src 'self' 'unsafe-inline'",
+      allowUnsafeEval ? "'unsafe-eval'" : '',
+      'https://*.clerk.accounts.dev',
+      'https://www.youtube.com',
+      'https://s.ytimg.com',
+    ].filter(Boolean).join(' ')
+
     return [
       {
         source: '/:path*',
@@ -31,15 +65,15 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // Clerk loads its JS bundle from the project's Clerk CDN subdomain
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev",
+              scriptSrc,
               "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.clerk.accounts.dev",
               "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:",
               // Clerk user avatars come from img.clerk.com and Google/social providers
               "img-src 'self' data: blob: https:",
               // Clerk API, WebSocket, and Vercel analytics
-              "connect-src 'self' https://*.clerk.accounts.dev https://clerk.*.accounts.dev https://api.clerk.dev wss: https://*.vercel-insights.com",
+              "connect-src 'self' https://*.clerk.accounts.dev https://clerk.*.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io",
               "worker-src 'self' blob:",
-              "frame-src https://*.clerk.accounts.dev",
+              "frame-src https://*.clerk.accounts.dev https://www.youtube.com https://www.youtube-nocookie.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },

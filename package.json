@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:indexes": "node scripts/ensureIndexes.js"
+    "db:indexes": "node scripts/ensureIndexes.js",
+    "db:repair-resource-assets": "node scripts/repairResourceAssetCounts.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.1",

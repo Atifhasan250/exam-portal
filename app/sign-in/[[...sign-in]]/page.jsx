@@ -49,8 +49,8 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <div className="relative w-full min-w-0">
-          <div className="bg-theme-surface/95 backdrop-blur-xl border border-theme-border rounded-2xl sm:rounded-[28px] lg:rounded-[30px] shadow-[0_12px_40px_rgba(0,0,0,0.10)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.35)] p-4 sm:p-6 lg:p-8 overflow-hidden">
+        <div className="relative w-full min-w-0 max-w-[560px] mx-auto">
+          <div className="bg-theme-surface/95 backdrop-blur-xl border border-theme-border rounded-2xl sm:rounded-[28px] lg:rounded-[30px] shadow-[0_12px_40px_rgba(0,0,0,0.10)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.35)] p-5 sm:p-7 lg:p-8 overflow-visible">
             <div className="flex items-center justify-between gap-4 mb-6 lg:mb-7">
               <div className="min-w-0">
                 <Link href="/" className="lg:hidden inline-flex items-center gap-3 mb-4">
@@ -66,7 +66,7 @@ export default function SignInPage() {
             </div>
 
             {hasClerk ? (
-              <div className="w-full mt-2 sm:mt-4">
+              <div className="auth-clerk w-full mt-2 sm:mt-4">
                 <SignIn
                   appearance={clerkAppearance}
                   fallbackRedirectUrl="/"

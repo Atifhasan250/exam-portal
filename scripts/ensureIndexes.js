@@ -12,8 +12,14 @@ import mongoose from 'mongoose'
 
 // Import all models to register their schemas
 import '../lib/models/Exam.js'
+import '../lib/models/ExamAttempt.js'
 import '../lib/models/Question.js'
 import '../lib/models/Submission.js'
+import '../lib/models/PlannerData.js'
+import '../lib/models/Resource.js'
+import '../lib/models/ResourceCategory.js'
+import '../lib/models/ResourceProgress.js'
+import '../lib/models/UploadedAsset.js'
 import '../lib/models/AdminAuditLog.js'
 
 async function ensureIndexes() {

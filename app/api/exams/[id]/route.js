@@ -10,6 +10,7 @@ import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
+import ExamAttempt from '@/lib/models/ExamAttempt'
 
 function toPublicQuestion(question) {
   return {
@@ -32,9 +33,16 @@ export async function GET(_request, { params }) {
     }
 
     const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
+    const now = new Date()
+    const liveStart = exam.liveStart ? new Date(exam.liveStart) : null
+    const liveEnd = exam.liveEnd ? new Date(exam.liveEnd) : null
+    const protectLiveQuestions = Boolean(liveStart && liveEnd && now <= liveEnd)
+
     return NextResponse.json({
       ...exam,
-      questions: questions.map(toPublicQuestion),
+      questionCount: questions.length,
+      requiresAttempt: protectLiveQuestions,
+      questions: protectLiveQuestions ? [] : questions.map(toPublicQuestion),
     })
   } catch (error) {
     logger.error('[GET /api/exams/[id]]', { error })
@@ -73,7 +81,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
-    logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
+    await logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
 
     return NextResponse.json(exam)
   } catch (error) {
@@ -102,12 +110,13 @@ export async function DELETE(request, { params }) {
         await Exam.findByIdAndDelete(id).session(session)
         await Question.deleteMany({ examId: id }).session(session)
         await Submission.deleteMany({ examId: id }).session(session)
+        await ExamAttempt.deleteMany({ examId: id }).session(session)
       })
     } finally {
       await session.endSession()
     }
 
-    logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
+    await logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

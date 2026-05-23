@@ -124,3 +124,13 @@ The application will be available at `http://localhost:3000`.
 
 - The application strictly enforces separation of concerns regarding authentication. Student accounts are managed exclusively via Clerk, whereas administrative access bypasses Clerk in favor of a standalone JWT implementation, ensuring robust administrative isolation.
 - The project has been fully migrated from a legacy React/Express monolith to a unified Next.js App Router structure, leveraging server-side rendering and edge-compatible API routes for maximum performance and security.
+
+## API Route Checklist
+
+Before adding or changing an API route, verify:
+
+- Public read routes live under `/api/*`; new admin-only mutations should prefer `/api/admin/*`.
+- Legacy exam mutations under `/api/exams/*` must keep `requireAdmin()`, `enforceSameOrigin()`, strict ObjectId validation, and Zod body validation.
+- Public mutating routes must derive identity/display fields server-side and apply rate limiting when abuse would affect integrity.
+- Public responses should return DTOs instead of raw Mongo documents.
+- Multi-collection writes should use transactions or a repair script when denormalized counters are involved.

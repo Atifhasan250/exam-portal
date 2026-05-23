@@ -6,6 +6,8 @@ import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
+import ResourceProgress from '@/lib/models/ResourceProgress'
+import ExamAttempt from '@/lib/models/ExamAttempt'
 
 export async function DELETE(request) {
   const originCheck = enforceSameOrigin(request)
@@ -24,6 +26,8 @@ export async function DELETE(request) {
       await session.withTransaction(async () => {
         await Submission.deleteMany({ clerkUserId: userId }).session(session)
         await PlannerData.deleteOne({ clerkUserId: userId }).session(session)
+        await ResourceProgress.deleteMany({ clerkUserId: userId }).session(session)
+        await ExamAttempt.deleteMany({ clerkUserId: userId }).session(session)
       })
     } finally {
       await session.endSession()

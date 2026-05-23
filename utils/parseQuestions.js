@@ -53,42 +53,86 @@ export function parseJSON(text) {
 }
 
 export function parseCSV(text) {
-  const lines = text.trim().split('\n')
+  const rows = parseCSVRows(text.trim())
   const questions = []
 
-  for (let i = 1; i < lines.length; i += 1) {
-    const fields = splitCSVLine(lines[i])
-    if (fields.length < 4) continue
+  for (let i = 1; i < rows.length; i += 1) {
+    const fields = rows[i]
+    if (fields.every((field) => field.trim() === '')) continue
+    if (fields.length !== 8) {
+      throw new Error(`CSV row ${i + 1} must have exactly 8 columns`)
+    }
 
     const question = fields[0].trim()
-    const options = fields.slice(1, 6).map((field) => field.trim()).filter(Boolean)
-    const correct = parseInt(fields[6] ?? '0', 10)
-    const explanation = (fields[7] ?? '').trim()
+    if (!question) throw new Error(`CSV row ${i + 1} is missing a question`)
 
-    if (question && options.length >= 2) {
-      questions.push({ question, options, correct, explanation })
+    const rawOptions = fields.slice(1, 6).map((field) => field.trim())
+    const firstBlankOption = rawOptions.findIndex((option) => option === '')
+    const hasOptionAfterBlank = firstBlankOption !== -1 &&
+      rawOptions.slice(firstBlankOption + 1).some((option) => option !== '')
+    if (hasOptionAfterBlank) {
+      throw new Error(`CSV row ${i + 1} has a blank option before a filled option`)
     }
+
+    const options = rawOptions.filter(Boolean)
+    if (options.length < 2) throw new Error(`CSV row ${i + 1} needs at least 2 options`)
+
+    const correctText = fields[6].trim()
+    if (!/^\d+$/.test(correctText)) {
+      throw new Error(`CSV row ${i + 1} has an invalid correct index`)
+    }
+
+    const correct = Number(correctText)
+    if (correct < 0 || correct >= options.length) {
+      throw new Error(`CSV row ${i + 1} correct index is outside the option range`)
+    }
+
+    questions.push({
+      question,
+      options,
+      correct,
+      explanation: fields[7].trim(),
+    })
   }
 
   return questions
 }
 
-function splitCSVLine(line) {
-  const result = []
-  let inQuote = false
-  let current = ''
+function parseCSVRows(text) {
+  if (!text) return []
 
-  for (const char of line) {
+  const rows = []
+  let row = []
+  let field = ''
+  let inQuote = false
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    const char = normalized[i]
     if (char === '"') {
-      inQuote = !inQuote
+      if (inQuote && normalized[i + 1] === '"') {
+        field += '"'
+        i += 1
+      } else {
+        inQuote = !inQuote
+      }
     } else if (char === ',' && !inQuote) {
-      result.push(current)
-      current = ''
+      row.push(field)
+      field = ''
+    } else if (char === '\n' && !inQuote) {
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
     } else {
-      current += char
+      field += char
     }
   }
 
-  result.push(current)
-  return result
+  if (inQuote) throw new Error('CSV has an unclosed quoted field')
+
+  row.push(field)
+  if (row.some((value) => value.trim() !== '')) rows.push(row)
+
+  return rows
 }

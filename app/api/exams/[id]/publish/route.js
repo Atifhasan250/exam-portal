@@ -33,7 +33,7 @@ export async function PUT(request, { params }) {
     exam.published = parsed.data.published
     await exam.save()
 
-    logAdminAction(
+    await logAdminAction(
       request,
       adminCheck.admin,
       parsed.data.published ? 'PUBLISH_EXAM' : 'UNPUBLISH_EXAM',

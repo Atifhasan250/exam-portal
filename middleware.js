@@ -1,6 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
+const ADMIN_COOKIE_NAME = 'irz_admin_token'
+
 const isProtectedRoute = createRouteMatcher([
   '/profile(.*)',
   '/profile/submission(.*)',
@@ -38,6 +40,49 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 - Admin routes are private and require authentication
 `
 
+function base64UrlToBytes(value) {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0))
+}
+
+function decodeBase64UrlJson(value) {
+  const bytes = base64UrlToBytes(value)
+  return JSON.parse(new TextDecoder().decode(bytes))
+}
+
+async function verifyAdminJwt(token) {
+  const secret = process.env.JWT_SECRET
+  if (!secret || !token) return false
+
+  const [encodedHeader, encodedPayload, encodedSignature] = token.split('.')
+  if (!encodedHeader || !encodedPayload || !encodedSignature) return false
+
+  try {
+    const header = decodeBase64UrlJson(encodedHeader)
+    const payload = decodeBase64UrlJson(encodedPayload)
+    if (header.alg !== 'HS256' || header.typ !== 'JWT') return false
+    if (payload.exp && payload.exp * 1000 <= Date.now()) return false
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify'],
+    )
+
+    return crypto.subtle.verify(
+      'HMAC',
+      key,
+      base64UrlToBytes(encodedSignature),
+      new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`),
+    )
+  } catch {
+    return false
+  }
+}
+
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl
   const accept = req.headers.get('accept') || ''
@@ -71,8 +116,22 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Admin route protection: immediately redirect to login if no admin token cookie exists
   if (pathname.startsWith('/admin') && pathname !== '/admin') {
-    if (!req.cookies.has('irz_admin_token')) {
+    const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value
+    if (!token) {
       return NextResponse.redirect(new URL('/admin', req.url))
+    }
+
+    const validAdminToken = await verifyAdminJwt(token)
+    if (!validAdminToken) {
+      const response = NextResponse.redirect(new URL('/admin', req.url))
+      response.cookies.set(ADMIN_COOKIE_NAME, '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 0,
+      })
+      return response
     }
   }
 

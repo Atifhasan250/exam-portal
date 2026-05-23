@@ -37,7 +37,9 @@ export async function GET(_request, { params }) {
           wrong: submission.wrong,
           unanswered: submission.unanswered,
           wasLive: submission.wasLive,
+          attemptCount: submission.attemptCount || 1,
           submittedAt: submission.submittedAt,
+          lastAttemptAt: submission.lastAttemptAt || submission.submittedAt,
         })
       }
     }

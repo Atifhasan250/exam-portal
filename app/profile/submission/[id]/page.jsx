@@ -84,6 +84,11 @@ export default function SubmissionDetails({ params }) {
             <p className="text-2xl font-bold text-theme-secondary mb-1">/{submission.total}</p>
           </div>
           <p className={`font-bold text-sm ${percentage >= 70 ? 'text-theme-success-text' : percentage >= 40 ? 'text-yellow-500' : 'text-theme-error-text'}`}>{percentage.toFixed(0)}%</p>
+          {!submission.wasLive && submission.attemptCount > 1 ? (
+            <p className="text-xs font-bold text-theme-secondary mt-2">
+              Best practice result across {submission.attemptCount} attempts
+            </p>
+          ) : null}
         </div>
 
         {/* Question review */}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
-import { getRankedLiveSubmissions } from '@/lib/leaderboard'
+import { getLiveSubmissionRankMap } from '@/lib/leaderboard'
 import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
 import { clerkClient } from '@clerk/nextjs/server'
@@ -76,17 +76,14 @@ export async function GET(_request, { params }) {
       .sort({ submittedAt: -1 })
       .lean()
 
-    const examHistory = []
+    const liveExamIds = submissions
+      .filter((sub) => sub.wasLive && sub.examId)
+      .map((sub) => sub.examId._id)
+    const liveRankMap = await getLiveSubmissionRankMap(liveExamIds)
 
+    const examHistory = []
     for (const sub of submissions) {
       if (!sub.examId) continue // Skip if exam was completely deleted
-
-      let rank = null
-      if (sub.wasLive) {
-        const ranked = await getRankedLiveSubmissions({ examId: sub.examId._id })
-        const rankIndex = ranked.findIndex((item) => item._id.toString() === sub._id.toString())
-        rank = rankIndex >= 0 ? rankIndex + 1 : null
-      }
 
       examHistory.push({
         submissionId: sub._id,
@@ -95,8 +92,10 @@ export async function GET(_request, { params }) {
         score: sub.score,
         totalQuestions: sub.total,
         wasLive: sub.wasLive,
+        attemptCount: sub.attemptCount || 1,
         submittedAt: sub.submittedAt,
-        rank
+        lastAttemptAt: sub.lastAttemptAt || sub.submittedAt,
+        rank: sub.wasLive ? liveRankMap.get(sub._id.toString()) || null : null,
       })
     }
 

@@ -8,17 +8,21 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
   const [data, setData] = useState(initialData)
   const [loading, setLoading] = useState(!initialData?.length)
   const router = useRouter()
+  const CACHE_TTL_MS = 30 * 1000
 
   useEffect(() => {
     if (initialData?.length) {
-      sessionStorage.setItem('leaderboard_cache', JSON.stringify(initialData))
+      sessionStorage.setItem('leaderboard_cache', JSON.stringify({ items: initialData, cachedAt: Date.now() }))
       return
     }
 
     const cached = sessionStorage.getItem('leaderboard_cache')
     if (cached) {
-      setData(JSON.parse(cached))
-      setLoading(false)
+      const parsed = JSON.parse(cached)
+      if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
+        setData(parsed.items || [])
+        setLoading(false)
+      }
     }
 
     fetch('/api/leaderboard')
@@ -26,7 +30,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
       .then((items) => {
         const list = Array.isArray(items) ? items : []
         setData(list)
-        sessionStorage.setItem('leaderboard_cache', JSON.stringify(list))
+        sessionStorage.setItem('leaderboard_cache', JSON.stringify({ items: list, cachedAt: Date.now() }))
         setLoading(false)
       })
       .catch(() => setLoading(false))

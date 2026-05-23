@@ -17,15 +17,14 @@ export async function POST(request, { params }) {
   if (!adminCheck.ok) return adminCheck.response
 
   // ── Validate input ──────────────────────────────────────────────────
-  const raw = await request.json()
-  const parsed = validate(addQuestionsSchema, raw)
-  if (!parsed.success) return parsed.response
-
-  const { questions } = parsed.data
-
   try {
     const { id } = await params
     if (!isValidObjectId(id)) return invalidIdResponse('exam id')
+
+    const raw = await request.json()
+    const parsed = validate(addQuestionsSchema, raw)
+    if (!parsed.success) return parsed.response
+    const { questions } = parsed.data
 
     await connectDB()
     const exam = await Exam.findById(id)
@@ -43,10 +42,13 @@ export async function POST(request, { params }) {
     await Question.insertMany(newQuestions)
     const allQuestions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
 
-    logAdminAction(request, adminCheck.admin, 'ADD_QUESTIONS', exam._id, { count: questions.length })
+    await logAdminAction(request, adminCheck.admin, 'ADD_QUESTIONS', exam._id, { count: questions.length })
 
     return NextResponse.json({ ...exam.toObject(), questions: allQuestions })
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
     logger.error('[POST /api/exams/[id]/questions]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
   }

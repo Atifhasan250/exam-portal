@@ -29,7 +29,7 @@ export async function DELETE(request, { params }) {
     const question = await Question.findOne({ _id: questionId, examId: exam._id })
     if (question) {
       await Question.findByIdAndDelete(question._id)
-      logAdminAction(request, adminCheck.admin, 'DELETE_QUESTION', exam._id, { questionId })
+      await logAdminAction(request, adminCheck.admin, 'DELETE_QUESTION', exam._id, { questionId })
     }
 
     const remaining = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()

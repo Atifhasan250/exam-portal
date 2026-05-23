@@ -9,6 +9,10 @@ export default function AdminUsers() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [userOffset, setUserOffset] = useState(0)
+  const [userTotal, setUserTotal] = useState(0)
+  const [hasMoreUsers, setHasMoreUsers] = useState(false)
+  const USER_PAGE_SIZE = 100
 
   // Modal states
   const [selectedUser, setSelectedUser] = useState(null)
@@ -21,7 +25,7 @@ export default function AdminUsers() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('/api/admin/users')
+        const response = await fetch(`/api/admin/users?limit=${USER_PAGE_SIZE}&offset=0`)
         if (response.status === 401) {
           router.push('/admin')
           return
@@ -30,7 +34,11 @@ export default function AdminUsers() {
           throw new Error('Failed to fetch users')
         }
         const data = await response.json()
-        setUsers(data)
+        const list = Array.isArray(data) ? data : data.users || []
+        setUsers(list)
+        setUserOffset(list.length)
+        setUserTotal(data.totalCount || list.length)
+        setHasMoreUsers(Boolean(data.hasMore))
       } catch (err) {
         setError(err.message)
       } finally {
@@ -39,6 +47,24 @@ export default function AdminUsers() {
     }
     fetchUsers()
   }, [router])
+
+  const loadMoreUsers = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/users?limit=${USER_PAGE_SIZE}&offset=${userOffset}`)
+      if (!response.ok) throw new Error('Failed to fetch users')
+      const data = await response.json()
+      const list = data.users || []
+      setUsers((current) => [...current, ...list])
+      setUserOffset((current) => current + list.length)
+      setUserTotal(data.totalCount || userTotal)
+      setHasMoreUsers(Boolean(data.hasMore))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const openUserDetails = async (user) => {
     setSelectedUser(user)
@@ -82,7 +108,7 @@ export default function AdminUsers() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-theme-primary mb-1">User List</h2>
-            <p className="text-theme-secondary text-sm">{users.length} user(s) registered</p>
+            <p className="text-theme-secondary text-sm">{users.length}{userTotal ? ` of ${userTotal}` : ''} user(s) loaded</p>
           </div>
           <Link href="/admin/dashboard" className="px-4 py-3 text-sm font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-xl hover:text-theme-primary transition-all flex items-center justify-center whitespace-nowrap shadow-sm">
             <i className="fas fa-arrow-left mr-2" />
@@ -138,6 +164,15 @@ export default function AdminUsers() {
                 <i className="fas fa-chevron-right text-theme-border group-hover:text-theme-accent transition-colors shrink-0 text-sm" />
               </div>
             ))}
+            {hasMoreUsers ? (
+              <button
+                onClick={loadMoreUsers}
+                disabled={loading}
+                className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:border-theme-accent/50 transition-all font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+              >
+                {loading ? 'Loading...' : 'Load More Users'}
+              </button>
+            ) : null}
           </div>
         )}
       </main>

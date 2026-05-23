@@ -9,8 +9,7 @@ export const metadata = {
     path: '/resources',
     keywords: ['IT learning resources', 'student resource hub', 'exam preparation materials'],
   }),
-  // Noindex until page has real content — Coming Soon placeholder harms SEO
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
 }
 
 export default function ResourcesPage() {

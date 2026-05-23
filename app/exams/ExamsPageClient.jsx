@@ -12,6 +12,7 @@ export default function ExamsPageClient() {
   const [now, setNow] = useState(new Date())
   const router = useRouter()
   const { user } = useUser()
+  const CACHE_TTL_MS = 30 * 1000
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000)
@@ -21,8 +22,11 @@ export default function ExamsPageClient() {
   useEffect(() => {
     const cached = sessionStorage.getItem('exams_cache')
     if (cached) {
-      setExams(JSON.parse(cached))
-      setLoading(false)
+      const parsed = JSON.parse(cached)
+      if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
+        setExams(parsed.items || [])
+        setLoading(false)
+      }
     }
 
     fetch('/api/exams')
@@ -30,7 +34,7 @@ export default function ExamsPageClient() {
       .then((data) => {
         const items = Array.isArray(data) ? data : []
         setExams(items)
-        sessionStorage.setItem('exams_cache', JSON.stringify(items))
+        sessionStorage.setItem('exams_cache', JSON.stringify({ items, cachedAt: Date.now() }))
         setLoading(false)
       })
       .catch(() => setLoading(false))

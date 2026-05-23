@@ -273,6 +273,7 @@ export default function ProfilePage() {
                     <div className="flex items-center space-x-2 mb-1">
                       <h4 className="font-bold text-theme-primary text-lg truncate">{submission.examId?.title || 'Unknown Exam'}</h4>
                       {submission.wasLive ? <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-success-bg text-theme-success-text border border-theme-success-border rounded-md">Live</span> : <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-md">Practice</span>}
+                      {!submission.wasLive && submission.attemptCount > 1 ? <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-md">{submission.attemptCount} attempts</span> : null}
                     </div>
                     <p className="text-xs text-theme-secondary">
                       <i className="fas fa-calendar-alt mr-1.5" />
@@ -428,7 +429,7 @@ export default function ProfilePage() {
             </div>
             <h3 className="text-2xl font-black text-center mb-2">Delete Account?</h3>
             <p className="text-theme-secondary text-center mb-8">
-              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. Your sign-in account will be deleted immediately. Full deletion of saved exam and task records is still being improved.
+              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. Your sign-in account, exam submissions, study planner, resource progress, and live exam attempts will be deleted immediately.
             </p>
             <div className="flex gap-4">
               <button

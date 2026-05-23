@@ -28,7 +28,7 @@ export default function AdminDashboardHub() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
           <Link href="/admin/exams" className="bg-theme-surface border border-theme-border rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-theme-accent/50 transition-all group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <i className="fas fa-file-alt text-3xl" />
@@ -43,6 +43,14 @@ export default function AdminDashboardHub() {
             </div>
             <h3 className="text-xl font-bold text-theme-primary mb-2">User List</h3>
             <p className="text-theme-secondary text-sm">View all registered students on the platform, check their join dates, and manage accounts.</p>
+          </Link>
+
+          <Link href="/admin/resources" className="bg-theme-surface border border-theme-border rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-sky-500/50 transition-all group flex flex-col items-center text-center">
+            <div className="w-20 h-20 bg-sky-50 dark:bg-sky-500/10 text-sky-500 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <i className="fas fa-book-open text-3xl" />
+            </div>
+            <h3 className="text-xl font-bold text-theme-primary mb-2">Resources</h3>
+            <p className="text-theme-secondary text-sm">Manage categories, YouTube videos, PDFs, links, playlist imports, and published learning materials.</p>
           </Link>
         </div>
       </main>

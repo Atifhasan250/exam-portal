@@ -40,7 +40,7 @@ export async function POST(request) {
     const exam = new Exam(parsed.data)
     await exam.save()
 
-    logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
+    await logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
 
     return NextResponse.json(exam, { status: 201 })
   } catch (error) {
