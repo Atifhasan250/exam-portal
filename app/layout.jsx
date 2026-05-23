@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google'
 import AppProviders from '@/components/ThemeProvider'
 import AppChrome from '@/components/AppChrome'
 import { getSiteUrl } from '@/lib/site'
-import { Analytics } from '@vercel/analytics/react'
+import { Analytics } from '@vercel/analytics/next'
 
 const inter = Inter({
   subsets: ['latin'],
