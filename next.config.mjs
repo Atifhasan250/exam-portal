@@ -25,7 +25,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.clerk.dev' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'ik.imagekit.io' },
-      { protocol: 'https', hostname: '*.imagekit.io' },
+      { protocol: 'https', hostname: '**.imagekit.io' },
       imageKitHost ? { protocol: 'https', hostname: imageKitHost } : null,
     ].filter(Boolean),
   },

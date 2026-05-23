@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import mongoose from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
@@ -61,16 +62,32 @@ export async function DELETE(request, { params }) {
 
     await connectDB()
 
-    const resourceCount = await Resource.countDocuments({ categoryId: id })
-    if (resourceCount > 0) {
-      return NextResponse.json(
-        { error: 'Move or delete resources in this category before deleting it.' },
-        { status: 409 },
-      )
-    }
+    let category
+    const session = await mongoose.startSession()
+    try {
+      session.startTransaction()
+      const resourceCount = await Resource.countDocuments({ categoryId: id }).session(session)
+      if (resourceCount > 0) {
+        await session.abortTransaction()
+        return NextResponse.json(
+          { error: 'Move or delete resources in this category before deleting it.' },
+          { status: 409 },
+        )
+      }
 
-    const category = await ResourceCategory.findByIdAndDelete(id).lean()
-    if (!category) return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+      category = await ResourceCategory.findByIdAndDelete(id, { session }).lean()
+      if (!category) {
+        await session.abortTransaction()
+        return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+      }
+
+      await session.commitTransaction()
+    } catch (txError) {
+      if (session.inTransaction()) await session.abortTransaction()
+      throw txError
+    } finally {
+      await session.endSession()
+    }
 
     await logAdminAction(request, adminCheck.admin, 'DELETE_RESOURCE_CATEGORY', id, {
       name: category.name,

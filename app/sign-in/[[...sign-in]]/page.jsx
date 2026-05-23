@@ -6,8 +6,14 @@ import { SignIn } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
 import { clerkAppearance } from '@/lib/clerkTheme'
 
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
 export default function SignInPage() {
   const { theme, toggleTheme } = useTheme()
+
+  if (!clerkPublishableKey) {
+    throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: Clerk sign-in cannot render without a publishable key.')
+  }
 
   return (
     <div className="bg-theme-bg min-h-screen flex items-center justify-center px-4 pt-24 pb-8 sm:py-12 transition-theme relative overflow-hidden">

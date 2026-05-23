@@ -42,6 +42,13 @@ export async function PUT(request, { params }) {
         const existing = await Resource.findById(id).session(session).lean()
         if (!existing) throw new Error('RESOURCE_NOT_FOUND')
 
+        const identityIssue = getResourceIdentityIssue({ ...existing, ...parsed.data })
+        if (identityIssue) {
+          const error = new Error('RESOURCE_VALIDATION_FAILED')
+          error.issue = identityIssue
+          throw error
+        }
+
         const payload = normalizeResourcePayload({
           ...parsed.data,
           updatedBy: adminCheck.admin?.username || 'admin',
@@ -86,6 +93,12 @@ export async function PUT(request, { params }) {
       if (txError.message === 'ASSET_NOT_FOUND') {
         return NextResponse.json({ error: 'Uploaded asset not found' }, { status: 400 })
       }
+      if (txError.message === 'RESOURCE_VALIDATION_FAILED') {
+        return NextResponse.json(
+          { error: 'Validation failed', details: [txError.issue] },
+          { status: 400 },
+        )
+      }
       throw txError
     } finally {
       await session.endSession()
@@ -106,6 +119,18 @@ export async function PUT(request, { params }) {
     logger.error('[PUT /api/admin/resources/[id]]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
   }
+}
+
+function getResourceIdentityIssue(resource) {
+  if (resource.type === 'youtube' && !resource.youtubeId) {
+    return { path: 'youtubeId', message: 'YouTube ID is required' }
+  }
+
+  if (['pdf', 'link', 'image', 'file'].includes(resource.type) && !resource.url && !resource.imagekitUrl && !resource.assetId) {
+    return { path: 'url', message: 'A URL or uploaded asset is required' }
+  }
+
+  return null
 }
 
 export async function DELETE(request, { params }) {

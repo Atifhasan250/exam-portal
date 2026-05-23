@@ -43,6 +43,7 @@ const SOCIAL_LINKS = [
 export default function AppChrome({ children }) {
   const pathname = usePathname()
   const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const showMobileNavbar = pathname === '/'
   const year = new Date().getFullYear()
   const { theme } = useTheme()
 
@@ -52,7 +53,7 @@ export default function AppChrome({ children }) {
   return (
     <ClickSpark sparkColor={sparkColor} sparkSize={12} sparkRadius={20} sparkCount={8} duration={450}>
       <div className="flex flex-col min-h-screen bg-theme-bg text-theme-primary transition-theme">
-        {!isChromeless && <Navbar />}
+        {!isChromeless && <Navbar className={showMobileNavbar ? '' : 'hidden sm:block'} />}
         <div className="flex-grow">{children}</div>
 
         {!isChromeless && (

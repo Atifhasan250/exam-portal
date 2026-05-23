@@ -71,8 +71,8 @@ export async function POST(request, { params }) {
     )
 
     if (!updated) {
-      const current = await ExamAttempt.findById(attemptId).lean()
-      if (current?.answers?.[answerKey] === optionIndex) {
+      const current = await ExamAttempt.findById(attemptId)
+      if (current?.answers?.get(answerKey) === optionIndex) {
         return NextResponse.json({ ok: true, locked: true })
       }
       return NextResponse.json({ error: 'This answer is already locked.' }, { status: 409 })

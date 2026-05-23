@@ -53,6 +53,10 @@ export default function AdminUsers() {
     setLoadingMore(true)
     try {
       const response = await fetch(`/api/admin/users?limit=${USER_PAGE_SIZE}&offset=${userOffset}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
       if (!response.ok) throw new Error('Failed to fetch users')
       const data = await response.json()
       const list = data.users || []
