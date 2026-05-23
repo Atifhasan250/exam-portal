@@ -125,7 +125,9 @@ export default function ExamPageClient({ params, initialExam = null }) {
   }
 
   const startExam = async () => {
-    if (!isLoaded || !user) {
+    if (!isLoaded) return
+
+    if (!user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${id}`)}`)
       return
     }
@@ -277,7 +279,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
     'Student'
   const questionCount = exam?.questionCount ?? exam?.questions?.length ?? 0
   const questionsReady = exam?.requiresAttempt || Array.isArray(exam?.questions)
-  const beginDisabled = submitting || (!isLoaded && !user) || !questionsReady
+  const beginDisabled = submitting || (!isLoaded || !user) || !questionsReady
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">

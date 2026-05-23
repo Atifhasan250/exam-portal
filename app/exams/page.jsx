@@ -55,7 +55,8 @@ async function getInitialExams() {
       createdAt: exam.createdAt,
       updatedAt: exam.updatedAt,
     }))))
-  } catch {
+  } catch (err) {
+    console.error('Failed to load initial exams', err)
     return []
   }
 }
