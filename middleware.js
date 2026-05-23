@@ -10,29 +10,43 @@ const isProtectedRoute = createRouteMatcher([
 
 const MARKDOWN_CONTENT = `# IT Resource Zone
 
-> Online exam portal for IT students - live exams, practice mode, leaderboards, and score history.
+> Online learning and exam portal for beginner IT students, with live exams, practice exams, leaderboards, study planning, and curated learning resources.
 
 - **Developer:** Atif Hasan
 - **URL:** https://irz.atifhasan.com
-- **Stack:** Next.js 15, MongoDB Atlas, Clerk Auth
+- **Stack:** Next.js 15, MongoDB Atlas, Clerk Auth, Vercel
 
 ## Core Features
-- Timed live exams (auto-submit on tab switch or browser close)
+- Timed live exams with secure attempt tracking
 - Practice mode for past exams
-- Per-exam leaderboards with public rankings
-- Personal submission history per student
-- Admin panel for exam/question management
+- Per-exam and global leaderboards
+- Public resource library with YouTube lessons, PDFs, files, and useful links
+- Personal study planner, habit tracking, and score history for signed-in students
+- Admin panel for exam, question, category, and resource management
 
 ## Public Routes
 - / - Home
-- /exams - All exams (live, upcoming, past)
+- /exams - Published live, upcoming, and past exams
+- /exam/[id] - Public exam overview and signed-in exam entry
+- /resources - Curated IT learning resource library
+- /resources/[slug] - Resource category page
+- /resources/watch/[slug] - Public video lesson page
 - /leaderboard - Global leaderboard
 - /leaderboard/[id] - Per-exam leaderboard
+- /privacy - Privacy Policy
+- /terms - Terms of Service
+
+## Private Routes
+- /profile - Student account and submission history
+- /tasks - Personal study planner
+- /tasks/history - Personal planner analytics
+- /admin - Admin tools
 
 ## Constraints
-- Live exams: one submission per student account
+- Live exams can have one enforceable submission per student account
 - Answers are locked once selected
-- Admin routes are private and require authentication
+- Live exam questions are protected until an authorized attempt begins
+- Admin routes are private and must not be indexed
 `
 
 function base64UrlToBytes(value) {

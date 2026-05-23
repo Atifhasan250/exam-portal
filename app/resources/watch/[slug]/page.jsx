@@ -6,26 +6,35 @@ import { connectDB } from '@/lib/db'
 import Resource from '@/lib/models/Resource'
 import ResourceProgress from '@/lib/models/ResourceProgress'
 import ResourceVideoPlayer from '@/components/resources/ResourceVideoPlayer'
-import { buildPageMetadata } from '@/lib/site'
-import { isObjectId, serialize } from '@/lib/resourceUtils'
+import { buildPageMetadata, getSiteUrl } from '@/lib/site'
+import { isObjectId, publicResourceSlug, serialize } from '@/lib/resourceUtils'
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
   const resource = await getResourceBySlug(slug)
 
   if (!resource) {
-    return buildPageMetadata({
-      title: 'Resource Not Found',
-      description: 'This learning resource could not be found.',
-      path: `/resources/watch/${slug}`,
-    })
+    return {
+      ...buildPageMetadata({
+        title: 'Resource Not Found',
+        description: 'This learning resource could not be found.',
+        path: `/resources/watch/${slug}`,
+      }),
+      robots: { index: false, follow: true },
+    }
   }
+
+  const description = resource.description?.trim()
+    || excerpt(resource.transcriptText, 155)
+    || `Watch ${resource.title} on IT Resource Zone.`
 
   return buildPageMetadata({
     title: resource.title,
-    description: `Watch ${resource.title} on IT Resource Zone.`,
-    path: `/resources/watch/${slug}`,
+    description,
+    path: `/resources/watch/${publicResourceSlug(resource)}`,
     keywords: ['IT learning video', resource.categoryId?.name, resource.channelTitle].filter(Boolean),
+    image: resource.thumbnailUrl || '/link-preview.jpg',
+    imageAlt: resource.title,
   })
 }
 
@@ -33,6 +42,13 @@ export default async function ResourceWatchPage({ params }) {
   const { slug } = await params
   const resource = await getResourceBySlug(slug)
   if (!resource || resource.type !== 'youtube') notFound()
+  const { previousResource, nextResource } = await getSiblingResources(resource)
+  const serializedResource = serialize(resource)
+  const { transcriptText = '', ...playerResource } = serializedResource
+  const resourceDescription = resource.description?.trim()
+  const transcriptExcerpt = excerpt(transcriptText, 2800)
+  const videoSchema = buildVideoSchema(resource)
+  const breadcrumbSchema = buildBreadcrumbSchema(resource)
 
   const { userId } = await auth()
   const progress = userId
@@ -41,41 +57,60 @@ export default async function ResourceWatchPage({ params }) {
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary page-enter">
+      {[videoSchema, breadcrumbSchema].filter(Boolean).map((schema) => (
+        <script
+          key={schema['@type']}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-6">
-        <Link href={resource.categoryId?.slug ? `/resources/${resource.categoryId.slug}` : '/resources'} className="inline-flex items-center gap-2 text-sm font-bold text-theme-secondary hover:text-theme-primary">
-          <i className="fas fa-arrow-left" />
-          {resource.categoryId?.name || 'Resources'}
-        </Link>
+        <div className="flex items-center space-x-3">
+          <Link
+            href={resource.categoryId?.slug ? `/resources/${resource.categoryId.slug}` : '/resources'}
+            aria-label={`Back to ${resource.categoryId?.name || 'resources'}`}
+            className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shrink-0"
+          >
+            <i className="fas fa-arrow-left" />
+          </Link>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-theme-primary">{resource.categoryId?.name || 'Resources'}</h1>
+        </div>
 
         <section className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
           <div className="space-y-5 min-w-0">
-            <ResourceVideoPlayer resource={serialize(resource)} initialProgress={serialize(progress)} />
-            <div className="bg-theme-surface border border-theme-border rounded-2xl p-5">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">Video</p>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold mt-1 leading-tight">{resource.title}</h1>
-                  <p className="text-theme-secondary mt-2">{resource.channelTitle || 'YouTube'}</p>
-                </div>
-                <a
-                  href={resource.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-3 rounded-xl bg-theme-accent text-white font-bold text-sm text-center shrink-0"
-                >
-                  <i className="fab fa-youtube mr-2" />
-                  Watch on YouTube
-                </a>
-              </div>
-            </div>
+            <ResourceVideoPlayer
+              resource={playerResource}
+              initialProgress={serialize(progress)}
+              previousResource={previousResource}
+              nextResource={nextResource}
+            />
           </div>
 
           <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5 space-y-4">
-            <h2 className="text-lg font-extrabold">Details</h2>
+            <div className="space-y-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">Video</p>
+              <h2 className="text-lg font-extrabold leading-snug">{resource.title}</h2>
+              {resource.channelTitle ? <p className="text-sm text-theme-secondary">{resource.channelTitle}</p> : null}
+            </div>
             <Detail label="Level" value={levelLabel(resource.level)} />
             <Detail label="Language" value={languageLabel(resource.language)} />
             <Detail label="Duration" value={formatDuration(resource.durationSeconds)} />
             <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
+            {resourceDescription ? (
+              <div className="border-t border-theme-border pt-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Description</p>
+                <p className="text-sm text-theme-secondary leading-relaxed">{resourceDescription}</p>
+              </div>
+            ) : null}
+            {transcriptExcerpt ? (
+              <details className="border-t border-theme-border pt-3 group">
+                <summary className="cursor-pointer list-none text-xs font-bold uppercase tracking-wide text-theme-secondary flex items-center justify-between gap-3">
+                  Transcript excerpt
+                  <i className="fas fa-chevron-down text-[10px] transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-2 text-sm text-theme-secondary leading-relaxed whitespace-pre-wrap">{transcriptExcerpt}</p>
+              </details>
+            ) : null}
             <div className="pt-2">
               <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Video Link</p>
               <a href={resource.url} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
@@ -106,6 +141,33 @@ const getResourceBySlug = cache(async (slug) => {
     .lean()
 })
 
+const getSiblingResources = cache(async (resource) => {
+  const categoryId = typeof resource.categoryId === 'object' ? resource.categoryId?._id : resource.categoryId
+  if (!categoryId) return { previousResource: null, nextResource: null }
+
+  const resources = await Resource.find(
+    { categoryId, published: true, type: 'youtube' },
+    { _id: 1, title: 1, slug: 1, order: 1, createdAt: 1 },
+  )
+    .sort({ order: 1, createdAt: -1 })
+    .lean()
+
+  const currentIndex = resources.findIndex((item) => item._id.toString() === resource._id.toString())
+
+  return {
+    previousResource: toWatchNavResource(currentIndex > 0 ? resources[currentIndex - 1] : null),
+    nextResource: toWatchNavResource(currentIndex >= 0 && currentIndex < resources.length - 1 ? resources[currentIndex + 1] : null),
+  }
+})
+
+function toWatchNavResource(resource) {
+  if (!resource) return null
+  return {
+    title: resource.title,
+    href: `/resources/watch/${publicResourceSlug(resource)}`,
+  }
+}
+
 function Detail({ label, value }) {
   if (!value) return null
 
@@ -126,6 +188,7 @@ function levelLabel(level) {
 function languageLabel(language) {
   if (language === 'bn') return 'Bangla'
   if (language === 'en') return 'English'
+  if (language === 'hi') return 'Hindi'
   if (language === 'mixed') return 'Mixed'
   return 'Other'
 }
@@ -136,4 +199,99 @@ function formatDuration(seconds = 0) {
   const minutes = Math.floor((total % 3600) / 60)
   if (hours) return `${hours}h ${minutes}m`
   return minutes ? `${minutes}m` : ''
+}
+
+function excerpt(value, maxLength = 160) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim()
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength).trim()}...`
+}
+
+function buildVideoSchema(resource) {
+  if (!resource?.thumbnailUrl || !resource?.title) return null
+
+  const siteUrl = getSiteUrl()
+  const watchUrl = new URL(`/resources/watch/${publicResourceSlug(resource)}`, siteUrl).toString()
+  const uploadDate = resource.sourcePublishedAt || resource.createdAt || resource.updatedAt
+  const description = resource.description?.trim()
+    || excerpt(resource.transcriptText, 500)
+    || `Watch ${resource.title} on IT Resource Zone.`
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: resource.title,
+    description,
+    thumbnailUrl: [new URL(resource.thumbnailUrl, siteUrl).toString()],
+    uploadDate: uploadDate ? new Date(uploadDate).toISOString() : new Date().toISOString(),
+    embedUrl: resource.youtubeId ? `https://www.youtube.com/embed/${resource.youtubeId}` : undefined,
+    url: watchUrl,
+    duration: toIsoDuration(resource.durationSeconds),
+    inLanguage: schemaLanguage(resource.language),
+    isAccessibleForFree: true,
+    publisher: {
+      '@type': 'Organization',
+      name: 'IT Resource Zone',
+      logo: {
+        '@type': 'ImageObject',
+        url: new URL('/favicon.png', siteUrl).toString(),
+      },
+    },
+  }
+
+  return Object.fromEntries(Object.entries(schema).filter(([, value]) => value !== undefined && value !== ''))
+}
+
+function buildBreadcrumbSchema(resource) {
+  const siteUrl = getSiteUrl()
+  const categorySlug = resource.categoryId?.slug
+  const categoryName = resource.categoryId?.name || 'Resources'
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: siteUrl,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Resources',
+        item: new URL('/resources', siteUrl).toString(),
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: categoryName,
+        item: new URL(categorySlug ? `/resources/${categorySlug}` : '/resources', siteUrl).toString(),
+      },
+      {
+        '@type': 'ListItem',
+        position: 4,
+        name: resource.title,
+        item: new URL(`/resources/watch/${publicResourceSlug(resource)}`, siteUrl).toString(),
+      },
+    ],
+  }
+}
+
+function toIsoDuration(seconds = 0) {
+  const total = Math.max(0, Number(seconds) || 0)
+  if (!total) return ''
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const remainingSeconds = total % 60
+  return `PT${hours ? `${hours}H` : ''}${minutes ? `${minutes}M` : ''}${remainingSeconds ? `${remainingSeconds}S` : ''}`
+}
+
+function schemaLanguage(language) {
+  if (language === 'bn') return 'bn'
+  if (language === 'en') return 'en'
+  if (language === 'hi') return 'hi'
+  return undefined
 }

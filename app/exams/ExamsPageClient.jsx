@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 
-export default function ExamsPageClient() {
-  const [exams, setExams] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function ExamsPageClient({ initialExams = null }) {
+  const hasInitialExams = Array.isArray(initialExams)
+  const [exams, setExams] = useState(hasInitialExams ? initialExams : [])
+  const [loading, setLoading] = useState(!hasInitialExams)
   const [submittedLiveIds, setSubmittedLiveIds] = useState(new Set())
   const [now, setNow] = useState(new Date())
   const router = useRouter()
@@ -20,13 +21,22 @@ export default function ExamsPageClient() {
   }, [])
 
   useEffect(() => {
+    if (hasInitialExams) {
+      sessionStorage.setItem('exams_cache', JSON.stringify({ items: initialExams, cachedAt: Date.now() }))
+      return
+    }
+
     const cached = sessionStorage.getItem('exams_cache')
     if (cached) {
-      const parsed = JSON.parse(cached)
-      if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
-        setExams(parsed.items || [])
-        setLoading(false)
-        return
+      try {
+        const parsed = JSON.parse(cached)
+        if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
+          setExams(parsed.items || [])
+          setLoading(false)
+          return
+        }
+      } catch {
+        sessionStorage.removeItem('exams_cache')
       }
     }
 
@@ -39,7 +49,7 @@ export default function ExamsPageClient() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [])
+  }, [hasInitialExams, initialExams])
 
   useEffect(() => {
     if (!user?.id) return
@@ -89,9 +99,6 @@ export default function ExamsPageClient() {
               <span className="hidden sm:inline">Leaderboard</span>
             </Link>
           </div>
-          <p className="text-theme-secondary max-w-3xl">
-            Join live exams when they are active, revisit past exams for practice, and build confidence through consistent testing and review.
-          </p>
         </div>
 
         {loading ? (

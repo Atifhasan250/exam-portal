@@ -28,7 +28,7 @@ function CardContent({ resource, percent, serialNumber }) {
     <>
       <div className="relative aspect-video bg-theme-bg overflow-hidden">
         {resource.thumbnailUrl ? (
-          <Image src={resource.thumbnailUrl} alt="" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+          <Image src={resource.thumbnailUrl} alt={`${resource.title} thumbnail`} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-theme-secondary">
             <i className={`fas ${iconForType(resource.type)} text-3xl`} />
@@ -96,6 +96,7 @@ function levelLabel(level) {
 function languageLabel(language) {
   if (language === 'bn') return 'Bangla'
   if (language === 'en') return 'English'
+  if (language === 'hi') return 'Hindi'
   if (language === 'mixed') return 'Mixed'
   return 'Other'
 }

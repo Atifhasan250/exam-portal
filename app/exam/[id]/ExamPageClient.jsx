@@ -30,11 +30,11 @@ function useCountUp(target, duration = 900) {
   return current
 }
 
-export default function ExamPageClient({ params }) {
+export default function ExamPageClient({ params, initialExam = null }) {
   const { id } = use(params)
   const router = useRouter()
-  const [exam, setExam] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [exam, setExam] = useState(initialExam)
+  const [loading, setLoading] = useState(!initialExam)
   const [error, setError] = useState('')
   const [screen, setScreen] = useState('setup')
   const [answers, setAnswers] = useState({})
@@ -55,19 +55,27 @@ export default function ExamPageClient({ params }) {
   useEffect(() => { window.scrollTo(0, 0) }, [screen])
 
   useEffect(() => {
+    let active = true
     fetch(`/api/exams/${id}`)
       .then((response) => response.json())
       .then((data) => {
+        if (!active) return
         if (data.error) {
-          setError(data.error)
+          if (!initialExam) setError(data.error)
           return
         }
         setExam(data)
         setTimeLeft(data.duration * 60)
       })
-      .catch(() => setError('Failed to load exam'))
-      .finally(() => setLoading(false))
-  }, [id])
+      .catch(() => {
+        if (!initialExam) setError('Failed to load exam')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => { active = false }
+  }, [id, initialExam])
 
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -117,7 +125,7 @@ export default function ExamPageClient({ params }) {
   }
 
   const startExam = async () => {
-    if (!user) {
+    if (!isLoaded || !user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${id}`)}`)
       return
     }
@@ -180,6 +188,7 @@ export default function ExamPageClient({ params }) {
     // simultaneously can both pass the state check before React re-renders
     if (submittingRef.current) return
     if (!user) return
+    submittingRef.current = true
 
     recordAttemptEvent(reason, beacon)
     const payload = JSON.stringify({
@@ -195,7 +204,6 @@ export default function ExamPageClient({ params }) {
       return
     }
 
-    submittingRef.current = true
     setSubmitting(true)
     if (timerRef.current) clearInterval(timerRef.current)
     setModalOpen(false)
@@ -255,14 +263,7 @@ export default function ExamPageClient({ params }) {
     setLastSelected((previous) => ({ ...previous, [questionIndex]: optionIndex }))
   }
 
-  if (!isLoaded || loading) return <PageSkeleton />
-  if (!user) {
-    return (
-      <div className="bg-theme-bg min-h-screen py-20 px-4">
-        <AuthCallout title="Sign in to take this exam" description="Exam submissions are now tied to your IT Resource Zone account so your results and live attempt limits are enforced securely." />
-      </div>
-    )
-  }
+  if (loading || (!isLoaded && !exam)) return <PageSkeleton />
   if (error && !result) return <ErrorScreen message={error} onBack={() => router.push('/')} />
 
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0')
@@ -274,6 +275,9 @@ export default function ExamPageClient({ params }) {
     user?.username ||
     user?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
     'Student'
+  const questionCount = exam?.questionCount ?? exam?.questions?.length ?? 0
+  const questionsReady = exam?.requiresAttempt || Array.isArray(exam?.questions)
+  const beginDisabled = submitting || (!isLoaded && !user) || !questionsReady
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
@@ -297,12 +301,18 @@ export default function ExamPageClient({ params }) {
           <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 shadow-sm space-y-6">
             <div>
               <h1 className="text-3xl font-extrabold text-theme-primary mb-2">{exam.title}</h1>
-              <p className="text-theme-secondary">Signed in as <span className="font-semibold text-theme-primary">{studentName}</span></p>
+              <p className="text-theme-secondary">
+                {user ? (
+                  <>Signed in as <span className="font-semibold text-theme-primary">{studentName}</span></>
+                ) : (
+                  'Review the exam details, then sign in to start securely and save your result.'
+                )}
+              </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
                 { icon: 'fa-clock', label: 'Duration', val: `${exam.duration} Minutes` },
-                { icon: 'fa-question-circle', label: 'Questions', val: exam.questionCount ?? exam.questions?.length ?? 0 },
+                { icon: 'fa-question-circle', label: 'Questions', val: questionCount },
                 { icon: 'fa-lock', label: 'Answers', val: 'Cannot be changed once selected' },
                 { icon: 'fa-shield-alt', label: 'Auto-Submit', val: 'Tab switch or browser close will submit your exam', warn: true },
               ].map((item) => (
@@ -312,8 +322,15 @@ export default function ExamPageClient({ params }) {
                 </div>
               ))}
             </div>
-            <button onClick={startExam} disabled={submitting} className="w-full bg-theme-accent text-white font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-60">
-              <span>{submitting ? 'Starting...' : 'Begin Examination'}</span><i className="fas fa-arrow-right text-sm" />
+            {!user && isLoaded ? (
+              <AuthCallout
+                title="Sign in to take this exam"
+                description="Exam submissions are tied to your IT Resource Zone account so rankings, attempt limits, and score history stay accurate."
+                href={`/sign-in?redirect_url=${encodeURIComponent(`/exam/${id}`)}`}
+              />
+            ) : null}
+            <button onClick={startExam} disabled={beginDisabled} className="w-full bg-theme-accent text-white font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-60">
+              <span>{!user ? 'Sign In to Begin' : submitting ? 'Starting...' : questionsReady ? 'Begin Examination' : 'Loading Questions...'}</span><i className="fas fa-arrow-right text-sm" />
             </button>
           </div>
         ) : null}
