@@ -81,7 +81,11 @@ export async function PUT(request) {
       categoryId,
       count: parsed.data.orderedIds.length,
     })
-    await invalidateResourceCaches()
+    try {
+      await invalidateResourceCaches()
+    } catch (error) {
+      logger.error('[PUT /api/admin/resources/reorder] cache invalidation failed', { error, categoryId })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

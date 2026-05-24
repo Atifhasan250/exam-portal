@@ -13,12 +13,9 @@ export async function GET(_request, { params }) {
 
     await connectDB()
 
-    const submissions = await Submission.find(
-      { clerkUserId, wasLive: true },
-      { examId: 1, _id: 0 },
-    ).lean()
-
-    const examIds = submissions.map((s) => s.examId?.toString()).filter(Boolean)
+    const examIds = (await Submission.distinct('examId', { clerkUserId, wasLive: true }))
+      .map((examId) => examId?.toString())
+      .filter(Boolean)
 
     return NextResponse.json(examIds)
   } catch (error) {

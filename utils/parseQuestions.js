@@ -1,26 +1,52 @@
 export function parseTXT(text) {
   const questions = []
-  const blocks = text.trim().split(/\n\s*\n/)
+  const blocks = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split(/\n\s*\n/)
 
   for (const block of blocks) {
-    const lines = block.trim().split('\n').map((line) => line.trim()).filter(Boolean)
+    const lines = block.trim().split('\n').filter((line) => line.trim())
     if (!lines.length) continue
 
     let question = ''
     const options = []
     let correct = -1
     let explanation = ''
+    let currentField = ''
+    let currentOptionIndex = -1
 
-    for (const line of lines) {
-      if (/^Q\d+\.\s+/.test(line)) {
-        question = line.replace(/^Q\d+\.\s+/, '').trim()
-      } else if (/^\d+\.\s+/.test(line)) {
-        options.push(line.replace(/^\d+\.\s+/, '').trim())
-      } else if (/^\*\d+\(ans\)/.test(line)) {
-        const match = line.match(/^\*(\d+)\(ans\)/)
+    const appendLine = (value) => {
+      const line = value.trimEnd()
+      if (!line.trim()) return
+
+      if (currentField === 'question') {
+        question = question ? `${question}\n${line}` : line.trim()
+      } else if (currentField === 'option' && currentOptionIndex >= 0) {
+        options[currentOptionIndex] = `${options[currentOptionIndex]}\n${line}`
+      } else if (currentField === 'explanation') {
+        explanation = explanation ? `${explanation}\n${line.trim()}` : line.trim()
+      }
+    }
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim()
+      if (/^Q\d+\.\s*/i.test(line)) {
+        question = line.replace(/^Q\d+\.\s*/i, '').trim()
+        currentField = 'question'
+        currentOptionIndex = -1
+      } else if (/^\d+\.\s*/.test(line)) {
+        options.push(line.replace(/^\d+\.\s*/, '').trim())
+        currentField = 'option'
+        currentOptionIndex = options.length - 1
+      } else if (/^\*\d+\(ans\)/i.test(line)) {
+        const match = line.match(/^\*(\d+)\(ans\)/i)
         if (match) correct = parseInt(match[1], 10) - 1
+        currentField = ''
+        currentOptionIndex = -1
       } else if (/^\*\*/.test(line)) {
         explanation = line.replace(/^\*\*\s*/, '').trim()
+        currentField = 'explanation'
+        currentOptionIndex = -1
+      } else {
+        appendLine(rawLine)
       }
     }
 

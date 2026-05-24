@@ -39,7 +39,11 @@ export async function PUT(request, { params }) {
       slug: category.slug,
       published: category.published,
     })
-    await invalidateResourceCaches()
+    try {
+      await invalidateResourceCaches()
+    } catch (error) {
+      logger.error('[PUT /api/admin/resources/categories/[id]] cache invalidation failed', { error, categoryId: category._id })
+    }
 
     return NextResponse.json(serialize(category))
   } catch (error) {
@@ -95,7 +99,11 @@ export async function DELETE(request, { params }) {
       name: category.name,
       slug: category.slug,
     })
-    await invalidateResourceCaches()
+    try {
+      await invalidateResourceCaches()
+    } catch (error) {
+      logger.error('[DELETE /api/admin/resources/categories/[id]] cache invalidation failed', { error, categoryId: id })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

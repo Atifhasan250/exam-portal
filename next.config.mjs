@@ -12,6 +12,11 @@ function hostnameFromUrl(value) {
 }
 
 const imageKitHost = hostnameFromUrl(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT)
+const imageKitFrameSrc = [
+  'https://ik.imagekit.io',
+  'https://*.imagekit.io',
+  imageKitHost ? `https://${imageKitHost}` : '',
+].filter(Boolean).join(' ')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -73,7 +78,7 @@ const nextConfig = {
               // Clerk API, WebSocket, and Vercel analytics
               "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io",
               "worker-src 'self' blob:",
-              "frame-src https://*.clerk.accounts.dev https://www.youtube.com https://www.youtube-nocookie.com",
+              `frame-src https://*.clerk.accounts.dev https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },

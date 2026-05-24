@@ -44,7 +44,11 @@ export async function POST(request, { params }) {
     const allQuestions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
 
     await logAdminAction(request, adminCheck.admin, 'ADD_QUESTIONS', exam._id, { count: questions.length })
-    await invalidateExamCaches(exam._id.toString())
+    try {
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[POST /api/exams/[id]/questions] cache invalidation failed', { error, examId: exam._id })
+    }
 
     return NextResponse.json({ ...exam.toObject(), questions: allQuestions })
   } catch (error) {

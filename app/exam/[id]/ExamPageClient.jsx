@@ -346,7 +346,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
                   <div className="flex items-start space-x-3 sm:space-x-4 mb-4 sm:mb-5">
                     <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-theme-bg flex items-center justify-center font-bold text-theme-secondary text-xs sm:text-sm">{questionIndex + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm sm:text-base font-bold text-theme-primary leading-relaxed [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(question.question) }} />
+                      <div className="text-sm sm:text-base font-bold text-theme-primary leading-relaxed whitespace-pre-wrap [&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safeHTML(question.question) }} />
                     </div>
                   </div>
                   <div className="grid gap-2 sm:gap-3">
@@ -367,7 +367,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
                           <div className={`flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all ${dotClasses}`}>
                             {selected ? <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full scale-in-center" /> : null}
                           </div>
-                          <span className={`ml-2 sm:ml-3 text-sm sm:text-base leading-snug [&_p]:m-0 [&_p]:inline ${selected ? 'text-theme-primary font-bold' : 'text-theme-secondary font-medium'}`} dangerouslySetInnerHTML={{ __html: safeHTML(option) }} />
+                          <span className={`ml-2 sm:ml-3 text-sm sm:text-base leading-snug whitespace-pre-wrap [&_p]:m-0 [&_p]:inline ${selected ? 'text-theme-primary font-bold' : 'text-theme-secondary font-medium'}`} dangerouslySetInnerHTML={{ __html: safeHTML(option) }} />
                         </label>
                       )
                     })}
@@ -418,8 +418,13 @@ function ResultScreen({ result, studentName, examId, onBack }) {
   const percentage = (result.score / result.total) * 100
   const displayScore = useCountUp(result.score, 900)
   const [filter, setFilter] = useState('all')
+  const questions = Array.isArray(result.questions) ? result.questions : []
+  const reviewAvailable = result.reviewAvailable !== false
+  const reviewAvailableAt = result.reviewAvailableAt
+    ? new Date(result.reviewAvailableAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+    : null
 
-  const filteredQuestions = result.questions
+  const filteredQuestions = questions
     .map((question, index) => {
       const userAnswer = result.answers ? result.answers[index] : undefined
       const isCorrect = userAnswer === question.correct
@@ -454,16 +459,32 @@ function ResultScreen({ result, studentName, examId, onBack }) {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-theme-primary">Answer Review</h3>
-          <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1 gap-1">
-            {['all', 'right', 'wrong'].map((value) => (
-              <button key={value} onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text' : 'bg-theme-bg border border-theme-border text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'}`}>
-                {value}
-              </button>
-            ))}
-          </div>
+          {reviewAvailable && questions.length > 0 ? (
+            <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1 gap-1">
+              {['all', 'right', 'wrong'].map((value) => (
+                <button key={value} onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text' : 'bg-theme-bg border border-theme-border text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'}`}>
+                  {value}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="space-y-4">
-          {filteredQuestions.length === 0 ? (
+          {!reviewAvailable ? (
+            <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl text-theme-secondary">
+              <i className="fas fa-lock text-4xl mb-3 opacity-40" />
+              <p className="font-semibold text-theme-primary">Answer review is hidden while the live exam is active.</p>
+              <p className="text-sm mt-1">
+                {reviewAvailableAt ? `It will be available after ${reviewAvailableAt}.` : 'It will be available after the live exam ends.'}
+              </p>
+              {result.submissionId ? (
+                <Link href={`/profile/submission/${result.submissionId}`} className="inline-flex items-center gap-2 mt-4 text-theme-accent hover:text-theme-primary font-bold text-sm transition-colors">
+                  <span>Open result details</span>
+                  <i className="fas fa-arrow-right" />
+                </Link>
+              ) : null}
+            </div>
+          ) : filteredQuestions.length === 0 ? (
             <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl text-theme-secondary">
               <i className="fas fa-folder-open text-4xl mb-3 opacity-40" />
               <p>No questions for this filter.</p>

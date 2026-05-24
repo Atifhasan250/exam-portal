@@ -171,12 +171,12 @@ export default function AdminExamView({ params }) {
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-theme-primary text-sm mb-2">
                   <span className="text-theme-secondary mr-2">{index + 1}.</span>
-                  <span dangerouslySetInnerHTML={{ __html: safeHTML(question.question) }} />
+                  <span className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: safeHTML(question.question) }} />
                 </p>
                 <div className="grid gap-1.5 ml-5">
                   {question.options.map((option, optionIndex) => (
                     <p key={optionIndex} className={`text-sm ${optionIndex === question.correct ? 'text-theme-success-text font-bold' : 'text-theme-secondary'}`}>
-                      {optionIndex + 1}. <span dangerouslySetInnerHTML={{ __html: safeHTML(option) }} /> {optionIndex === question.correct ? '(correct)' : ''}
+                      {optionIndex + 1}. <span className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: safeHTML(option) }} /> {optionIndex === question.correct ? '(correct)' : ''}
                     </p>
                   ))}
                 </div>

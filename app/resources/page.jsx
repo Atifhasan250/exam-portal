@@ -57,13 +57,12 @@ function buildResourcesSchemas(categories, resources) {
     url: new URL(`/resources/${category.slug}`, siteUrl).toString(),
   }))
   const resourceItems = resources
-    .filter((resource) => resource.type === 'youtube')
     .slice(0, 50)
     .map((resource, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: resource.title,
-      url: new URL(`/resources/watch/${publicResourceSlug(resource)}`, siteUrl).toString(),
+      url: new URL(resourcePath(resource), siteUrl).toString(),
     }))
 
   return [
@@ -99,4 +98,10 @@ function buildResourcesSchemas(categories, resources) {
       },
     },
   ]
+}
+
+function resourcePath(resource) {
+  return resource.type === 'youtube'
+    ? `/resources/watch/${publicResourceSlug(resource)}`
+    : `/resources/view/${publicResourceSlug(resource)}`
 }

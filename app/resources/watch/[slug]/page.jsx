@@ -6,7 +6,7 @@ import ResourceProgress from '@/lib/models/ResourceProgress'
 import ResourceVideoPlayer from '@/components/resources/ResourceVideoPlayer'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { publicResourceSlug, serialize } from '@/lib/resourceUtils'
-import { getCachedResourceBySlug, getCachedSiblingResources } from '@/lib/publicCache'
+import { getCachedCategorySiblingResources, getCachedResourceBySlug } from '@/lib/publicCache'
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
@@ -42,9 +42,8 @@ export default async function ResourceWatchPage({ params }) {
   const resource = await getResourceBySlug(slug)
   if (!resource || resource.type !== 'youtube') notFound()
   const { previousResource, nextResource } = await getSiblingResources(resource)
-  const serializedResource = serialize(resource)
-  const { transcriptText = '', ...playerResource } = serializedResource
-  const transcriptExcerpt = excerpt(transcriptText, 2800)
+  const playerResource = serialize(resource)
+  delete playerResource.transcriptText
   const videoSchema = buildVideoSchema(resource)
   const breadcrumbSchema = buildBreadcrumbSchema(resource)
 
@@ -95,15 +94,6 @@ export default async function ResourceWatchPage({ params }) {
             <Detail label="Language" value={languageLabel(resource.language)} />
             <Detail label="Duration" value={formatDuration(resource.durationSeconds)} />
             <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
-            {transcriptExcerpt ? (
-              <details className="border-t border-theme-border pt-3 group">
-                <summary className="cursor-pointer list-none text-xs font-bold uppercase tracking-wide text-theme-secondary flex items-center justify-between gap-3">
-                  Transcript excerpt
-                  <i className="fas fa-chevron-down text-[10px] transition-transform group-open:rotate-180" />
-                </summary>
-                <p className="mt-2 text-sm text-theme-secondary leading-relaxed whitespace-pre-wrap">{transcriptExcerpt}</p>
-              </details>
-            ) : null}
             <div className="pt-2">
               <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Video Link</p>
               <a href={resource.url} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
@@ -118,7 +108,7 @@ export default async function ResourceWatchPage({ params }) {
 }
 
 const getResourceBySlug = getCachedResourceBySlug
-const getSiblingResources = getCachedSiblingResources
+const getSiblingResources = getCachedCategorySiblingResources
 
 function Detail({ label, value }) {
   if (!value) return null

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import ResourceCard from '@/components/resources/ResourceCard'
-import ResourceViewer from '@/components/resources/ResourceViewer'
+import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
 
 const RESOURCE_PAGE_SIZE = 80
 
@@ -17,8 +17,8 @@ export default function ResourcesPageClient({
   const [categories, setCategories] = useState(initialCategories)
   const [resources, setResources] = useState(initialResources)
   const [progress, setProgress] = useState([])
-  const [selectedResource, setSelectedResource] = useState(null)
   const [query, setQuery] = useState('')
+  const debouncedQuery = useDebouncedValue(query, 300)
   const [loading, setLoading] = useState(!initialDataReady && initialCategories.length === 0)
   const [loadingResources, setLoadingResources] = useState(!initialDataReady)
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
@@ -58,7 +58,7 @@ export default function ResourcesPageClient({
       limit: String(RESOURCE_PAGE_SIZE),
       offset: String(offset),
     })
-    const value = query.trim()
+    const value = debouncedQuery.trim()
     if (value) params.set('q', value)
 
     append ? setLoadingMoreResources(true) : setLoadingResources(true)
@@ -74,16 +74,16 @@ export default function ResourcesPageClient({
     } finally {
       append ? setLoadingMoreResources(false) : setLoadingResources(false)
     }
-  }, [query])
+  }, [debouncedQuery])
 
   useEffect(() => {
     if (!skippedInitialResourcesFetch.current) {
       skippedInitialResourcesFetch.current = true
-      if (initialDataReady && !query.trim()) return
+      if (initialDataReady && !debouncedQuery.trim()) return
     }
 
     fetchResources({ offset: 0 })
-  }, [fetchResources, initialDataReady, query])
+  }, [debouncedQuery, fetchResources, initialDataReady])
 
   useEffect(() => {
     const handleVisible = () => {
@@ -115,14 +115,6 @@ export default function ResourcesPageClient({
 
   const featuredResources = resources.filter((resource) => resource.featured).slice(0, 6)
 
-  const onProgressSaved = (nextProgress) => {
-    setProgress((current) => {
-      const id = getProgressResourceId(nextProgress)
-      const others = current.filter((item) => getProgressResourceId(item) !== id)
-      return [nextProgress, ...others]
-    })
-  }
-
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-8">
@@ -149,7 +141,7 @@ export default function ResourcesPageClient({
         {!loading && !loadingResources && isSearching ? (
           <>
             <SectionTitle title="Search Results" subtitle={`${resources.length} matching resource(s)`} />
-            <ResourceGrid resources={resources} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+            <ResourceGrid resources={resources} allResources={resources} progressByResourceId={progressByResourceId} />
             {resources.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
             {hasMoreResources ? <LoadMoreButton loading={loadingMoreResources} onClick={() => fetchResources({ offset: resources.length, append: true })} /> : null}
           </>
@@ -180,6 +172,7 @@ export default function ResourcesPageClient({
                     <span>•</span>
                     <span>{category.resourceCounts?.link || 0} links</span>
                   </div>
+                  <CategoryProgressBar summary={calculateCategoryResourceProgress(category, progress)} />
                 </Link>
               ))}
               {categories.length === 0 ? <EmptyState text="No resource categories are published yet." /> : null}
@@ -191,31 +184,22 @@ export default function ResourcesPageClient({
           <SectionTitle title="Continue Watching" subtitle="Pick up from where you stopped." />
         ) : null}
         {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
-          <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+          <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} metaMode="category" />
         ) : null}
 
         {!loading && !loadingResources && !isSearching && featuredResources.length > 0 ? (
           <>
             <SectionTitle title="Start Here" subtitle="Featured resources for a smoother first step." />
-            <ResourceGrid resources={featuredResources} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+            <ResourceGrid resources={featuredResources} allResources={resources} progressByResourceId={progressByResourceId} />
           </>
         ) : null}
       </main>
-
-      {selectedResource ? (
-        <ResourceViewer
-          resource={selectedResource}
-          progress={progressByResourceId.get(selectedResource._id)}
-          onClose={() => setSelectedResource(null)}
-          onProgressSaved={onProgressSaved}
-        />
-      ) : null}
     </div>
   )
 }
 
-function ResourceGrid({ resources, allResources, progressByResourceId, onOpen }) {
-  const serialMap = buildCategoryVideoSerialMap(allResources || resources)
+function ResourceGrid({ resources, allResources, progressByResourceId, metaMode = 'default' }) {
+  const serialMap = buildCategoryResourceSerialMap(allResources || resources)
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -225,7 +209,7 @@ function ResourceGrid({ resources, allResources, progressByResourceId, onOpen })
           resource={resource}
           progress={resource.progressItem || progressByResourceId.get(resource._id)}
           serialNumber={serialMap.get(resource._id)}
-          onOpen={onOpen}
+          metaMode={metaMode}
         />
       ))}
     </section>
@@ -278,12 +262,22 @@ function getProgressResourceId(item) {
   return typeof item.resourceId === 'object' ? item.resourceId?._id : item.resourceId
 }
 
-function buildCategoryVideoSerialMap(resources) {
+function useDebouncedValue(value, delayMs) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebouncedValue(value), delayMs)
+    return () => clearTimeout(timeoutId)
+  }, [delayMs, value])
+
+  return debouncedValue
+}
+
+function buildCategoryResourceSerialMap(resources) {
   const groups = new Map()
   const serialMap = new Map()
 
   resources
-    .filter((resource) => resource.type === 'youtube')
     .forEach((resource) => {
       const categoryId = typeof resource.categoryId === 'object' ? resource.categoryId?._id : resource.categoryId
       if (!groups.has(categoryId)) groups.set(categoryId, [])

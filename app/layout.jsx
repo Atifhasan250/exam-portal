@@ -22,7 +22,7 @@ export const metadata = {
   description:
     'IT Resource Zone is a free online platform for IT exams, study planning, daily habits tracking, and learning resources. Test your knowledge, build consistency, and climb the leaderboard.',
   keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'IT Resource Zone'],
-  authors: [{ name: 'Atif Hasan', url: 'https://atifs-portfolio.vercel.app/' }],
+  authors: [{ name: 'Atif Hasan', url: 'https://atifhasan.com/' }],
   creator: 'Atif Hasan',
   // Canonical URL tells search engines the authoritative address for this site
   alternates: {
@@ -90,7 +90,7 @@ const websiteSchema = {
   author: {
     '@type': 'Person',
     name: 'Atif Hasan',
-    url: 'https://atifs-portfolio.vercel.app/',
+    url: 'https://atifhasan.com/',
   },
 }
 
@@ -113,7 +113,7 @@ const webAppSchema = {
   author: {
     '@type': 'Person',
     name: 'Atif Hasan',
-    url: 'https://atifs-portfolio.vercel.app/',
+    url: 'https://atifhasan.com/',
   },
   featureList: [
     'Live timed IT exams',

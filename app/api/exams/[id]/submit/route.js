@@ -90,6 +90,7 @@ export async function POST(request, { params }) {
     let questions = []
     let attempt = null
     let wasLive = false
+    let savedSubmissionId = null
 
     if (liveSubmissionWindow) {
       if (!parsed.data.attemptId) {
@@ -169,7 +170,7 @@ export async function POST(request, { params }) {
           }).session(session)
 
           if (existingSubmission) throw new Error('DUPLICATE_SUBMISSION')
-          await Submission.create(
+          const createdSubmissions = await Submission.create(
             [
               {
                 examId: exam._id,
@@ -187,6 +188,7 @@ export async function POST(request, { params }) {
             ],
             { session },
           )
+          savedSubmissionId = createdSubmissions[0]?._id?.toString() || null
         } else {
           const submittedAt = new Date()
           const existingPracticeSubmissions = await Submission.find({
@@ -218,7 +220,7 @@ export async function POST(request, { params }) {
 
           const bestPracticeSubmission = existingPracticeSubmissions[0]
           if (!bestPracticeSubmission) {
-            await Submission.create(
+            const createdSubmissions = await Submission.create(
               [
                 {
                   ...practicePayload,
@@ -227,6 +229,7 @@ export async function POST(request, { params }) {
               ],
               { session },
             )
+            savedSubmissionId = createdSubmissions[0]?._id?.toString() || null
           } else {
             const currentIsBetter =
               score > bestPracticeSubmission.score ||
@@ -254,6 +257,7 @@ export async function POST(request, { params }) {
                   },
               { session },
             )
+            savedSubmissionId = bestPracticeSubmission._id.toString()
 
             const duplicatePracticeIds = existingPracticeSubmissions
               .slice(1)
@@ -285,7 +289,10 @@ export async function POST(request, { params }) {
         total: questions.length,
         wrong,
         unanswered,
+        submissionId: savedSubmissionId,
+        wasLive,
         reviewAvailable: !wasLive,
+        reviewAvailableAt: wasLive && liveEnd ? liveEnd.toISOString() : null,
         questions: wasLive ? [] : questions,
       })
     } catch (txError) {

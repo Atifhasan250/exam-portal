@@ -41,8 +41,12 @@ export async function POST(request) {
     const exam = new Exam(parsed.data)
     await exam.save()
 
-    await logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
-    await invalidateExamCaches(exam._id.toString())
+    try {
+      await logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[POST /api/exams] post-create side effects failed', { error, examId: exam._id, action: 'CREATE_EXAM' })
+    }
 
     return NextResponse.json(exam, { status: 201 })
   } catch (error) {

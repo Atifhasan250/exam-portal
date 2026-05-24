@@ -130,7 +130,7 @@ export default function ResourceVideoPlayer({ resource, initialProgress, previou
 
   return (
     <div className="space-y-5">
-      <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-theme-border shadow-xl">
+      <div className="aspect-[4/3] sm:aspect-video bg-black rounded-2xl overflow-hidden border border-theme-border shadow-xl">
         <div id={playerNodeId} className="w-full h-full" />
       </div>
 

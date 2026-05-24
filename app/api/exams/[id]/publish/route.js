@@ -34,14 +34,22 @@ export async function PUT(request, { params }) {
     exam.published = parsed.data.published
     await exam.save()
 
-    await logAdminAction(
-      request,
-      adminCheck.admin,
-      parsed.data.published ? 'PUBLISH_EXAM' : 'UNPUBLISH_EXAM',
-      exam._id,
-      { title: exam.title },
-    )
-    await invalidateExamCaches(exam._id.toString())
+    try {
+      await logAdminAction(
+        request,
+        adminCheck.admin,
+        parsed.data.published ? 'PUBLISH_EXAM' : 'UNPUBLISH_EXAM',
+        exam._id,
+        { title: exam.title },
+      )
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]/publish] post-publish side effects failed', {
+        error,
+        examId: exam._id,
+        action: parsed.data.published ? 'PUBLISH_EXAM' : 'UNPUBLISH_EXAM',
+      })
+    }
 
     return NextResponse.json(exam)
   } catch (error) {

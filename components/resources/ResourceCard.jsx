@@ -1,34 +1,34 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 
-export default function ResourceCard({ resource, progress, onOpen, serialNumber }) {
+export default function ResourceCard({ resource, progress, serialNumber, metaMode = 'default' }) {
   const progressSeconds = progress?.progressSeconds || 0
-  const percent = resource.durationSeconds ? Math.min(100, Math.round((progressSeconds / resource.durationSeconds) * 100)) : 0
-  const content = <CardContent resource={resource} percent={percent} serialNumber={serialNumber} />
+  const percent = progress?.completed
+    ? 100
+    : resource.durationSeconds
+      ? Math.min(100, Math.round((progressSeconds / resource.durationSeconds) * 100))
+      : 0
+  const content = <CardContent resource={resource} percent={percent} serialNumber={serialNumber} metaMode={metaMode} />
+  const href = resource.type === 'youtube'
+    ? `/resources/watch/${publicResourceSlug(resource)}`
+    : `/resources/view/${publicResourceSlug(resource)}`
 
   return (
     <article className="bg-theme-surface border border-theme-border rounded-2xl overflow-hidden shadow-sm hover:border-theme-accent/40 transition-all">
-      {resource.type === 'youtube' ? (
-        <Link href={`/resources/watch/${publicResourceSlug(resource)}`} className="block w-full text-left">
-          {content}
-        </Link>
-      ) : (
-        <button onClick={() => onOpen(resource)} className="block w-full text-left">
-          {content}
-        </button>
-      )}
+      <Link href={href} className="block w-full text-left">
+        {content}
+      </Link>
     </article>
   )
 }
 
-function CardContent({ resource, percent, serialNumber }) {
+function CardContent({ resource, percent, serialNumber, metaMode }) {
   return (
     <>
       <div className="relative aspect-video bg-theme-bg overflow-hidden">
         {resource.thumbnailUrl ? (
-          <Image src={resource.thumbnailUrl} alt={`${resource.title} thumbnail`} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+          <img src={resource.thumbnailUrl} alt={`${resource.title} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-theme-secondary">
             <i className={`fas ${iconForType(resource.type)} text-3xl`} />
@@ -51,7 +51,12 @@ function CardContent({ resource, percent, serialNumber }) {
         </div>
       ) : null}
       <div className="p-4">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-theme-secondary font-bold mb-2">
+        {metaMode === 'category' ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-theme-secondary font-bold mb-2">
+            <span>{resource.categoryId?.name || 'Resources'}</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-theme-secondary font-bold mb-2">
           <span>{levelLabel(resource.level)}</span>
           <span>•</span>
           <span>{languageLabel(resource.language)}</span>
@@ -61,10 +66,11 @@ function CardContent({ resource, percent, serialNumber }) {
               <span>{formatDuration(resource.durationSeconds)}</span>
             </>
           ) : null}
-        </div>
-        <h3 className="font-extrabold text-theme-primary leading-snug">
-          {serialNumber ? <span className="text-theme-accent">{serialNumber}. </span> : null}
-          {resource.title}
+          </div>
+        )}
+        <h3 className="font-extrabold text-theme-primary leading-snug flex items-start gap-1.5">
+          {serialNumber ? <span className="text-theme-accent shrink-0">{serialNumber}.</span> : null}
+          <span>{resource.title}</span>
         </h3>
       </div>
     </>

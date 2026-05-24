@@ -16,10 +16,29 @@ export async function GET(request) {
     await connectDB()
     const { searchParams } = new URL(request.url)
     const fileHash = searchParams.get('fileHash')?.trim().toLowerCase()
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
+    const rawLimit = !limitParam?.trim() ? NaN : Number(limitParam)
+    const rawOffset = !offsetParam?.trim() ? NaN : Number(offsetParam)
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? Math.trunc(rawLimit) : 50, 1), 100)
+    const offset = Math.max(Number.isFinite(rawOffset) ? Math.trunc(rawOffset) : 0, 0)
     const query = fileHash ? { fileHash } : {}
-    const assets = await UploadedAsset.find(query).sort({ createdAt: -1 }).limit(fileHash ? 1 : 100).lean()
+    const assets = await UploadedAsset.find(query)
+      .sort({ createdAt: -1 })
+      .skip(fileHash ? 0 : offset)
+      .limit(fileHash ? 1 : limit)
+      .lean()
 
-    return NextResponse.json(fileHash ? serialize(assets[0] || null) : serialize(assets))
+    if (fileHash) return NextResponse.json(serialize(assets[0] || null))
+
+    const totalCount = await UploadedAsset.countDocuments(query)
+    return NextResponse.json({
+      assets: serialize(assets),
+      totalCount,
+      limit,
+      offset,
+      hasMore: offset + assets.length < totalCount,
+    })
   } catch (error) {
     logger.error('[GET /api/admin/assets]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })

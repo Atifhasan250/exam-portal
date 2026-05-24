@@ -72,13 +72,21 @@ export async function POST(request) {
 
     const inserted = docs.length ? await Resource.insertMany(docs, { ordered: false }) : []
 
-    await logAdminAction(request, adminCheck.admin, 'IMPORT_RESOURCE_PLAYLIST', parsed.data.categoryId, {
-      categoryId: parsed.data.categoryId,
-      playlistId: parsed.data.playlistId,
-      importedCount: inserted.length,
-      skippedExistingCount: existingIds.size,
-      skippedDuplicateInPayloadCount,
-    })
+    try {
+      await logAdminAction(request, adminCheck.admin, 'IMPORT_RESOURCE_PLAYLIST', parsed.data.categoryId, {
+        categoryId: parsed.data.categoryId,
+        playlistId: parsed.data.playlistId,
+        importedCount: inserted.length,
+        skippedExistingCount: existingIds.size,
+        skippedDuplicateInPayloadCount,
+      })
+    } catch (error) {
+      logger.error('[POST /api/admin/resources/youtube/playlist/import] audit log failed', {
+        error,
+        categoryId: parsed.data.categoryId,
+        action: 'IMPORT_RESOURCE_PLAYLIST',
+      })
+    }
     if (inserted.length) await invalidateResourceCaches()
 
     return NextResponse.json(serialize({

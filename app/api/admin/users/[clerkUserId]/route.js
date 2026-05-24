@@ -15,12 +15,17 @@ import {
   getTotalActiveDays,
 } from '@/lib/analytics'
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
   try {
     const authCheck = await requireAdmin()
     if (!authCheck.ok) return authCheck.response
 
     const { clerkUserId } = await params
+    const { searchParams } = new URL(request.url)
+    const rawExamLimit = Number(searchParams.get('examLimit'))
+    const rawExamOffset = Number(searchParams.get('examOffset'))
+    const examLimit = Math.min(Math.max(Number.isFinite(rawExamLimit) ? Math.trunc(rawExamLimit) : 50, 1), 100)
+    const examOffset = Math.max(Number.isFinite(rawExamOffset) ? Math.trunc(rawExamOffset) : 0, 0)
 
     await connectDB()
 
@@ -71,10 +76,15 @@ export async function GET(_request, { params }) {
     }
 
     // 3. Fetch Exam History
-    const submissions = await Submission.find({ clerkUserId })
-      .populate('examId', 'title duration')
-      .sort({ submittedAt: -1 })
-      .lean()
+    const [submissions, examTotalCount] = await Promise.all([
+      Submission.find({ clerkUserId })
+        .populate('examId', 'title duration')
+        .sort({ submittedAt: -1 })
+        .skip(examOffset)
+        .limit(examLimit)
+        .lean(),
+      Submission.countDocuments({ clerkUserId }),
+    ])
 
     const liveExamIds = submissions
       .filter((sub) => sub.wasLive && sub.examId)
@@ -123,7 +133,13 @@ export async function GET(_request, { params }) {
         daysTracked,
         analytics
       },
-      exams: examHistory
+      exams: examHistory,
+      examsPage: {
+        totalCount: examTotalCount,
+        limit: examLimit,
+        offset: examOffset,
+        hasMore: examOffset + submissions.length < examTotalCount,
+      },
     })
   } catch (error) {
     logger.error('[GET /api/admin/users/[clerkUserId]]', { error })

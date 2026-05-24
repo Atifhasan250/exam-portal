@@ -46,6 +46,7 @@ export async function generateMetadata({ params }) {
 
 export default async function SingleLeaderboardPage({ params }) {
   const { id } = await params
+  if (!isValidObjectId(id)) return <LeaderboardClient initialData={[]} selectedExamId={id} />
   const data = await getCachedExamLeaderboardData(id)
   return <LeaderboardClient initialData={data} selectedExamId={id} />
 }

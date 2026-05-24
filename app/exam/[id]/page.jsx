@@ -60,12 +60,19 @@ async function ExamPageWithData({ params }) {
         <script
           key={schema['@type']}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
       <ExamPageClient params={Promise.resolve({ id })} initialExam={initialExam} />
     </>
   )
+}
+
+function safeJsonLd(schema) {
+  return JSON.stringify(schema)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
 }
 
 async function getPublicExamSummary(id) {

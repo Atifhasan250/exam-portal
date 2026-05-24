@@ -11,7 +11,11 @@ import { getPlannerData } from '@/app/tasks/actions'
 
 export default function ProfilePage() {
   const [submissions, setSubmissions] = useState([])
+  const [submissionTotal, setSubmissionTotal] = useState(0)
+  const [submissionOffset, setSubmissionOffset] = useState(0)
+  const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingMoreSubmissions, setLoadingMoreSubmissions] = useState(false)
   const [plannerData, setPlannerData] = useState(null)
   const [tasksLoading, setTasksLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -37,10 +41,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
 
-    fetch(`/api/submissions/user/${encodeURIComponent(user.id)}`)
+    fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=50&offset=0`)
       .then((response) => response.json())
       .then((data) => {
-        setSubmissions(Array.isArray(data) ? data : [])
+        const list = Array.isArray(data) ? data : data.submissions || []
+        setSubmissions(list)
+        setSubmissionTotal(Array.isArray(data) ? list.length : data.totalCount || list.length)
+        setSubmissionOffset(Array.isArray(data) ? list.length : data.nextOffset || list.length)
+        setHasMoreSubmissions(!Array.isArray(data) && Boolean(data.hasMore))
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -159,6 +167,26 @@ export default function ProfilePage() {
     }
   }
 
+  const loadMoreSubmissions = async () => {
+    if (!user || loadingMoreSubmissions) return
+
+    setLoadingMoreSubmissions(true)
+    try {
+      const response = await fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=50&offset=${submissionOffset}`)
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to load more submissions')
+      const list = data.submissions || []
+      setSubmissions((current) => mergeUniqueExamSubmissions(current, list))
+      setSubmissionTotal(data.totalCount || submissionTotal)
+      setSubmissionOffset(data.nextOffset || submissionOffset + list.length)
+      setHasMoreSubmissions(Boolean(data.hasMore))
+    } catch {
+      setHasMoreSubmissions(false)
+    } finally {
+      setLoadingMoreSubmissions(false)
+    }
+  }
+
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
 
@@ -192,7 +220,9 @@ export default function ProfilePage() {
                 <i className="fas fa-pencil-alt text-xs" />
               </button>
             </div>
-            <p className="text-theme-secondary mt-1">You have attempted {submissions.length} exam{submissions.length === 1 ? '' : 's'} in total.</p>
+            <p className="text-theme-secondary mt-1">
+              {submissions.length}{submissionTotal ? ` of ${submissionTotal}` : ''} exam record{submissionTotal === 1 ? '' : 's'} loaded.
+            </p>
             <button
               onClick={() => setShowLogoutDialog(true)}
               className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 transition-all font-bold text-sm"
@@ -297,6 +327,15 @@ export default function ProfilePage() {
                 </div>
               )
             })}
+            {hasMoreSubmissions ? (
+              <button
+                onClick={loadMoreSubmissions}
+                disabled={loadingMoreSubmissions}
+                className="w-full bg-theme-surface border border-theme-border rounded-2xl p-5 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+              >
+                {loadingMoreSubmissions ? 'Loading...' : 'Load More Exam Records'}
+              </button>
+            ) : null}
           </div>
         )}
       </main>
@@ -453,4 +492,18 @@ export default function ProfilePage() {
       )}
     </div>
   )
+}
+
+function mergeUniqueExamSubmissions(current, next) {
+  const seen = new Set(current.map((submission) => submission.examId?._id).filter(Boolean))
+  const merged = [...current]
+
+  for (const submission of next) {
+    const examId = submission.examId?._id
+    if (!examId || seen.has(examId)) continue
+    seen.add(examId)
+    merged.push(submission)
+  }
+
+  return merged
 }

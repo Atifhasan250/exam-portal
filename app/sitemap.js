@@ -21,10 +21,10 @@ export default async function sitemap() {
   let dynamicRoutes = []
   try {
     await connectDB()
-    const [exams, categories, videos] = await Promise.all([
+    const [exams, categories, resources] = await Promise.all([
       Exam.find({ published: true }, { _id: 1, updatedAt: 1, createdAt: 1 }).lean(),
       ResourceCategory.find({ published: true }, { slug: 1, updatedAt: 1, createdAt: 1 }).lean(),
-      Resource.find({ published: true, type: 'youtube' }, { _id: 1, title: 1, slug: 1, updatedAt: 1, createdAt: 1 }).lean(),
+      Resource.find({ published: true }, { _id: 1, title: 1, slug: 1, type: 1, updatedAt: 1, createdAt: 1 }).lean(),
     ])
 
     const examRoutes = exams.flatMap((exam) => [
@@ -37,17 +37,23 @@ export default async function sitemap() {
       changeFrequency: 'weekly',
       priority: 0.7,
     }))
-    const videoRoutes = videos.map((resource) => ({
-      url: `${baseUrl}/resources/watch/${publicResourceSlug(resource)}`,
+    const resourceRoutes = resources.map((resource) => ({
+      url: `${baseUrl}${resourcePath(resource)}`,
       lastModified: resource.updatedAt || resource.createdAt || staticLastModified,
       changeFrequency: 'monthly',
       priority: 0.65,
     }))
 
-    dynamicRoutes = [...examRoutes, ...categoryRoutes, ...videoRoutes]
+    dynamicRoutes = [...examRoutes, ...categoryRoutes, ...resourceRoutes]
   } catch (error) {
     console.error('Failed to load dynamic routes for sitemap', error)
   }
 
   return [...staticRoutes, ...dynamicRoutes]
+}
+
+function resourcePath(resource) {
+  return resource.type === 'youtube'
+    ? `/resources/watch/${publicResourceSlug(resource)}`
+    : `/resources/view/${publicResourceSlug(resource)}`
 }

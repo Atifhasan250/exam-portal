@@ -5,12 +5,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 export default function LeaderboardClient({ initialData, selectedExamId = null }) {
-  const [data, setData] = useState(initialData)
-  const [loading, setLoading] = useState(!initialData?.length)
+  const [data, setData] = useState(() => normalizeLeaderboardData(initialData, selectedExamId))
+  const [loading, setLoading] = useState(!normalizeLeaderboardData(initialData, selectedExamId).length)
+  const [loadingMore, setLoadingMore] = useState(false)
   const router = useRouter()
   const CACHE_TTL_MS = 30 * 1000
 
   useEffect(() => {
+    if (selectedExamId) return
+
     if (initialData?.length) {
       sessionStorage.setItem('leaderboard_cache', JSON.stringify({ items: initialData, cachedAt: Date.now() }))
       return
@@ -39,9 +42,9 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [initialData])
+  }, [initialData, selectedExamId])
 
-  const selectedData = selectedExamId ? data.find((item) => item.exam._id === selectedExamId) : null
+  const selectedData = selectedExamId ? data.find((item) => item.exam?._id === selectedExamId) : null
   const fmtDate = (date) => new Date(date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 
   const getRankStyle = (rank) => {
@@ -56,6 +59,32 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
     if (rank === 2) return 'fas fa-medal'
     if (rank === 3) return 'fas fa-award'
     return null
+  }
+
+  const loadMoreSubmissions = async () => {
+    if (!selectedData || loadingMore) return
+
+    setLoadingMore(true)
+    try {
+      const offset = selectedData.submissions.length
+      const response = await fetch(`/api/exams/${selectedExamId}/leaderboard?limit=50&offset=${offset}`)
+      const page = await response.json()
+      if (!response.ok || !page?.exam) return
+
+      setData((current) => current.map((item) => (
+        item.exam?._id === selectedExamId
+          ? {
+              ...item,
+              submissions: [...(item.submissions || []), ...(page.submissions || [])],
+              submissionCount: page.submissionCount || page.totalCount || item.submissionCount || 0,
+              totalCount: page.totalCount || item.totalCount || 0,
+              hasMore: Boolean(page.hasMore),
+            }
+          : item
+      )))
+    } finally {
+      setLoadingMore(false)
+    }
   }
 
   return (
@@ -91,7 +120,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
           </div>
         ) : !selectedExamId ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {data.map(({ exam, submissions }, index) => (
+            {data.map(({ exam, submissions, submissionCount }, index) => (
               <div key={exam._id} onClick={() => router.push(`/leaderboard/${exam._id}`)} className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/40 hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: `${index * 80}ms` }}>
                 <div>
                   <h3 className="font-bold text-theme-primary text-lg leading-snug mb-3">{exam.title}</h3>
@@ -102,7 +131,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
                 </div>
                 <div className="flex items-center justify-between border-t border-theme-border pt-4 mt-2">
                   <span className="text-sm font-bold text-theme-accent bg-indigo-500/10 px-3 py-1 rounded-lg">
-                    <i className="fas fa-users mr-2" />{submissions.length} Taken
+                    <i className="fas fa-users mr-2" />{submissionCount ?? submissions.length} Taken
                   </span>
                   <i className="fas fa-arrow-right text-theme-secondary" />
                 </div>
@@ -155,10 +184,26 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
                   </div>
                 )
               })}
+              {selectedData.hasMore ? (
+                <div className="p-4 bg-theme-bg/30">
+                  <button
+                    onClick={loadMoreSubmissions}
+                    disabled={loadingMore}
+                    className="w-full px-4 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                  >
+                    {loadingMore ? 'Loading...' : 'Load More Results'}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </section>
         ) : null}
       </main>
     </div>
   )
+}
+
+function normalizeLeaderboardData(initialData, selectedExamId) {
+  if (selectedExamId && initialData?.exam) return [initialData]
+  return Array.isArray(initialData) ? initialData : []
 }

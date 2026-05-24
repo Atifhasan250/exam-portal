@@ -19,6 +19,7 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [userDetails, setUserDetails] = useState(null)
   const [loadingDetails, setLoadingDetails] = useState(false)
+  const [loadingMoreExams, setLoadingMoreExams] = useState(false)
   const [detailsError, setDetailsError] = useState('')
 
   const router = useRouter()
@@ -78,7 +79,7 @@ export default function AdminUsers() {
     setLoadingDetails(true)
 
     try {
-      const response = await fetch(`/api/admin/users/${user.id}`)
+      const response = await fetch(`/api/admin/users/${user.id}?examLimit=50&examOffset=0`)
       if (!response.ok) throw new Error('Failed to fetch user details')
       const data = await response.json()
       setUserDetails(data)
@@ -92,6 +93,28 @@ export default function AdminUsers() {
   const closeUserDetails = () => {
     setSelectedUser(null)
     setUserDetails(null)
+  }
+
+  const loadMoreUserExams = async () => {
+    if (!selectedUser || !userDetails?.examsPage?.hasMore) return
+
+    setLoadingMoreExams(true)
+    setDetailsError('')
+    try {
+      const offset = userDetails.exams?.length || 0
+      const response = await fetch(`/api/admin/users/${selectedUser.id}?examLimit=50&examOffset=${offset}`)
+      if (!response.ok) throw new Error('Failed to fetch more exam history')
+      const data = await response.json()
+      setUserDetails((current) => ({
+        ...current,
+        exams: [...(current.exams || []), ...(data.exams || [])],
+        examsPage: data.examsPage || current.examsPage,
+      }))
+    } catch (err) {
+      setDetailsError(err.message)
+    } finally {
+      setLoadingMoreExams(false)
+    }
   }
 
   useEffect(() => {
@@ -330,6 +353,15 @@ export default function AdminUsers() {
                           </div>
                         </div>
                       ))}
+                      {userDetails.examsPage?.hasMore ? (
+                        <button
+                          onClick={loadMoreUserExams}
+                          disabled={loadingMoreExams}
+                          className="w-full bg-theme-bg border border-theme-border rounded-xl p-4 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                        >
+                          {loadingMoreExams ? 'Loading...' : 'Load More Exams'}
+                        </button>
+                      ) : null}
                     </div>
                   )}
                 </section>

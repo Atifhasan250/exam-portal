@@ -65,7 +65,11 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
-    await logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
+    try {
+      await logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]] audit log failed', { error, examId: exam._id, action: 'UPDATE_EXAM' })
+    }
     await invalidateExamCaches(exam._id.toString())
 
     return NextResponse.json(exam)
@@ -101,7 +105,11 @@ export async function DELETE(request, { params }) {
       await session.endSession()
     }
 
-    await logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
+    try {
+      await logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
+    } catch (error) {
+      logger.error('[DELETE /api/exams/[id]] audit log failed', { error, examId: id, action: 'DELETE_EXAM' })
+    }
     await invalidateExamCaches(id)
 
     return NextResponse.json({ success: true })

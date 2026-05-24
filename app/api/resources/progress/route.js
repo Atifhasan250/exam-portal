@@ -21,7 +21,6 @@ export async function GET() {
         populate: { path: 'categoryId', select: 'name slug icon color' },
       })
       .sort({ lastAccessedAt: -1 })
-      .limit(200)
       .lean()
 
     return NextResponse.json(serialize(progress.filter((item) => item.resourceId)))

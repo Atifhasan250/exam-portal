@@ -24,6 +24,12 @@ export async function GET(request) {
     const categoryId = searchParams.get('categoryId')?.trim()
     const type = searchParams.get('type')?.trim()
     const q = normalizeSearchQuery(searchParams.get('q'))
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
+    const rawLimit = !limitParam?.trim() ? NaN : Number(limitParam)
+    const rawOffset = !offsetParam?.trim() ? NaN : Number(offsetParam)
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? Math.trunc(rawLimit) : 100, 1), 200)
+    const offset = Math.max(Number.isFinite(rawOffset) ? Math.trunc(rawOffset) : 0, 0)
 
     const query = {}
     if (categoryId) {
@@ -43,10 +49,18 @@ export async function GET(request) {
     const resources = await Resource.find(query)
       .populate('categoryId', 'name slug icon color')
       .sort({ categoryId: 1, order: 1, createdAt: -1 })
-      .limit(500)
+      .skip(offset)
+      .limit(limit)
       .lean()
+    const totalCount = await Resource.countDocuments(query)
 
-    return NextResponse.json(serialize(resources))
+    return NextResponse.json({
+      resources: serialize(resources),
+      totalCount,
+      limit,
+      offset,
+      hasMore: offset + resources.length < totalCount,
+    })
   } catch (error) {
     logger.error('[GET /api/admin/resources]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })

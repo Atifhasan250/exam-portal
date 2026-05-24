@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import ResourceCard from '@/components/resources/ResourceCard'
-import ResourceViewer from '@/components/resources/ResourceViewer'
+import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
 
 const tabs = [
   { id: '', label: 'All', icon: 'fa-layer-group' },
   { id: 'youtube', label: 'Videos', icon: 'fa-play' },
   { id: 'pdf', label: 'PDFs', icon: 'fa-file-pdf' },
   { id: 'link', label: 'Links', icon: 'fa-link' },
-  { id: 'file', label: 'Files', icon: 'fa-file' },
+  { id: 'file,image', label: 'Files', icon: 'fa-file' },
 ]
 
 const levelFilters = [
@@ -33,10 +33,10 @@ export default function CategoryResourcesClient({
   const [categories, setCategories] = useState(initialCategories)
   const [resources, setResources] = useState(initialResources)
   const [progress, setProgress] = useState([])
-  const [selectedResource, setSelectedResource] = useState(null)
   const [activeType, setActiveType] = useState('')
   const [activeLevel, setActiveLevel] = useState('')
   const [query, setQuery] = useState('')
+  const debouncedQuery = useDebouncedValue(query, 300)
   const [loading, setLoading] = useState(!initialDataReady && initialCategories.length === 0)
   const [loadingResources, setLoadingResources] = useState(!initialDataReady)
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
@@ -79,7 +79,7 @@ export default function CategoryResourcesClient({
     })
     if (activeType) params.set('type', activeType)
     if (activeLevel) params.set('level', activeLevel)
-    const value = query.trim()
+    const value = debouncedQuery.trim()
     if (value) params.set('q', value)
 
     append ? setLoadingMoreResources(true) : setLoadingResources(true)
@@ -95,16 +95,16 @@ export default function CategoryResourcesClient({
     } finally {
       append ? setLoadingMoreResources(false) : setLoadingResources(false)
     }
-  }, [activeLevel, activeType, query, slug])
+  }, [activeLevel, activeType, debouncedQuery, slug])
 
   useEffect(() => {
     if (!skippedInitialResourcesFetch.current) {
       skippedInitialResourcesFetch.current = true
-      if (initialDataReady && !activeType && !activeLevel && !query.trim()) return
+      if (initialDataReady && !activeType && !activeLevel && !debouncedQuery.trim()) return
     }
 
     fetchResources({ offset: 0 })
-  }, [activeLevel, activeType, fetchResources, initialDataReady, query])
+  }, [activeLevel, activeType, debouncedQuery, fetchResources, initialDataReady])
 
   useEffect(() => {
     const handleVisible = () => {
@@ -125,6 +125,8 @@ export default function CategoryResourcesClient({
   const category = categories.find((item) => item.slug === slug)
   const categoryDescription = category?.description?.trim()
   const progressByResourceId = useMemo(() => new Map(progress.map((item) => [getProgressResourceId(item), item])), [progress])
+  const categoryProgress = useMemo(() => calculateCategoryResourceProgress(category, progress), [category, progress])
+  const isSearching = query.trim().length > 0
 
   const filteredResources = resources
 
@@ -136,13 +138,6 @@ export default function CategoryResourcesClient({
     .sort((a, b) => new Date(b.lastAccessedAt || b.updatedAt || 0) - new Date(a.lastAccessedAt || a.updatedAt || 0))
     .slice(0, 3)
     .map((item) => ({ ...item.resourceId, progressItem: item }))
-
-  const onProgressSaved = (nextProgress) => {
-    setProgress((current) => {
-      const id = getProgressResourceId(nextProgress)
-      return [nextProgress, ...current.filter((item) => getProgressResourceId(item) !== id)]
-    })
-  }
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary page-enter">
@@ -178,6 +173,7 @@ export default function CategoryResourcesClient({
               />
             </div>
           </div>
+          <CategoryProgressBar summary={categoryProgress} />
         </section>
 
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -195,10 +191,10 @@ export default function CategoryResourcesClient({
 
         {loading || loadingResources ? <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-56 rounded-2xl" />)}</section> : null}
 
-        {!loading && !loadingResources && continueItems.length > 0 ? (
+        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
           <>
             <SectionTitle title="Continue Learning" subtitle="Your recent progress in this category." />
-            <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+            <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} />
           </>
         ) : null}
 
@@ -209,7 +205,7 @@ export default function CategoryResourcesClient({
               subtitle={`${filteredResources.length} item(s) available`}
               action={<LevelFilter activeLevel={activeLevel} onChange={setActiveLevel} />}
             />
-            <ResourceGrid resources={filteredResources} allResources={resources} progressByResourceId={progressByResourceId} onOpen={setSelectedResource} />
+            <ResourceGrid resources={filteredResources} allResources={resources} progressByResourceId={progressByResourceId} />
             {filteredResources.length === 0 ? (
               <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center text-theme-secondary">
                 No resources found here yet.
@@ -219,21 +215,12 @@ export default function CategoryResourcesClient({
           </>
         ) : null}
       </main>
-
-      {selectedResource ? (
-        <ResourceViewer
-          resource={selectedResource}
-          progress={progressByResourceId.get(selectedResource._id)}
-          onClose={() => setSelectedResource(null)}
-          onProgressSaved={onProgressSaved}
-        />
-      ) : null}
     </div>
   )
 }
 
-function ResourceGrid({ resources, allResources, progressByResourceId, onOpen }) {
-  const serialMap = buildVisibleVideoSerialMap(resources, allResources || resources)
+function ResourceGrid({ resources, allResources, progressByResourceId }) {
+  const serialMap = buildVisibleResourceSerialMap(resources, allResources || resources)
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -243,7 +230,6 @@ function ResourceGrid({ resources, allResources, progressByResourceId, onOpen })
           resource={resource}
           progress={resource.progressItem || progressByResourceId.get(resource._id)}
           serialNumber={serialMap.get(resource._id)}
-          onOpen={onOpen}
         />
       ))}
     </section>
@@ -301,11 +287,22 @@ function getProgressResourceId(item) {
   return typeof item.resourceId === 'object' ? item.resourceId?._id : item.resourceId
 }
 
-function buildVisibleVideoSerialMap(visibleResources, orderedResources) {
+function useDebouncedValue(value, delayMs) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebouncedValue(value), delayMs)
+    return () => clearTimeout(timeoutId)
+  }, [delayMs, value])
+
+  return debouncedValue
+}
+
+function buildVisibleResourceSerialMap(visibleResources, orderedResources) {
   const map = new Map()
   let serialNumber = 1
   orderedResources
-    .filter((resource) => resource.type === 'youtube')
+    .sort((a, b) => (a.order || 0) - (b.order || 0) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0))
     .forEach((resource) => {
       map.set(resource._id, serialNumber)
       serialNumber += 1

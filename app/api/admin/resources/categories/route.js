@@ -57,7 +57,11 @@ export async function POST(request) {
       slug: category.slug,
       published: category.published,
     })
-    await invalidateResourceCaches()
+    try {
+      await invalidateResourceCaches()
+    } catch (error) {
+      logger.error('[POST /api/admin/resources/categories] cache invalidation failed', { error, categoryId: category._id })
+    }
 
     return NextResponse.json(serialize(category), { status: 201 })
   } catch (error) {

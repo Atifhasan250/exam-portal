@@ -48,10 +48,11 @@ export default function SubmissionDetails({ params }) {
     )
   }
 
-  const { submission, questions } = data
+  const { submission, questions, reviewAvailable } = data
+  const reviewQuestions = Array.isArray(questions) ? questions : []
   const percentage = (submission.score / submission.total) * 100
 
-  const filteredQuestions = questions
+  const filteredQuestions = reviewQuestions
     .map((question, index) => {
       const userAnswer = submission.answers ? submission.answers[index] : undefined
       const isCorrect = userAnswer === question.correct
@@ -96,16 +97,24 @@ export default function SubmissionDetails({ params }) {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-theme-primary">Answer Review</h3>
-              <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1 gap-1">
-                {['all', 'right', 'wrong'].map((value) => (
-                  <button key={value} onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text' : 'bg-theme-bg border border-theme-border text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'}`}>
-                    {value}
-                  </button>
-                ))}
-              </div>
+              {reviewAvailable && reviewQuestions.length > 0 ? (
+                <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1 gap-1">
+                  {['all', 'right', 'wrong'].map((value) => (
+                    <button key={value} onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === value ? value === 'right' ? 'bg-theme-success-bg text-theme-success-text' : value === 'wrong' ? 'bg-theme-error-bg text-theme-error-text' : 'bg-theme-bg border border-theme-border text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'}`}>
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
             <div className="space-y-4">
-              {filteredQuestions.length === 0 ? (
+              {!reviewAvailable ? (
+                <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl text-theme-secondary">
+                  <i className="fas fa-lock text-4xl mb-3 opacity-40" />
+                  <p className="font-semibold text-theme-primary">Answer review is hidden while the live exam is active.</p>
+                  <p className="text-sm mt-1">Check this page again after the live exam ends.</p>
+                </div>
+              ) : filteredQuestions.length === 0 ? (
                 <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl text-theme-secondary">
                   <i className="fas fa-folder-open text-4xl mb-3 opacity-40" />
                   <p>No questions found for this filter.</p>

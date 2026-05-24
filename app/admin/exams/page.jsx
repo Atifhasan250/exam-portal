@@ -6,10 +6,15 @@ import Link from 'next/link'
 import { parseCSV, parseJSON, parseTXT } from '@/utils/parseQuestions'
 
 const API = '/api/exams'
+const EXAM_PAGE_SIZE = 50
 
 export default function AdminExams() {
   const [exams, setExams] = useState([])
+  const [examTotal, setExamTotal] = useState(0)
+  const [examOffset, setExamOffset] = useState(0)
+  const [hasMoreExams, setHasMoreExams] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [editExam, setEditExam] = useState(null)
   const [addQuestionsTo, setAddQuestionsTo] = useState(null)
@@ -17,14 +22,19 @@ export default function AdminExams() {
   const router = useRouter()
 
   const fetchExams = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/admin/exams')
+      const response = await fetch(`/api/admin/exams?limit=${EXAM_PAGE_SIZE}&offset=0`)
       if (response.status === 401) {
         router.push('/admin')
         return
       }
       const data = await response.json()
-      setExams(Array.isArray(data) ? data : [])
+      const list = Array.isArray(data) ? data : data.exams || []
+      setExams(list)
+      setExamOffset(list.length)
+      setExamTotal(Array.isArray(data) ? list.length : data.totalCount || list.length)
+      setHasMoreExams(!Array.isArray(data) && Boolean(data.hasMore))
     } catch {
       setExams([])
     }
@@ -32,6 +42,25 @@ export default function AdminExams() {
   }
 
   useEffect(() => { fetchExams() }, [])
+
+  const loadMoreExams = async () => {
+    setLoadingMore(true)
+    try {
+      const response = await fetch(`/api/admin/exams?limit=${EXAM_PAGE_SIZE}&offset=${examOffset}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
+      const data = await response.json()
+      const list = data.exams || []
+      setExams((current) => [...current, ...list])
+      setExamOffset((current) => current + list.length)
+      setExamTotal(data.totalCount || examTotal)
+      setHasMoreExams(Boolean(data.hasMore))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const confirmDeleteExam = async () => {
     if (!examToDelete) return
@@ -57,7 +86,7 @@ export default function AdminExams() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-theme-primary mb-1">Manage Exams</h2>
-            <p className="text-theme-secondary text-sm">{exams.length} exam(s) created</p>
+            <p className="text-theme-secondary text-sm">{exams.length}{examTotal ? ` of ${examTotal}` : ''} exam(s) loaded</p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Link href="/admin/dashboard" className="flex-1 sm:flex-none px-4 py-3 text-sm font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-xl hover:text-theme-primary transition-all flex items-center justify-center whitespace-nowrap">
@@ -124,6 +153,15 @@ export default function AdminExams() {
                 </div>
               </div>
             ))}
+            {hasMoreExams ? (
+              <button
+                onClick={loadMoreExams}
+                disabled={loadingMore}
+                className="w-full bg-theme-surface border border-theme-border rounded-2xl p-5 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+              >
+                {loadingMore ? 'Loading...' : 'Load More Exams'}
+              </button>
+            ) : null}
           </div>
         )}
       </main>
@@ -368,10 +406,10 @@ Q2. Which is a JavaScript framework?
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {parsed.map((question, index) => (
                 <div key={index} className="bg-theme-bg border border-theme-border rounded-xl p-3 text-sm">
-                  <p className="font-semibold text-theme-primary mb-1">{index + 1}. {question.question}</p>
+                  <p className="font-semibold text-theme-primary mb-1 whitespace-pre-wrap">{index + 1}. {question.question}</p>
                   <div className="pl-3 space-y-0.5 text-theme-secondary text-xs">
-                    {question.options.map((option, optionIndex) => <p key={optionIndex} className={optionIndex === question.correct ? 'text-theme-success-text font-bold' : ''}>{optionIndex + 1}. {option} {optionIndex === question.correct ? '(correct)' : ''}</p>)}
-                    {question.explanation ? <p className="text-theme-secondary italic mt-1">Explanation: {question.explanation}</p> : null}
+                    {question.options.map((option, optionIndex) => <p key={optionIndex} className={`whitespace-pre-wrap ${optionIndex === question.correct ? 'text-theme-success-text font-bold' : ''}`}>{optionIndex + 1}. {option} {optionIndex === question.correct ? '(correct)' : ''}</p>)}
+                    {question.explanation ? <p className="text-theme-secondary italic mt-1 whitespace-pre-wrap">Explanation: {question.explanation}</p> : null}
                   </div>
                 </div>
               ))}

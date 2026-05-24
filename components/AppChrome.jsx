@@ -13,7 +13,8 @@ const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up']
 const IMPORTANT_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/exams', label: 'All Exams' },
-  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/resources', label: 'Resources' },
+  { href: '/tasks', label: 'Tasks' },
   { href: '/sign-in', label: 'Login' },
   { href: '/sign-up', label: 'Register' },
 ]
@@ -163,7 +164,7 @@ export default function AppChrome({ children }) {
                     <span>
                       Made by{' '}
                       <a
-                        href="https://atifs-portfolio.vercel.app/"
+                        href="https://atifhasan.com/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-semibold text-theme-primary hover:text-theme-accent transition-colors underline underline-offset-2"
@@ -179,7 +180,7 @@ export default function AppChrome({ children }) {
             {/* Bottom bar */}
             <div className="border-t border-theme-border">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-theme-secondary">
-                <span>&copy; {year} IT Resource Zone. All rights reserved.</span>
+                <span>{'\u00A9'} {year} IT Resource Zone. All rights reserved.</span>
                 <div className="flex items-center gap-4">
                   <Link href="/privacy" className="hover:text-theme-accent transition-colors">
                     Privacy Policy

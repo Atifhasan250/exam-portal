@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -74,6 +74,7 @@ const typeLabels = {
   file: 'File',
 }
 
+const ADMIN_RESOURCE_PAGE_SIZE = 100
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
   'application/pdf',
@@ -95,7 +96,11 @@ export default function AdminResourcesPage() {
   const router = useRouter()
   const [categories, setCategories] = useState([])
   const [resources, setResources] = useState([])
+  const [resourceTotal, setResourceTotal] = useState(0)
+  const [resourceOffset, setResourceOffset] = useState(0)
+  const [hasMoreResources, setHasMoreResources] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingMoreResources, setLoadingMoreResources] = useState(false)
   const [activeTab, setActiveTab] = useState('resources')
   const [categoryForm, setCategoryForm] = useState(emptyCategory)
   const [editingCategoryId, setEditingCategoryId] = useState('')
@@ -115,9 +120,10 @@ export default function AdminResourcesPage() {
     setError('')
     setLoading(true)
     try {
+      const params = buildResourceListParams(resourceFilter, 0)
       const [categoryResponse, resourceResponse] = await Promise.all([
         fetch('/api/admin/resources/categories'),
-        fetch('/api/admin/resources'),
+        fetch(`/api/admin/resources?${params.toString()}`),
       ])
 
       if (categoryResponse.status === 401 || resourceResponse.status === 401) {
@@ -134,8 +140,12 @@ export default function AdminResourcesPage() {
         resourceResponse.json(),
       ])
 
+      const resourceItems = Array.isArray(resourceData) ? resourceData : resourceData.resources || []
       setCategories(Array.isArray(categoryData) ? categoryData : [])
-      setResources(Array.isArray(resourceData) ? resourceData : [])
+      setResources(resourceItems)
+      setResourceOffset(resourceItems.length)
+      setResourceTotal(Array.isArray(resourceData) ? resourceItems.length : resourceData.totalCount || resourceItems.length)
+      setHasMoreResources(!Array.isArray(resourceData) && Boolean(resourceData.hasMore))
       setResourceForm((current) => ({
         ...current,
         categoryId: current.categoryId || categoryData?.[0]?._id || '',
@@ -144,25 +154,38 @@ export default function AdminResourcesPage() {
       setError('Could not load resources. Check the server logs and try again.')
     }
     setLoading(false)
-  }, [router])
+  }, [resourceFilter, router])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
-  const filteredResources = useMemo(() => {
-    const q = resourceFilter.q.trim().toLowerCase()
-    return resources.filter((resource) => {
-      if (resourceFilter.categoryId && getCategoryId(resource) !== resourceFilter.categoryId) return false
-      if (resourceFilter.type && resource.type !== resourceFilter.type) return false
-      if (!q) return true
-      return [resource.title, resource.description, ...(resource.tags || [])]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    })
-  }, [resources, resourceFilter])
+  const filteredResources = resources
+
+  const loadMoreResources = async () => {
+    setLoadingMoreResources(true)
+    setError('')
+    try {
+      const params = buildResourceListParams(resourceFilter, resourceOffset)
+      const response = await fetch(`/api/admin/resources?${params.toString()}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
+      if (!response.ok) throw new Error('Resource CMS load failed')
+
+      const data = await response.json()
+      const items = data.resources || []
+      setResources((current) => [...current, ...items])
+      setResourceOffset((current) => current + items.length)
+      setResourceTotal(data.totalCount || resourceTotal)
+      setHasMoreResources(Boolean(data.hasMore))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoadingMoreResources(false)
+    }
+  }
 
   const resetCategoryForm = () => {
     setCategoryForm(emptyCategory)
@@ -496,6 +519,10 @@ export default function AdminResourcesPage() {
         setError('Clear type and search filters before reordering resources.')
         return
       }
+      if (hasMoreResources || filteredResources.length !== resourceTotal) {
+        setError('Load all resources in this category before reordering.')
+        return
+      }
     }
 
     const list = kind === 'categories' ? [...categories] : [...filteredResources]
@@ -624,7 +651,7 @@ export default function AdminResourcesPage() {
               </div>
             </Panel>
 
-            <Panel title={`Resources (${filteredResources.length})`}>
+            <Panel title={`Resources (${filteredResources.length}${resourceTotal ? ` of ${resourceTotal}` : ''})`}>
               <div className="grid sm:grid-cols-3 gap-3 mb-4 min-w-0">
                 <select className="input-field" value={resourceFilter.categoryId} onChange={(event) => setResourceFilter({ ...resourceFilter, categoryId: event.target.value })}>
                   <option value="">All categories</option>
@@ -650,6 +677,15 @@ export default function AdminResourcesPage() {
                   />
                 ))}
                 {filteredResources.length === 0 ? <p className="text-theme-secondary text-sm py-8 text-center">No resources match this filter.</p> : null}
+                {hasMoreResources ? (
+                  <button
+                    onClick={loadMoreResources}
+                    disabled={loadingMoreResources}
+                    className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                  >
+                    {loadingMoreResources ? 'Loading...' : 'Load More Resources'}
+                  </button>
+                ) : null}
               </div>
             </Panel>
           </section>
@@ -1049,6 +1085,18 @@ function splitTags(value) {
 
 function getCategoryId(resource) {
   return typeof resource.categoryId === 'object' ? resource.categoryId?._id : resource.categoryId
+}
+
+function buildResourceListParams(filter, offset) {
+  const params = new URLSearchParams({
+    limit: String(ADMIN_RESOURCE_PAGE_SIZE),
+    offset: String(offset),
+  })
+  if (filter.categoryId) params.set('categoryId', filter.categoryId)
+  if (filter.type) params.set('type', filter.type)
+  const q = filter.q.trim()
+  if (q) params.set('q', q)
+  return params
 }
 
 function formatMinutes(seconds) {
