@@ -68,8 +68,9 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
     try {
       const offset = selectedData.submissions.length
       const response = await fetch(`/api/exams/${selectedExamId}/leaderboard?limit=50&offset=${offset}`)
+      if (!response.ok) return
       const page = await response.json()
-      if (!response.ok || !page?.exam) return
+      if (!page?.exam) return
 
       setData((current) => current.map((item) => (
         item.exam?._id === selectedExamId

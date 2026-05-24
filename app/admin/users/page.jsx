@@ -103,6 +103,10 @@ export default function AdminUsers() {
     try {
       const offset = userDetails.exams?.length || 0
       const response = await fetch(`/api/admin/users/${selectedUser.id}?examLimit=50&examOffset=${offset}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
       if (!response.ok) throw new Error('Failed to fetch more exam history')
       const data = await response.json()
       setUserDetails((current) => ({

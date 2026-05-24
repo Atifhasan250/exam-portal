@@ -60,6 +60,8 @@ export async function GET(request, { params }) {
       limit,
       offset,
       nextOffset: offset + submissions.length,
+      rawFetchedCount: submissions.length,
+      returnedCount: uniqueSubmissions.length,
       hasMore: offset + submissions.length < totalCount,
     })
   } catch (error) {

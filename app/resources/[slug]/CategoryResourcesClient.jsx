@@ -301,7 +301,7 @@ function useDebouncedValue(value, delayMs) {
 function buildVisibleResourceSerialMap(visibleResources, orderedResources) {
   const map = new Map()
   let serialNumber = 1
-  orderedResources
+  ;[...orderedResources]
     .sort((a, b) => (a.order || 0) - (b.order || 0) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0))
     .forEach((resource) => {
       map.set(resource._id, serialNumber)

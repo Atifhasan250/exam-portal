@@ -43,9 +43,13 @@ export async function POST(request) {
 
     try {
       await logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
+    } catch (error) {
+      logger.error('[POST /api/exams] logAdminAction failed', { error, examId: exam._id, action: 'CREATE_EXAM' })
+    }
+    try {
       await invalidateExamCaches(exam._id.toString())
     } catch (error) {
-      logger.error('[POST /api/exams] post-create side effects failed', { error, examId: exam._id, action: 'CREATE_EXAM' })
+      logger.error('[POST /api/exams] invalidateExamCaches failed', { error, examId: exam._id, action: 'CREATE_EXAM' })
     }
 
     return NextResponse.json(exam, { status: 201 })

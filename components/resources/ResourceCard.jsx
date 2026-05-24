@@ -7,7 +7,7 @@ export default function ResourceCard({ resource, progress, serialNumber, metaMod
   const percent = progress?.completed
     ? 100
     : resource.durationSeconds
-      ? Math.min(100, Math.round((progressSeconds / resource.durationSeconds) * 100))
+      ? Math.max(0, Math.min(100, Math.round((progressSeconds / resource.durationSeconds) * 100)))
       : 0
   const content = <CardContent resource={resource} percent={percent} serialNumber={serialNumber} metaMode={metaMode} />
   const href = resource.type === 'youtube'

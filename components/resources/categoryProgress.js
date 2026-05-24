@@ -23,10 +23,10 @@ export function calculateCategoryResourceProgress(category, progressItems = []) 
     if (!resourceId) return
     const resourceKey = String(resourceId)
     if (seenResourceIds.has(resourceKey)) return
-    seenResourceIds.add(resourceKey)
 
     const unitProgress = getResourceProgressUnit(resource, item)
     if (unitProgress <= 0) return
+    seenResourceIds.add(resourceKey)
 
     progressUnits += unitProgress
     startedItems += 1

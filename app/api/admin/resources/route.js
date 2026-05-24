@@ -126,13 +126,21 @@ export async function POST(request) {
       await session.endSession()
     }
 
-    await logAdminAction(request, adminCheck.admin, 'CREATE_RESOURCE', resource._id, {
-      title: resource.title,
-      type: resource.type,
-      categoryId: resource.categoryId?.toString(),
-      published: resource.published,
-    })
-    await invalidateResourceCaches()
+    try {
+      await logAdminAction(request, adminCheck.admin, 'CREATE_RESOURCE', resource._id, {
+        title: resource.title,
+        type: resource.type,
+        categoryId: resource.categoryId?.toString(),
+        published: resource.published,
+      })
+    } catch (error) {
+      logger.error('[POST /api/admin/resources] logAdminAction failed', { error, resourceId: resource._id })
+    }
+    try {
+      await invalidateResourceCaches()
+    } catch (error) {
+      logger.error('[POST /api/admin/resources] invalidateResourceCaches failed', { error, resourceId: resource._id })
+    }
 
     return NextResponse.json(serialize(resource), { status: 201 })
   } catch (error) {

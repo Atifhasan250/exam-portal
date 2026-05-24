@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { publicResourceSlug } from '@/lib/resourceUtils'
 import { getCachedCategorySiblingResources, getCachedResourcePageBySlug } from '@/lib/publicCache'
+import { safeJsonLd } from '@/lib/jsonLd'
 import PdfPreviewFrame from '@/components/resources/PdfPreviewFrame'
 import ResourceOpenButton from '@/components/resources/ResourceOpenButton'
 
@@ -50,7 +51,7 @@ export default async function ResourceViewPage({ params }) {
         <script
           key={schema['@type']}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-6">

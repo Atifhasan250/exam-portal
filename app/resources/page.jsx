@@ -2,6 +2,7 @@ import ResourcesPageClient from './ResourcesPageClient'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { publicResourceSlug } from '@/lib/resourceUtils'
 import { getCachedInitialResourcePageData } from '@/lib/publicCache'
+import { safeJsonLd } from '@/lib/jsonLd'
 
 export const revalidate = 60
 
@@ -26,7 +27,7 @@ export default async function ResourcesPage() {
         <script
           key={schema['@type']}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
       <ResourcesPageClient

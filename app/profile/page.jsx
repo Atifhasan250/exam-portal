@@ -46,8 +46,8 @@ export default function ProfilePage() {
       .then((data) => {
         const list = Array.isArray(data) ? data : data.submissions || []
         setSubmissions(list)
-        setSubmissionTotal(Array.isArray(data) ? list.length : data.totalCount || list.length)
-        setSubmissionOffset(Array.isArray(data) ? list.length : data.nextOffset || list.length)
+        setSubmissionTotal(Array.isArray(data) ? list.length : data.totalCount ?? list.length)
+        setSubmissionOffset(Array.isArray(data) ? list.length : data.nextOffset ?? list.length)
         setHasMoreSubmissions(!Array.isArray(data) && Boolean(data.hasMore))
         setLoading(false)
       })
@@ -177,11 +177,11 @@ export default function ProfilePage() {
       if (!response.ok) throw new Error(data.error || 'Failed to load more submissions')
       const list = data.submissions || []
       setSubmissions((current) => mergeUniqueExamSubmissions(current, list))
-      setSubmissionTotal(data.totalCount || submissionTotal)
-      setSubmissionOffset(data.nextOffset || submissionOffset + list.length)
+      setSubmissionTotal(data.totalCount ?? submissionTotal)
+      setSubmissionOffset(data.nextOffset ?? submissionOffset + (data.rawFetchedCount ?? list.length))
       setHasMoreSubmissions(Boolean(data.hasMore))
-    } catch {
-      setHasMoreSubmissions(false)
+    } catch (error) {
+      console.error('Failed to load more submissions', error)
     } finally {
       setLoadingMoreSubmissions(false)
     }

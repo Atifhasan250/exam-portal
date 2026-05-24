@@ -37,8 +37,9 @@ export default function AdminExams() {
       setHasMoreExams(!Array.isArray(data) && Boolean(data.hasMore))
     } catch {
       setExams([])
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => { fetchExams() }, [])
