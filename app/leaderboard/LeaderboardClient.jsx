@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 
 export default function LeaderboardClient({ initialData, selectedExamId = null }) {
   const [data, setData] = useState(() => normalizeLeaderboardData(initialData, selectedExamId))
@@ -66,7 +67,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
 
     setLoadingMore(true)
     try {
-      const offset = selectedData.submissions.length
+      const offset = selectedData.nextOffset ?? selectedData.submissions.length
       const response = await fetch(`/api/exams/${selectedExamId}/leaderboard?limit=50&offset=${offset}`)
       if (!response.ok) return
       const page = await response.json()
@@ -79,6 +80,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
               submissions: [...(item.submissions || []), ...(page.submissions || [])],
               submissionCount: page.submissionCount || page.totalCount || item.submissionCount || 0,
               totalCount: page.totalCount || item.totalCount || 0,
+              nextOffset: page.nextOffset ?? offset + (page.submissions || []).length,
               hasMore: Boolean(page.hasMore),
             }
           : item
@@ -87,6 +89,34 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
       setLoadingMore(false)
     }
   }
+
+  if (loading) return (
+    <PageLoadingOverlay>
+      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20">
+        <main className="max-w-5xl mx-auto px-4 py-10 space-y-12">
+          {!selectedExamId ? (
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="skeleton h-10 w-10 rounded-full" />
+              <div className="skeleton h-9 w-52 rounded-xl" />
+            </div>
+          ) : null}
+
+          <div className="space-y-5">
+            <div className="skeleton h-10 w-64 rounded-xl" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-6 space-y-3">
+                  <div className="skeleton h-6 w-3/4 rounded-lg" />
+                  <div className="skeleton h-4 w-1/2 rounded-lg" />
+                  <div className="skeleton h-4 w-2/3 rounded-lg" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    </PageLoadingOverlay>
+  )
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
@@ -101,20 +131,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
           </div>
         ) : null}
 
-        {loading ? (
-          <div className="space-y-5">
-            <div className="skeleton h-10 w-64 rounded-xl" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[0, 1, 2].map((item) => (
-                <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-6 space-y-3">
-                  <div className="skeleton h-6 w-3/4 rounded-lg" />
-                  <div className="skeleton h-4 w-1/2 rounded-lg" />
-                  <div className="skeleton h-4 w-2/3 rounded-lg" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : data.length === 0 ? (
+        {data.length === 0 ? (
           <div className="text-center py-20 text-theme-secondary">
             <i className="fas fa-trophy text-5xl mb-4 opacity-30" />
             <p className="font-medium">No live exam results yet.</p>

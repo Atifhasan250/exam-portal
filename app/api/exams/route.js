@@ -5,13 +5,31 @@ import { validate, createExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
-import { getCachedPublishedExams, invalidateExamCaches } from '@/lib/publicCache'
+import { getCachedPublishedExamPage, getCachedPublishedExams, invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 
 export const revalidate = 30
 
-export async function GET() {
+export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')?.trim()
+    if (status) {
+      if (!['live', 'upcoming', 'past'].includes(status)) {
+        return NextResponse.json({ error: 'Invalid exam status' }, { status: 400 })
+      }
+
+      const page = await getCachedPublishedExamPage({
+        status,
+        limit: searchParams.get('limit'),
+        offset: searchParams.get('offset'),
+      })
+
+      return NextResponse.json(page, {
+        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
+      })
+    }
+
     const exams = await getCachedPublishedExams()
 
     return NextResponse.json(exams, {

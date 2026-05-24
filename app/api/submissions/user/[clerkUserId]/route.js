@@ -17,52 +17,65 @@ export async function GET(request, { params }) {
     const offset = Math.max(Number.isFinite(rawOffset) ? Math.trunc(rawOffset) : 0, 0)
 
     await connectDB()
-    const [submissions, totalCount] = await Promise.all([
-      Submission.find({ clerkUserId })
-        .populate('examId', 'title')
-        .sort({ score: -1, submittedAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .lean(),
-      Submission.countDocuments({ clerkUserId }),
+    const [result] = await Submission.aggregate([
+      { $match: { clerkUserId } },
+      { $sort: { score: -1, submittedAt: -1, _id: 1 } },
+      {
+        $group: {
+          _id: '$examId',
+          submission: { $first: '$$ROOT' },
+        },
+      },
+      { $replaceRoot: { newRoot: '$submission' } },
+      { $sort: { score: -1, submittedAt: -1, _id: 1 } },
+      {
+        $lookup: {
+          from: 'exams',
+          localField: 'examId',
+          foreignField: '_id',
+          as: 'exam',
+        },
+      },
+      { $unwind: '$exam' },
+      {
+        $facet: {
+          submissions: [
+            { $skip: offset },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1,
+                examId: {
+                  _id: '$exam._id',
+                  title: '$exam.title',
+                },
+                score: 1,
+                total: 1,
+                wrong: 1,
+                unanswered: 1,
+                wasLive: 1,
+                attemptCount: { $ifNull: ['$attemptCount', 1] },
+                submittedAt: 1,
+                lastAttemptAt: { $ifNull: ['$lastAttemptAt', '$submittedAt'] },
+              },
+            },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ])
-
-    const uniqueSubmissions = []
-    const seenExams = new Set()
-
-    for (const submission of submissions) {
-      const examId = submission.examId?._id?.toString()
-      if (examId && !seenExams.has(examId)) {
-        seenExams.add(examId)
-        uniqueSubmissions.push({
-          _id: submission._id,
-          examId: submission.examId
-            ? {
-                _id: submission.examId._id,
-                title: submission.examId.title,
-              }
-            : null,
-          score: submission.score,
-          total: submission.total,
-          wrong: submission.wrong,
-          unanswered: submission.unanswered,
-          wasLive: submission.wasLive,
-          attemptCount: submission.attemptCount || 1,
-          submittedAt: submission.submittedAt,
-          lastAttemptAt: submission.lastAttemptAt || submission.submittedAt,
-        })
-      }
-    }
+    const uniqueSubmissions = result?.submissions || []
+    const totalCount = result?.total?.[0]?.count || 0
 
     return NextResponse.json({
       submissions: uniqueSubmissions,
       totalCount,
       limit,
       offset,
-      nextOffset: offset + submissions.length,
-      rawFetchedCount: submissions.length,
+      nextOffset: offset + uniqueSubmissions.length,
+      rawFetchedCount: uniqueSubmissions.length,
       returnedCount: uniqueSubmissions.length,
-      hasMore: offset + submissions.length < totalCount,
+      hasMore: offset + uniqueSubmissions.length < totalCount,
     })
   } catch (error) {
     logger.error('[GET /api/submissions/user/[clerkUserId]]', { error })

@@ -1,8 +1,9 @@
 import ExamsPageClient from './ExamsPageClient'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { getCachedPublishedExams } from '@/lib/publicCache'
+import { getCachedPublishedExamPage } from '@/lib/publicCache'
 
 export const revalidate = 30
+const EXAM_PAGE_SIZE = 12
 
 export const metadata = buildPageMetadata({
   title: 'Exams',
@@ -13,8 +14,8 @@ export const metadata = buildPageMetadata({
 })
 
 export default async function ExamsPage() {
-  const initialExams = await getInitialExams()
-  const schemas = buildExamsSchemas(initialExams)
+  const initialExamPages = await getInitialExamPages()
+  const schemas = buildExamsSchemas(flattenExamPages(initialExamPages))
 
   return (
     <>
@@ -25,18 +26,42 @@ export default async function ExamsPage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <ExamsPageClient initialExams={initialExams} />
+      <ExamsPageClient initialExamPages={initialExamPages} />
     </>
   )
 }
 
-async function getInitialExams() {
+async function getInitialExamPages() {
   try {
-    return await getCachedPublishedExams()
+    const [live, upcoming, past] = await Promise.all([
+      getCachedPublishedExamPage({ status: 'live', limit: EXAM_PAGE_SIZE, offset: 0 }),
+      getCachedPublishedExamPage({ status: 'upcoming', limit: EXAM_PAGE_SIZE, offset: 0 }),
+      getCachedPublishedExamPage({ status: 'past', limit: EXAM_PAGE_SIZE, offset: 0 }),
+    ])
+
+    return { live, upcoming, past }
   } catch (err) {
     console.error('Failed to load initial exams', err)
-    return []
+    return {
+      live: emptyExamPage('live'),
+      upcoming: emptyExamPage('upcoming'),
+      past: emptyExamPage('past'),
+    }
   }
+}
+
+function emptyExamPage(status) {
+  return { status, exams: [], totalCount: 0, limit: EXAM_PAGE_SIZE, offset: 0, nextOffset: 0, hasMore: false }
+}
+
+function flattenExamPages(pages) {
+  const seen = new Set()
+  return ['live', 'upcoming', 'past'].flatMap((status) => pages?.[status]?.exams || [])
+    .filter((exam) => {
+      if (!exam?._id || seen.has(exam._id)) return false
+      seen.add(exam._id)
+      return true
+    })
 }
 
 function buildExamsSchemas(exams) {
