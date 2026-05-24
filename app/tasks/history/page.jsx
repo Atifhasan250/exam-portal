@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import { getPlannerData } from '../actions'
 import {
   getLocalDateString,
@@ -198,32 +199,34 @@ export default function HistoryPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
-        <main className="flex-grow py-8 sm:py-12 px-4 md:px-8 max-w-5xl w-full mx-auto relative mb-20 space-y-8">
-          <div className="flex items-center space-x-4">
-            <div className="skeleton w-10 h-10 rounded-full shrink-0" />
-            <div className="skeleton h-10 w-64 rounded-xl" />
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="skeleton h-24 w-full rounded-3xl" />
-            ))}
-          </div>
-
-          <div className="skeleton h-16 w-full rounded-2xl" />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-7 space-y-8">
-              <div className="skeleton h-80 w-full rounded-3xl" />
-              <div className="skeleton h-80 w-full rounded-3xl" />
+      <PageLoadingOverlay>
+        <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
+          <main className="flex-grow py-8 sm:py-12 px-4 md:px-8 max-w-5xl w-full mx-auto relative mb-20 space-y-8">
+            <div className="flex items-center space-x-4">
+              <div className="skeleton w-10 h-10 rounded-full shrink-0" />
+              <div className="skeleton h-10 w-64 rounded-xl" />
             </div>
-            <div className="lg:col-span-5 space-y-8">
-              <div className="skeleton h-96 w-full rounded-3xl" />
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="skeleton h-24 w-full rounded-3xl" />
+              ))}
             </div>
-          </div>
-        </main>
-      </div>
+
+            <div className="skeleton h-16 w-full rounded-2xl" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-7 space-y-8">
+                <div className="skeleton h-80 w-full rounded-3xl" />
+                <div className="skeleton h-80 w-full rounded-3xl" />
+              </div>
+              <div className="lg:col-span-5 space-y-8">
+                <div className="skeleton h-96 w-full rounded-3xl" />
+              </div>
+            </div>
+          </main>
+        </div>
+      </PageLoadingOverlay>
     )
   }
 

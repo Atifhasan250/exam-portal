@@ -265,7 +265,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
     setLastSelected((previous) => ({ ...previous, [questionIndex]: optionIndex }))
   }
 
-  if (loading || (!isLoaded && !exam)) return <PageSkeleton />
+  if (loading || !isLoaded) return <PageSkeleton />
   if (error && !result) return <ErrorScreen message={error} onBack={() => router.push('/')} />
 
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0')

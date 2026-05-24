@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ProgressBar from '@/components/tasks/ProgressBar'
 import HabitCard from '@/components/tasks/HabitCard'
 import WeekCard from '@/components/tasks/WeekCard'
@@ -154,17 +155,19 @@ export default function TasksPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
-        <main className="flex-grow py-8 sm:py-12 px-4 max-w-4xl w-full mx-auto relative space-y-8">
-          <div className="skeleton h-12 w-full rounded-2xl" />
-          <div className="skeleton h-40 w-full rounded-3xl" />
-          <div className="space-y-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton h-32 w-full rounded-3xl" />
-            ))}
-          </div>
-        </main>
-      </div>
+      <PageLoadingOverlay>
+        <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
+          <main className="flex-grow py-8 sm:py-12 px-4 max-w-4xl w-full mx-auto relative space-y-8">
+            <div className="skeleton h-12 w-full rounded-2xl" />
+            <div className="skeleton h-40 w-full rounded-3xl" />
+            <div className="space-y-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="skeleton h-32 w-full rounded-3xl" />
+              ))}
+            </div>
+          </main>
+        </div>
+      </PageLoadingOverlay>
     )
   }
 

@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import QuestionReviewCard from '@/components/QuestionReviewCard'
 
 export default function SubmissionDetails({ params }) {
@@ -26,15 +27,17 @@ export default function SubmissionDetails({ params }) {
 
   if (loading) {
     return (
-      <div className="bg-theme-bg min-h-screen text-theme-primary pb-20">
-        <div className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
-          <div className="skeleton h-10 w-64 rounded-xl" />
-          <div className="skeleton h-32 w-full rounded-2xl" />
-          <div className="space-y-4">
-            {[0, 1, 2].map((item) => <div key={item} className="skeleton h-48 w-full rounded-2xl" />)}
+      <PageLoadingOverlay>
+        <div className="bg-theme-bg min-h-screen text-theme-primary pb-20">
+          <div className="max-w-4xl mx-auto px-4 mt-8 space-y-8">
+            <div className="skeleton h-10 w-64 rounded-xl" />
+            <div className="skeleton h-32 w-full rounded-2xl" />
+            <div className="space-y-4">
+              {[0, 1, 2].map((item) => <div key={item} className="skeleton h-48 w-full rounded-2xl" />)}
+            </div>
           </div>
         </div>
-      </div>
+      </PageLoadingOverlay>
     )
   }
 

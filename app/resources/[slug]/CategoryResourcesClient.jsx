@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ResourceCard from '@/components/resources/ResourceCard'
 import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
 
@@ -37,10 +38,11 @@ export default function CategoryResourcesClient({
   const [activeLevel, setActiveLevel] = useState('')
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebouncedValue(query, 300)
-  const [loading, setLoading] = useState(!initialDataReady && initialCategories.length === 0)
+  const [loading, setLoading] = useState(true)
   const [loadingResources, setLoadingResources] = useState(!initialDataReady)
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
   const [hasMoreResources, setHasMoreResources] = useState(initialHasMoreResources)
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
 
   const refreshProgress = useCallback(async () => {
     try {
@@ -122,6 +124,10 @@ export default function CategoryResourcesClient({
     }
   }, [refreshProgress])
 
+  useEffect(() => {
+    if (!loading && !loadingResources) setInitialLoadComplete(true)
+  }, [loading, loadingResources])
+
   const category = categories.find((item) => item.slug === slug)
   const categoryDescription = category?.description?.trim()
   const progressByResourceId = useMemo(() => new Map(progress.map((item) => [getProgressResourceId(item), item])), [progress])
@@ -129,6 +135,7 @@ export default function CategoryResourcesClient({
   const isSearching = debouncedQuery.trim().length > 0
 
   const filteredResources = resources
+  const initialBlockingLoading = !initialLoadComplete && (loading || loadingResources)
 
   const continueItems = progress
     .filter((item) => {
@@ -138,6 +145,36 @@ export default function CategoryResourcesClient({
     .sort((a, b) => new Date(b.lastAccessedAt || b.updatedAt || 0) - new Date(a.lastAccessedAt || a.updatedAt || 0))
     .slice(0, 3)
     .map((item) => ({ ...item.resourceId, progressItem: item }))
+
+  if (initialBlockingLoading) return (
+    <PageLoadingOverlay>
+      <div className="bg-theme-bg min-h-screen text-theme-primary">
+        <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-8">
+          <div className="flex items-center space-x-3">
+            <div className="skeleton h-10 w-10 rounded-full shrink-0" />
+            <div className="skeleton h-8 w-36 rounded-xl" />
+          </div>
+
+          <section className="bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                <div className="skeleton h-12 w-12 rounded-xl shrink-0" />
+                <div className="min-w-0 space-y-2">
+                  <div className="skeleton h-9 w-56 rounded-xl" />
+                  <div className="skeleton h-4 w-72 max-w-full rounded-lg" />
+                </div>
+              </div>
+              <div className="skeleton h-12 w-full sm:w-[320px] lg:w-[360px] rounded-xl shrink-0" />
+            </div>
+          </section>
+
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-56 rounded-2xl" />)}
+          </section>
+        </main>
+      </div>
+    </PageLoadingOverlay>
+  )
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary page-enter">

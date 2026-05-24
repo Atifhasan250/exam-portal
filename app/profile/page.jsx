@@ -103,6 +103,7 @@ export default function ProfilePage() {
       </div>
     )
   }
+  if (loading || tasksLoading) return <PageSkeleton />
 
   const saveNewName = async () => {
     const trimmed = nameInput.trim()

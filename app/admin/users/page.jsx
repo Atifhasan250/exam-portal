@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
@@ -133,6 +134,34 @@ export default function AdminUsers() {
   }, [selectedUser])
 
   const fmtDate = (date) => date ? new Date(date).toLocaleString([], { dateStyle: 'medium' }) : '—'
+
+  if (loading) return (
+    <PageLoadingOverlay>
+      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
+        <main className="max-w-6xl mx-auto px-4 py-8 space-y-8 mt-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="skeleton h-8 w-36 rounded-xl" />
+              <div className="skeleton h-4 w-28 rounded-lg" />
+            </div>
+            <div className="skeleton h-12 w-32 rounded-xl" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {[0, 1, 2, 3, 4, 5].map((item) => (
+              <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-5 flex items-center gap-4">
+                <div className="skeleton w-12 h-12 rounded-full shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="skeleton h-5 w-3/4 rounded-lg" />
+                  <div className="skeleton h-3 w-1/2 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+    </PageLoadingOverlay>
+  )
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">

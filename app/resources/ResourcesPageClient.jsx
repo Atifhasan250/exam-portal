@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ResourceCard from '@/components/resources/ResourceCard'
 import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
 
@@ -19,10 +20,11 @@ export default function ResourcesPageClient({
   const [progress, setProgress] = useState([])
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebouncedValue(query, 300)
-  const [loading, setLoading] = useState(!initialDataReady && initialCategories.length === 0)
+  const [loading, setLoading] = useState(true)
   const [loadingResources, setLoadingResources] = useState(!initialDataReady)
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
   const [hasMoreResources, setHasMoreResources] = useState(initialHasMoreResources)
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
 
   const refreshProgress = useCallback(async () => {
     try {
@@ -101,6 +103,10 @@ export default function ResourcesPageClient({
     }
   }, [refreshProgress])
 
+  useEffect(() => {
+    if (!loading && !loadingResources) setInitialLoadComplete(true)
+  }, [loading, loadingResources])
+
   const progressByResourceId = useMemo(() => (
     new Map(progress.map((item) => [getProgressResourceId(item), item]))
   ), [progress])
@@ -114,6 +120,24 @@ export default function ResourcesPageClient({
     .map((item) => ({ ...item.resourceId, progressItem: item }))
 
   const featuredResources = resources.filter((resource) => resource.featured).slice(0, 6)
+  const initialBlockingLoading = !initialLoadComplete && (loading || loadingResources)
+
+  if (initialBlockingLoading) return (
+    <PageLoadingOverlay>
+      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
+        <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-8">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3 sm:gap-4">
+              <div className="skeleton h-10 w-44 rounded-xl" />
+              <div className="skeleton h-12 w-[46vw] min-w-[150px] max-w-[210px] sm:w-[320px] sm:max-w-none lg:w-[420px] rounded-xl" />
+            </div>
+          </section>
+
+          <LoadingGrid />
+        </main>
+      </div>
+    </PageLoadingOverlay>
+  )
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
