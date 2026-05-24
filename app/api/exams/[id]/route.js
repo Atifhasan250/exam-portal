@@ -70,7 +70,11 @@ export async function PUT(request, { params }) {
     } catch (error) {
       logger.error('[PUT /api/exams/[id]] audit log failed', { error, examId: exam._id, action: 'UPDATE_EXAM' })
     }
-    await invalidateExamCaches(exam._id.toString())
+    try {
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]] cache invalidation failed', { error, examId: exam._id })
+    }
 
     return NextResponse.json(exam)
   } catch (error) {
@@ -110,7 +114,11 @@ export async function DELETE(request, { params }) {
     } catch (error) {
       logger.error('[DELETE /api/exams/[id]] audit log failed', { error, examId: id, action: 'DELETE_EXAM' })
     }
-    await invalidateExamCaches(id)
+    try {
+      await invalidateExamCaches(id)
+    } catch (error) {
+      logger.error('[DELETE /api/exams/[id]] cache invalidation failed', { error, examId: id })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

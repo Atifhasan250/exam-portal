@@ -87,7 +87,16 @@ export async function POST(request) {
         action: 'IMPORT_RESOURCE_PLAYLIST',
       })
     }
-    if (inserted.length) await invalidateResourceCaches()
+    if (inserted.length) {
+      try {
+        await invalidateResourceCaches()
+      } catch (error) {
+        logger.error('[POST /api/admin/resources/youtube/playlist/import] cache invalidation failed', {
+          error,
+          categoryId: parsed.data.categoryId,
+        })
+      }
+    }
 
     return NextResponse.json(serialize({
       importedCount: inserted.length,

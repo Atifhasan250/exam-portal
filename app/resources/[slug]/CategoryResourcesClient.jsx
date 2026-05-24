@@ -126,7 +126,7 @@ export default function CategoryResourcesClient({
   const categoryDescription = category?.description?.trim()
   const progressByResourceId = useMemo(() => new Map(progress.map((item) => [getProgressResourceId(item), item])), [progress])
   const categoryProgress = useMemo(() => calculateCategoryResourceProgress(category, progress), [category, progress])
-  const isSearching = query.trim().length > 0
+  const isSearching = debouncedQuery.trim().length > 0
 
   const filteredResources = resources
 
