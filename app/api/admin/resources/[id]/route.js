@@ -15,6 +15,28 @@ import { normalizeResourcePayload } from '@/lib/resourcePayload'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import { invalidateResourceCaches } from '@/lib/publicCache'
 
+export async function GET(_request, { params }) {
+  const adminCheck = await requireAdmin()
+  if (!adminCheck.ok) return adminCheck.response
+
+  try {
+    const { id } = await params
+    if (!isValidObjectId(id)) return invalidIdResponse('resource id')
+
+    await connectDB()
+    const resource = await Resource.findById(id)
+      .populate('categoryId', 'name slug icon color')
+      .lean()
+
+    if (!resource) return NextResponse.json({ error: 'Resource not found' }, { status: 404 })
+
+    return NextResponse.json(serialize(resource))
+  } catch (error) {
+    logger.error('[GET /api/admin/resources/[id]]', { error })
+    return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
+  }
+}
+
 export async function PUT(request, { params }) {
   const originCheck = enforceSameOrigin(request)
   if (originCheck) return originCheck

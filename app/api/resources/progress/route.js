@@ -18,6 +18,7 @@ export async function GET() {
       .populate({
         path: 'resourceId',
         match: { published: true },
+        select: '_id categoryId type title slug thumbnailUrl imagekitUrl fileName mimeType size youtubeId channelTitle durationSeconds level language tags topicTags order featured createdAt updatedAt',
         populate: { path: 'categoryId', select: 'name slug icon color' },
       })
       .sort({ lastAccessedAt: -1 })
@@ -48,16 +49,25 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Resource not found' }, { status: 404 })
     }
 
+    const update = {
+      $max: {
+        progressSeconds: parsed.data.progressSeconds,
+      },
+      $set: {
+        lastAccessedAt: new Date(),
+      },
+      $setOnInsert: {
+        clerkUserId: userId,
+        resourceId: parsed.data.resourceId,
+      },
+    }
+    if (parsed.data.completed) update.$set.completed = true
+    else update.$setOnInsert.completed = false
+
     const progress = await ResourceProgress.findOneAndUpdate(
       { clerkUserId: userId, resourceId: parsed.data.resourceId },
-      {
-        $set: {
-          progressSeconds: parsed.data.progressSeconds,
-          completed: parsed.data.completed,
-          lastAccessedAt: new Date(),
-        },
-      },
-      { new: true, upsert: true, lean: true },
+      update,
+      { new: true, upsert: true, lean: true, setDefaultsOnInsert: true },
     )
 
     return NextResponse.json(serialize(progress))

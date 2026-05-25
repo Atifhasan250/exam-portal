@@ -31,6 +31,8 @@ export default function CategoryResourcesClient({
   initialDataReady = false,
 }) {
   const skippedInitialResourcesFetch = useRef(false)
+  const progressRefreshAtRef = useRef(0)
+  const progressRefreshPromiseRef = useRef(null)
   const [categories, setCategories] = useState(initialCategories)
   const [resources, setResources] = useState(initialResources)
   const [progress, setProgress] = useState([])
@@ -45,13 +47,26 @@ export default function CategoryResourcesClient({
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
 
   const refreshProgress = useCallback(async () => {
-    try {
-      const data = await fetch('/api/resources/progress', { cache: 'no-store' })
-        .then((response) => response.json())
-      if (Array.isArray(data)) setProgress(data)
-    } catch {
-      // Keep resource browsing usable if progress refresh fails.
-    }
+    const now = Date.now()
+    if (now - progressRefreshAtRef.current < 15000) return progressRefreshPromiseRef.current
+    if (progressRefreshPromiseRef.current) return progressRefreshPromiseRef.current
+
+    progressRefreshPromiseRef.current = fetch('/api/resources/progress', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProgress(data)
+          progressRefreshAtRef.current = Date.now()
+        }
+      })
+      .catch(() => {
+        // Keep resource browsing usable if progress refresh fails.
+      })
+      .finally(() => {
+        progressRefreshPromiseRef.current = null
+      })
+
+    return progressRefreshPromiseRef.current
   }, [])
 
   useEffect(() => {
@@ -66,7 +81,10 @@ export default function CategoryResourcesClient({
     ]).then(([categoryData, progressData]) => {
       if (!active) return
       setCategories(Array.isArray(categoryData) ? categoryData : [])
-      setProgress(Array.isArray(progressData) ? progressData : [])
+      if (Array.isArray(progressData)) {
+        setProgress(progressData)
+        progressRefreshAtRef.current = Date.now()
+      }
       setLoading(false)
     }).catch(() => setLoading(false))
 

@@ -278,33 +278,49 @@ export default function AdminResourcesPage() {
     setSaving(false)
   }
 
-  const editResource = (resource) => {
+  const editResource = async (resource) => {
+    setError('')
+    let fullResource
+    try {
+      const response = await fetch(`/api/admin/resources/${resource._id}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
+      const data = await response.json()
+      if (!response.ok) throw new Error(formatApiError(data, 'Resource load failed'))
+      fullResource = data
+    } catch (err) {
+      setError(err.message)
+      return
+    }
+
     setActiveTab('resources')
-    setEditingResourceId(resource._id)
+    setEditingResourceId(fullResource._id)
     setResourceForm({
-      categoryId: getCategoryId(resource),
-      type: resource.type || 'youtube',
-      title: resource.title || '',
-      description: resource.type === 'youtube' ? '' : resource.description || '',
-      transcriptText: resource.transcriptText || '',
-      url: resource.url || '',
-      thumbnailUrl: resource.thumbnailUrl || '',
-      youtubeId: resource.youtubeId || '',
-      youtubePlaylistId: resource.youtubePlaylistId || '',
-      channelTitle: resource.channelTitle || '',
-      durationSeconds: resource.durationSeconds || 0,
-      assetId: typeof resource.assetId === 'object' ? resource.assetId?._id || '' : resource.assetId || '',
-      imagekitFileId: resource.imagekitFileId || '',
-      imagekitUrl: resource.imagekitUrl || '',
-      fileName: resource.fileName || '',
-      mimeType: resource.mimeType || '',
-      size: resource.size || 0,
-      level: resource.level || 'beginner',
-      language: resource.language || 'bn',
-      tagsInput: (resource.tags || []).join(', '),
-      topicTagsInput: (resource.topicTags || []).join(', '),
-      published: Boolean(resource.published),
-      featured: Boolean(resource.featured),
+      categoryId: getCategoryId(fullResource),
+      type: fullResource.type || 'youtube',
+      title: fullResource.title || '',
+      description: fullResource.type === 'youtube' ? '' : fullResource.description || '',
+      transcriptText: fullResource.transcriptText || '',
+      url: fullResource.url || '',
+      thumbnailUrl: fullResource.thumbnailUrl || '',
+      youtubeId: fullResource.youtubeId || '',
+      youtubePlaylistId: fullResource.youtubePlaylistId || '',
+      channelTitle: fullResource.channelTitle || '',
+      durationSeconds: fullResource.durationSeconds || 0,
+      assetId: typeof fullResource.assetId === 'object' ? fullResource.assetId?._id || '' : fullResource.assetId || '',
+      imagekitFileId: fullResource.imagekitFileId || '',
+      imagekitUrl: fullResource.imagekitUrl || '',
+      fileName: fullResource.fileName || '',
+      mimeType: fullResource.mimeType || '',
+      size: fullResource.size || 0,
+      level: fullResource.level || 'beginner',
+      language: fullResource.language || 'bn',
+      tagsInput: (fullResource.tags || []).join(', '),
+      topicTagsInput: (fullResource.topicTags || []).join(', '),
+      published: Boolean(fullResource.published),
+      featured: Boolean(fullResource.featured),
     })
   }
 
@@ -380,7 +396,7 @@ export default function AdminResourcesPage() {
         return
       }
 
-      const authResponse = await fetch('/api/admin/imagekit/auth')
+      const authResponse = await fetch('/api/admin/imagekit/auth', { method: 'POST' })
       const auth = await authResponse.json()
       if (!authResponse.ok) throw new Error(auth.error || 'ImageKit auth failed')
 
@@ -850,7 +866,8 @@ function ResourceForm({ form, setForm, categories, youtubeUrl, setYoutubeUrl, fe
 }
 
 function ResourceRow({ resource, index, total, onMove, onEdit, onDelete }) {
-  const transcriptLength = resource.transcriptText?.trim().length || 0
+  const transcriptLength = resource.transcriptLength ?? resource.transcriptText?.trim().length ?? 0
+  const hasTranscript = Boolean(resource.hasTranscript || transcriptLength)
 
   return (
     <div className="border border-theme-border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0 overflow-hidden">
@@ -861,7 +878,7 @@ function ResourceRow({ resource, index, total, onMove, onEdit, onDelete }) {
             <span className="px-2 py-1 rounded-lg bg-theme-bg text-xs font-bold text-theme-secondary">{typeLabels[resource.type] || resource.type}</span>
             <StatusPill active={resource.published} activeLabel="Published" inactiveLabel="Draft" />
             {resource.featured ? <span className="px-2 py-1 rounded-lg bg-theme-success-bg text-xs font-bold text-theme-success-text">Featured</span> : null}
-            {transcriptLength ? <span className="px-2 py-1 rounded-lg bg-theme-accent/10 text-xs font-bold text-theme-accent">Transcript</span> : null}
+            {hasTranscript ? <span className="px-2 py-1 rounded-lg bg-theme-accent/10 text-xs font-bold text-theme-accent">Transcript</span> : null}
           </div>
           <h3 className="font-bold text-theme-primary truncate max-w-full">{resource.title}</h3>
           <p className="text-xs text-theme-secondary truncate">

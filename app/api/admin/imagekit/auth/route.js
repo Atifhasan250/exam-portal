@@ -5,7 +5,7 @@ import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { rateLimit } from '@/lib/rateLimit'
 import { getImageKitUploadAuth } from '@/lib/imagekit'
 
-export async function GET(request) {
+async function issueImageKitAuth(request, method) {
   const originCheck = enforceSameOrigin(request)
   if (originCheck) return originCheck
 
@@ -23,7 +23,15 @@ export async function GET(request) {
   try {
     return NextResponse.json(getImageKitUploadAuth())
   } catch (error) {
-    logger.error('[GET /api/admin/imagekit/auth]', { error })
+    logger.error(`[${method} /api/admin/imagekit/auth]`, { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
   }
+}
+
+export async function GET(request) {
+  return issueImageKitAuth(request, 'GET')
+}
+
+export async function POST(request) {
+  return issueImageKitAuth(request, 'POST')
 }
