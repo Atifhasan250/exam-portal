@@ -274,7 +274,7 @@ function LoadMoreButton({ loading, onClick, label }) {
 
 function ExamCard({ exam, badge, badgeColor, fmtDate, onStart, disabled, disabledLabel, index }) {
   return (
-    <div className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/40 transition-all" style={{ animationDelay: `${index * 80}ms` }}>
+    <div className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-theme-accent/40 transition-all" style={{ animationDelay: `${index * 80}ms` }}>
       <div>
         <div className="flex items-start justify-between mb-3">
           <h3 className="font-bold text-theme-primary text-lg leading-snug">{exam.title}</h3>
@@ -286,7 +286,7 @@ function ExamCard({ exam, badge, badgeColor, fmtDate, onStart, disabled, disable
           {exam.liveEnd ? <p><i className="fas fa-stop-circle mr-2" />{fmtDate(exam.liveEnd)}</p> : null}
         </div>
       </div>
-      <button onClick={disabled ? undefined : onStart} disabled={disabled} className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${disabled ? 'bg-theme-bg text-theme-secondary cursor-not-allowed border border-theme-border' : 'bg-theme-accent text-white hover:opacity-90 shadow-md'}`}>
+      <button onClick={disabled ? undefined : onStart} disabled={disabled} className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${disabled ? 'bg-theme-bg text-theme-secondary cursor-not-allowed border border-theme-border' : 'bg-theme-accent text-theme-accent-text hover:opacity-90 shadow-md'}`}>
         {disabled ? disabledLabel || 'Unavailable' : 'Start Exam ->'}
       </button>
     </div>

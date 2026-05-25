@@ -139,7 +139,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
         ) : !selectedExamId ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {data.map(({ exam, submissions, submissionCount }, index) => (
-              <div key={exam._id} onClick={() => router.push(`/leaderboard/${exam._id}`)} className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/40 hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: `${index * 80}ms` }}>
+              <div key={exam._id} onClick={() => router.push(`/leaderboard/${exam._id}`)} className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-theme-accent/40 hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: `${index * 80}ms` }}>
                 <div>
                   <h3 className="font-bold text-theme-primary text-lg leading-snug mb-3">{exam.title}</h3>
                   <div className="space-y-1 text-sm text-theme-secondary">
@@ -148,7 +148,7 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
                   </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-theme-border pt-4 mt-2">
-                  <span className="text-sm font-bold text-theme-accent bg-indigo-500/10 px-3 py-1 rounded-lg">
+                  <span className="text-sm font-bold text-theme-accent bg-theme-accent/10 px-3 py-1 rounded-lg">
                     <i className="fas fa-users mr-2" />{submissionCount ?? submissions.length} Taken
                   </span>
                   <i className="fas fa-arrow-right text-theme-secondary" />

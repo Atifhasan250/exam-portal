@@ -236,7 +236,7 @@ export default function CategoryResourcesClient({
             <button
               key={tab.id}
               onClick={() => setActiveType(tab.id)}
-              className={`px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap border transition-all ${activeType === tab.id ? 'bg-theme-accent text-white border-theme-accent' : 'bg-theme-surface border-theme-border text-theme-secondary hover:text-theme-primary'}`}
+              className={`px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap border transition-all ${activeType === tab.id ? 'bg-theme-accent text-theme-accent-text border-theme-accent' : 'bg-theme-surface border-theme-border text-theme-secondary hover:text-theme-primary'}`}
             >
               <i className={`fas ${tab.icon} mr-2`} />
               {tab.label}
@@ -313,7 +313,7 @@ function LevelFilter({ activeLevel, onChange }) {
           onClick={() => onChange(level.id)}
           className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap border transition-all ${
             activeLevel === level.id
-              ? 'bg-theme-accent text-white border-theme-accent'
+              ? 'bg-theme-accent text-theme-accent-text border-theme-accent'
               : 'bg-theme-surface border-theme-border text-theme-secondary hover:text-theme-primary'
           }`}
         >

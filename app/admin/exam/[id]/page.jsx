@@ -161,7 +161,7 @@ export default function AdminExamView({ params }) {
             <p className="text-theme-secondary text-sm">{exam?.questions?.length || 0} question(s)</p>
             <button
               onClick={() => setExportModal(true)}
-              className="text-xs bg-theme-accent text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1.5 font-semibold shadow-sm shadow-theme-accent/20"
+              className="text-xs bg-theme-accent text-theme-accent-text px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1.5 font-semibold shadow-sm shadow-theme-accent/20"
             >
               <i className="fas fa-file-export" />
               Export

@@ -30,7 +30,7 @@ export default function AdminDashboardHub() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
           <Link href="/admin/exams" className="bg-theme-surface border border-theme-border rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-theme-accent/50 transition-all group flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div className="w-20 h-20 bg-theme-accent/10 dark:bg-indigo-500/10 text-theme-accent rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <i className="fas fa-file-alt text-3xl" />
             </div>
             <h3 className="text-xl font-bold text-theme-primary mb-2">Manage Exams</h3>
@@ -45,8 +45,8 @@ export default function AdminDashboardHub() {
             <p className="text-theme-secondary text-sm">View all registered students on the platform, check their join dates, and manage accounts.</p>
           </Link>
 
-          <Link href="/admin/resources" className="bg-theme-surface border border-theme-border rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-sky-500/50 transition-all group flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-sky-50 dark:bg-sky-500/10 text-sky-500 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Link href="/admin/resources" className="bg-theme-surface border border-theme-border rounded-3xl p-8 shadow-sm hover:shadow-md hover:border-theme-accent/50 dark:hover:border-sky-500/50 transition-all group flex flex-col items-center text-center">
+            <div className="w-20 h-20 bg-theme-accent/10 dark:bg-sky-500/10 text-theme-accent dark:text-sky-500 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <i className="fas fa-book-open text-3xl" />
             </div>
             <h3 className="text-xl font-bold text-theme-primary mb-2">Resources</h3>
@@ -79,7 +79,7 @@ export default function AdminDashboardHub() {
                   setShowLogoutDialog(false)
                   logout()
                 }}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 transition-colors shadow-md"
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-colors shadow-md"
               >
                 Logout
               </button>

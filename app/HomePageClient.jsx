@@ -46,12 +46,12 @@ export default function HomePageClient() {
               className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${isDark ? 'opacity-10' : 'opacity-[0.03]'
                 }`}
               style={{
-                backgroundImage: 'radial-gradient(#B497CF 1px, transparent 1px)',
+                backgroundImage: `radial-gradient(${isDark ? '#B497CF' : '#ea7a53'} 1px, transparent 1px)`,
                 backgroundSize: '24px 24px',
               }}
             />
             <div
-              className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#B497CF] to-transparent transition-opacity duration-500 ${isDark ? 'opacity-90' : 'opacity-40'
+              className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent ${isDark ? 'via-[#B497CF]' : 'via-theme-accent'} to-transparent transition-opacity duration-500 ${isDark ? 'opacity-90' : 'opacity-40'
                 }`}
             />
 
@@ -65,10 +65,10 @@ export default function HomePageClient() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/exams"
-                  className="w-full sm:w-auto px-8 py-4 bg-theme-accent text-white font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/30 active:scale-95 shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
-                >
+                  <Link
+                    href="/exams"
+                    className="w-full sm:w-auto px-8 py-4 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-theme-accent/30 active:scale-95 shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
+                  >
                   <i className="fas fa-rocket" />
                   <span>Browse Exams</span>
                 </Link>
@@ -96,13 +96,13 @@ export default function HomePageClient() {
                   window.scrollTo({ top, behavior: 'smooth' })
                 }
               }}
-              className={`relative w-[30px] h-[52px] rounded-[15px] border-2 transition-colors duration-300 cursor-pointer ${isDark ? 'border-white/25 hover:border-white/50' : 'border-indigo-500/30 hover:border-indigo-500/60'
+              className={`relative w-[30px] h-[52px] rounded-[15px] border-2 transition-colors duration-300 cursor-pointer ${isDark ? 'border-white/25 hover:border-white/50' : 'border-theme-accent/30 hover:border-theme-accent/60'
                 }`}
             >
-              <span className={`scroll-indicator-dot absolute left-1/2 top-[9px] w-[6px] h-[6px] rounded-full ${isDark ? 'bg-white/50' : 'bg-indigo-500/60'
+              <span className={`scroll-indicator-dot absolute left-1/2 top-[9px] w-[6px] h-[6px] rounded-full ${isDark ? 'bg-white/50' : 'bg-theme-accent/60'
                 }`} />
             </button>
-            <span className={`text-[10px] uppercase tracking-[0.2em] font-medium select-none ${isDark ? 'text-white/30' : 'text-indigo-500/50'
+            <span className={`text-[10px] uppercase tracking-[0.2em] font-medium select-none ${isDark ? 'text-white/30' : 'text-theme-accent/50'
               }`}>
               scroll
             </span>
@@ -165,7 +165,7 @@ export default function HomePageClient() {
             >
               {/* Hover glow */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
-                style={{ background: 'radial-gradient(ellipse at top left, rgba(99,102,241,0.07), transparent 65%)' }}
+                style={{ background: 'radial-gradient(ellipse at top left, rgba(234,122,83,0.09), transparent 65%)' }}
               />
 
               {/* Badge */}
@@ -285,10 +285,10 @@ export default function HomePageClient() {
               and track your rank on the leaderboard — all completely free.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/exams"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-theme-accent text-white font-bold rounded-xl hover:opacity-90 hover:-translate-y-1 shadow-lg shadow-theme-accent/20 transition-all duration-300"
-              >
+                <Link
+                  href="/exams"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:opacity-90 hover:-translate-y-1 shadow-lg shadow-theme-accent/20 transition-all duration-300"
+                >
                 <i className="fas fa-rocket" />
                 Browse All Exams
               </Link>

@@ -197,7 +197,7 @@ export default function TasksPage() {
             <p className="text-theme-secondary text-lg leading-relaxed mb-8">
               Please sign in to view and manage your monthly tasks and daily habits.
             </p>
-            <Link href="/sign-in" className="inline-flex items-center gap-2 bg-theme-accent text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:opacity-90 transition-all hover:-translate-y-0.5 active:scale-95">
+            <Link href="/sign-in" className="inline-flex items-center gap-2 bg-theme-accent text-theme-accent-text px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-theme-accent/30 hover:opacity-90 transition-all hover:-translate-y-0.5 active:scale-95">
               <i className="fas fa-sign-in-alt" /> Sign In Now
             </Link>
           </div>

@@ -9,7 +9,7 @@ export default function NotFound() {
         </div>
         <h1 className="text-3xl font-extrabold text-theme-primary mb-2">Page not found</h1>
         <p className="text-theme-secondary mb-6">The page you were looking for does not exist or has been moved.</p>
-        <Link href="/" className="inline-flex items-center px-6 py-3 rounded-xl bg-theme-accent text-white font-bold hover:opacity-90 transition-all">
+        <Link href="/" className="inline-flex items-center px-6 py-3 rounded-xl bg-theme-accent text-theme-accent-text font-bold hover:opacity-90 transition-all">
           Back to Home
         </Link>
       </div>

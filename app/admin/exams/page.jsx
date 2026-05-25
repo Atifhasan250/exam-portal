@@ -97,7 +97,7 @@ export default function AdminExams() {
               <i className="fas fa-arrow-left mr-2" />
               <span>Dashboard</span>
             </Link>
-            <button onClick={() => { setShowCreate(true); setEditExam(null) }} className="flex-1 sm:flex-none bg-theme-accent text-white font-bold px-4 sm:px-6 py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg whitespace-nowrap text-sm sm:text-base">
+            <button onClick={() => { setShowCreate(true); setEditExam(null) }} className="flex-1 sm:flex-none bg-theme-accent text-theme-accent-text font-bold px-4 sm:px-6 py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg whitespace-nowrap text-sm sm:text-base">
               <i className="fas fa-plus" /><span>Create Exam</span>
             </button>
           </div>
@@ -257,7 +257,7 @@ function CreateExamModal({ exam, onClose, onCreated }) {
         </div>
         <div className="flex space-x-3 mt-6">
           <button onClick={onClose} className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl hover:bg-theme-bg font-semibold transition-all">Cancel</button>
-          <button onClick={save} disabled={saving} className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all flex items-center justify-center">
+          <button onClick={save} disabled={saving} className="flex-1 py-3 bg-theme-accent text-theme-accent-text rounded-xl hover:opacity-90 font-semibold transition-all flex items-center justify-center">
             {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : exam ? 'Save Changes' : 'Create Exam'}
           </button>
         </div>
@@ -371,7 +371,7 @@ Q2. Which is a JavaScript framework?
         {error ? <div className="mb-4 p-3 bg-theme-error-bg border border-theme-error-border text-theme-error-text rounded-xl text-sm">{error}</div> : null}
         <div className="flex space-x-2 mb-5">
           {tabs.map((item) => (
-            <button key={item.id} onClick={() => { setTab(item.id); setParsed([]); setError('') }} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center space-x-2 ${tab === item.id ? 'bg-theme-accent text-white shadow-md' : 'bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary'}`}>
+            <button key={item.id} onClick={() => { setTab(item.id); setParsed([]); setError('') }} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center space-x-2 ${tab === item.id ? 'bg-theme-accent text-theme-accent-text shadow-md' : 'bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary'}`}>
               <i className={`fas ${item.icon}`} /><span>{item.label}</span>
             </button>
           ))}
@@ -420,7 +420,7 @@ Q2. Which is a JavaScript framework?
             </div>
             <div className="flex space-x-3">
               <button onClick={() => setParsed([])} className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl font-semibold hover:bg-theme-bg transition-all">Back</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-theme-accent text-white rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50">
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-theme-accent text-theme-accent-text rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50">
                 {saving ? 'Saving...' : `Add ${parsed.length} Question(s)`}
               </button>
             </div>

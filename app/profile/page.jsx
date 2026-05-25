@@ -199,7 +199,7 @@ export default function ProfilePage() {
           <h2 className="text-3xl font-extrabold text-theme-primary">Your Profile</h2>
         </div>
         <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm">
-          <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-theme-accent shrink-0 overflow-hidden">
+          <div className="w-24 h-24 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent shrink-0 overflow-hidden">
             {user?.imageUrl ? (
               <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
@@ -248,9 +248,9 @@ export default function ProfilePage() {
             <div className="skeleton h-10 w-32 rounded-xl shrink-0 mt-4 sm:mt-0" />
           </div>
         ) : taskSummary ? (
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:border-indigo-500/30">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:border-theme-accent/30">
             <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-theme-accent/10 text-theme-accent flex items-center justify-center shrink-0">
                 <i className="fas fa-check-double text-2xl" />
               </div>
               <div>
@@ -262,7 +262,7 @@ export default function ProfilePage() {
             </div>
             <Link
               href="/tasks/history"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 shadow-md border border-theme-accent transition-all text-center flex items-center justify-center gap-2 shrink-0"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 shadow-md border border-theme-accent transition-all text-center flex items-center justify-center gap-2 shrink-0"
             >
               <i className="fas fa-chart-line" /> View Analytics
             </Link>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
             </div>
 
-            <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-white px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
+            <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-theme-accent-text px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
               {passwordLoading ? 'Updating...' : 'Change Password'}
             </button>
           </form>
@@ -411,7 +411,7 @@ export default function ProfilePage() {
                 placeholder="e.g. John Doe"
                 className="w-full px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent mb-4"
               />
-              <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition-all disabled:opacity-60">
+              <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-theme-accent-text font-bold py-3 rounded-xl hover:opacity-90 transition-all disabled:opacity-60">
                 {savingName ? 'Saving...' : isNewUser ? 'Set My Name →' : 'Save'}
               </button>
               {!isNewUser ? (
@@ -449,7 +449,7 @@ export default function ProfilePage() {
                   setShowLogoutDialog(false)
                   await signOut?.({ redirectUrl: '/' })
                 }}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 transition-colors shadow-md"
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-colors shadow-md"
               >
                 Logout
               </button>

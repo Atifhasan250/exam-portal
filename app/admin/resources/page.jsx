@@ -9,7 +9,7 @@ const emptyCategory = {
   slug: '',
   description: '',
   icon: 'fa-book-open',
-  color: '#4F46E5',
+  color: '#ea7a53',
   published: true,
   featured: false,
 }
@@ -28,16 +28,16 @@ const categoryIcons = [
 ]
 
 const categoryColors = [
-  '#4F46E5',
-  '#6366F1',
-  '#0EA5E9',
-  '#06B6D4',
-  '#10B981',
-  '#22C55E',
-  '#F59E0B',
-  '#EF4444',
-  '#EC4899',
-  '#8B5CF6',
+  '#ea7a53',
+  '#081126',
+  '#8fd1bd',
+  '#f6eecf',
+  '#16a34a',
+  '#dc2626',
+  '#ea7a53',
+  '#081126',
+  '#fff8e7',
+  '#fff9e3',
 ]
 
 const emptyResource = {
@@ -233,7 +233,7 @@ export default function AdminResourcesPage() {
       slug: category.slug || '',
       description: category.description || '',
       icon: category.icon || 'fa-book-open',
-      color: category.color || '#4F46E5',
+      color: category.color || '#ea7a53',
       published: Boolean(category.published),
       featured: Boolean(category.featured),
     })
@@ -612,7 +612,7 @@ export default function AdminResourcesPage() {
                 <ToggleRow label="Published" checked={categoryForm.published} onChange={(published) => setCategoryForm({ ...categoryForm, published })} />
                 <ToggleRow label="Featured" checked={categoryForm.featured} onChange={(featured) => setCategoryForm({ ...categoryForm, featured })} />
                 <div className="flex gap-3">
-                  <button disabled={saving} onClick={saveCategory} className="flex-1 bg-theme-accent text-white py-3 rounded-xl font-bold disabled:opacity-50">{saving ? 'Saving...' : 'Save Category'}</button>
+                  <button disabled={saving} onClick={saveCategory} className="flex-1 bg-theme-accent text-theme-accent-text py-3 rounded-xl font-bold disabled:opacity-50">{saving ? 'Saving...' : 'Save Category'}</button>
                   {editingCategoryId ? <button onClick={resetCategoryForm} className="px-4 py-3 rounded-xl border border-theme-border font-bold">Cancel</button> : null}
                 </div>
               </div>
@@ -662,7 +662,7 @@ export default function AdminResourcesPage() {
                 uploadResourceFile={uploadResourceFile}
               />
               <div className="flex gap-3 mt-5">
-                <button disabled={saving || !resourceForm.categoryId} onClick={saveResource} className="flex-1 bg-theme-accent text-white py-3 rounded-xl font-bold disabled:opacity-50">{saving ? 'Saving...' : 'Save Resource'}</button>
+                <button disabled={saving || !resourceForm.categoryId} onClick={saveResource} className="flex-1 bg-theme-accent text-theme-accent-text py-3 rounded-xl font-bold disabled:opacity-50">{saving ? 'Saving...' : 'Save Resource'}</button>
                 {editingResourceId ? <button onClick={resetResourceForm} className="px-4 py-3 rounded-xl border border-theme-border font-bold">Cancel</button> : null}
               </div>
             </Panel>
@@ -729,7 +729,7 @@ export default function AdminResourcesPage() {
                 <button disabled={saving || !playlistUrl} onClick={previewPlaylist} className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold disabled:opacity-50">
                   {saving ? 'Loading...' : 'Preview Playlist'}
                 </button>
-                <button disabled={saving || !playlistPreview || selectedPlaylistVideos.size === 0} onClick={importPlaylist} className="w-full bg-theme-accent text-white py-3 rounded-xl font-bold disabled:opacity-50">
+                <button disabled={saving || !playlistPreview || selectedPlaylistVideos.size === 0} onClick={importPlaylist} className="w-full bg-theme-accent text-theme-accent-text py-3 rounded-xl font-bold disabled:opacity-50">
                   Import Selected Videos
                 </button>
               </div>
@@ -927,7 +927,7 @@ function IconPicker({ value, onChange }) {
           type="button"
           title={icon.label}
           onClick={() => onChange(icon.value)}
-          className={`h-12 rounded-xl border flex items-center justify-center transition-all ${value === icon.value ? 'bg-theme-accent text-white border-theme-accent' : 'bg-theme-bg border-theme-border text-theme-secondary hover:text-theme-primary'}`}
+          className={`h-12 rounded-xl border flex items-center justify-center transition-all ${value === icon.value ? 'bg-theme-accent text-theme-accent-text border-theme-accent' : 'bg-theme-bg border-theme-border text-theme-secondary hover:text-theme-primary'}`}
         >
           <i className={`fas ${icon.value}`} />
         </button>
@@ -957,7 +957,7 @@ function ColorPicker({ value, onChange }) {
 
 function TabButton({ active, onClick, icon, label }) {
   return (
-    <button onClick={onClick} className={`flex-1 px-3 py-3 rounded-xl text-sm font-bold transition-all ${active ? 'bg-theme-accent text-white' : 'text-theme-secondary hover:text-theme-primary'}`}>
+    <button onClick={onClick} className={`flex-1 px-3 py-3 rounded-xl text-sm font-bold transition-all ${active ? 'bg-theme-accent text-theme-accent-text' : 'text-theme-secondary hover:text-theme-primary'}`}>
       <i className={`fas ${icon} mr-2`} />
       {label}
     </button>

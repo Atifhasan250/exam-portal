@@ -18,8 +18,8 @@ export default function SignUpPage() {
         </>
       ) : (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_25%,_rgba(79,70,229,0.10),_transparent_45%),radial-gradient(circle_at_20%_75%,_rgba(99,102,241,0.07),_transparent_40%)]" />
-          <div className="absolute inset-x-0 top-0 h-64 bg-[linear-gradient(180deg,rgba(79,70,229,0.06),transparent)] blur-2xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_25%,_rgba(234,122,83,0.16),_transparent_45%),radial-gradient(circle_at_20%_75%,_rgba(8,17,38,0.05),_transparent_40%)]" />
+          <div className="absolute inset-x-0 top-0 h-64 bg-[linear-gradient(180deg,rgba(234,122,83,0.10),transparent)] blur-2xl" />
         </>
       )}
 

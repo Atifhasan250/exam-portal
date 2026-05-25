@@ -336,7 +336,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
         ) : (
           <div className="flex items-center justify-between mb-6 bg-theme-surface border border-theme-border rounded-2xl px-5 py-3 shadow-sm">
             <span className="font-semibold text-theme-secondary text-sm truncate">{exam?.title}</span>
-            <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-indigo-50 dark:bg-indigo-500/10 text-theme-accent border-indigo-200 dark:border-indigo-500/20'}`}>
+            <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-theme-accent/10 dark:bg-indigo-500/10 text-theme-accent border-theme-accent/20 dark:border-indigo-500/20'}`}>
               {mins}:{secs}
             </div>
           </div>
@@ -377,7 +377,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
                 href={`/sign-in?redirect_url=${encodeURIComponent(`/exam/${id}`)}`}
               />
             ) : null}
-            <button onClick={startExam} disabled={beginDisabled} className="w-full bg-theme-accent text-white font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-60">
+            <button onClick={startExam} disabled={beginDisabled} className="w-full bg-theme-accent text-theme-accent-text font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-60">
               <span>{!user ? 'Sign In to Begin' : submitting ? 'Starting...' : questionsReady ? 'Begin Examination' : 'Loading Questions...'}</span><i className="fas fa-arrow-right text-sm" />
             </button>
           </div>
@@ -400,8 +400,8 @@ export default function ExamPageClient({ params, initialExam = null }) {
                       const selected = answers[questionIndex] === optionIndex
                       let classes = 'group flex items-center p-3 sm:p-4 rounded-xl border transition-all duration-200 '
                       classes += hasAnswered
-                        ? selected ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default' : 'border-theme-border bg-theme-surface opacity-75 cursor-default'
-                        : selected ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-pointer' : 'border-theme-border bg-theme-surface hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
+                        ? selected ? 'border-theme-accent bg-theme-accent/10 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default' : 'border-theme-border bg-theme-surface opacity-75 cursor-default'
+                        : selected ? 'border-theme-accent bg-theme-accent/10 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-pointer' : 'border-theme-border bg-theme-surface hover:border-theme-accent/45 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
                       const dotClasses = selected ? 'border-theme-accent bg-theme-accent' : 'border-theme-border group-hover:border-theme-accent'
 
                       return (
@@ -422,7 +422,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
               )
             })}
             <div className="flex justify-center pt-4 pb-10">
-              <button onClick={() => setModalOpen(true)} className="bg-theme-accent hover:opacity-90 text-white font-bold py-4 px-14 rounded-xl shadow-lg transition-all">
+              <button onClick={() => setModalOpen(true)} className="bg-theme-accent hover:opacity-90 text-theme-accent-text font-bold py-4 px-14 rounded-xl shadow-lg transition-all">
                 Submit Exam
               </button>
             </div>
@@ -444,7 +444,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
             <p className="text-theme-secondary mb-6 text-sm">You won&apos;t be able to change your answers afterward.</p>
             <div className="flex space-x-3">
               <button onClick={() => setModalOpen(false)} className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl hover:bg-theme-bg font-semibold transition-all">Cancel</button>
-              <button onClick={() => submitExam()} disabled={submitting} className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all disabled:opacity-60">
+              <button onClick={() => submitExam()} disabled={submitting} className="flex-1 py-3 bg-theme-accent text-theme-accent-text rounded-xl hover:opacity-90 font-semibold transition-all disabled:opacity-60">
                 {submitting ? 'Submitting...' : 'Confirm'}
               </button>
             </div>
@@ -495,7 +495,7 @@ function ResultScreen({ result, studentName, examId, onBack }) {
           <p className="text-2xl font-bold text-theme-secondary mb-1">/{result.total}</p>
         </div>
         <div>
-          <Link href={`/leaderboard/${examId}`} onClick={() => posthog.capture('leaderboard_link_clicked', { exam_id: examId, score: result.score, total: result.total })} className="inline-flex items-center space-x-2 text-theme-accent hover:text-theme-primary transition-colors font-bold bg-indigo-500/10 hover:bg-indigo-500/20 px-6 py-3 rounded-xl">
+          <Link href={`/leaderboard/${examId}`} onClick={() => posthog.capture('leaderboard_link_clicked', { exam_id: examId, score: result.score, total: result.total })} className="inline-flex items-center space-x-2 text-theme-accent hover:text-theme-primary transition-colors font-bold bg-theme-accent/10 hover:bg-theme-accent/20 px-6 py-3 rounded-xl">
             <span>See leaderboard</span>
             <i className="fas fa-arrow-right" />
           </Link>

@@ -26,7 +26,7 @@ export default function GlobalError({ error, reset }) {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={() => reset()}
-            className="inline-flex items-center px-6 py-3 rounded-xl bg-theme-accent text-white font-bold hover:opacity-90 transition-all"
+            className="inline-flex items-center px-6 py-3 rounded-xl bg-theme-accent text-theme-accent-text font-bold hover:opacity-90 transition-all"
           >
             <i className="fas fa-redo mr-2" />
             Try Again

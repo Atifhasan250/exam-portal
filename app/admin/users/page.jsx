@@ -329,10 +329,10 @@ export default function AdminUsers() {
                       {[
                         { label: 'Current Streak', value: userDetails.tasks.analytics.currentStreak, icon: 'fa-fire', color: 'text-orange-500', bg: 'bg-orange-500/10' },
                         { label: 'Best Streak', value: userDetails.tasks.analytics.bestStreak, icon: 'fa-trophy', color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-                        { label: 'Power Days', value: userDetails.tasks.analytics.powerDays, icon: 'fa-bolt', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                        { label: '7-Day Avg', value: `${userDetails.tasks.analytics.sevenDayAvg}%`, icon: 'fa-chart-pie', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                        { label: 'Power Days', value: userDetails.tasks.analytics.powerDays, icon: 'fa-bolt', color: 'text-theme-accent', bg: 'bg-theme-accent/10' },
+                        { label: '7-Day Avg', value: `${userDetails.tasks.analytics.sevenDayAvg}%`, icon: 'fa-chart-pie', color: 'text-theme-accent dark:text-blue-500', bg: 'bg-theme-accent/10 dark:bg-blue-500/10' },
                         { label: 'Consistency', value: userDetails.tasks.analytics.consistency, icon: 'fa-bullseye', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                        { label: 'Active Days', value: userDetails.tasks.analytics.activeDays, icon: 'fa-calendar-check', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                        { label: 'Active Days', value: userDetails.tasks.analytics.activeDays, icon: 'fa-calendar-check', color: 'text-theme-accent dark:text-purple-500', bg: 'bg-theme-accent/10 dark:bg-purple-500/10' },
                       ].map((stat, i) => (
                         <div key={i} className="bg-theme-bg border border-theme-border rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
                           <div className={`absolute -right-3 -top-3 sm:-right-4 sm:-top-4 w-12 h-12 sm:w-16 sm:h-16 rounded-full ${stat.bg} opacity-50 group-hover:scale-150 transition-transform duration-500`} />

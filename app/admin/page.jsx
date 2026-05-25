@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
           {error ? <div className="p-3 bg-theme-error-bg border border-theme-error-border text-theme-error-text rounded-xl text-sm">{error}</div> : null}
           <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Username" className="input-field" />
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" className="input-field" />
-          <button type="submit" disabled={loading} className="w-full py-3 bg-theme-accent text-white font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center">
+          <button type="submit" disabled={loading} className="w-full py-3 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center">
             {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Sign In'}
           </button>
         </form>
