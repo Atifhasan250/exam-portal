@@ -9,21 +9,21 @@ html {
 }
 
 :root {
-  --color-bg: #E8EDF8;
-  --color-surface: #FFFFFF;
-  --color-footer-bg: #c8d3ea;
-  --color-primary: #1A2040;
-  --color-secondary: #485070;
-  --color-accent: #4F46E5;
+  --color-bg: #fff9e3;
+  --color-surface: #fff8e7;
+  --color-footer-bg: #f6eecf;
+  --color-primary: #081126;
+  --color-secondary: rgba(0, 0, 0, 0.6);
+  --color-accent: #ea7a53;
   --color-accent-text: #FFFFFF;
-  --color-border: #BCC6DF;
-  --color-input-border: #BCC6DF;
-  --color-error-bg: #FEF2F2;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-input-border: rgba(0, 0, 0, 0.1);
+  --color-error-bg: #FEE2E2;
   --color-error-text: #DC2626;
-  --color-error-border: #FEE2E2;
-  --color-success-bg: #ECFDF5;
-  --color-success-text: #059669;
-  --color-success-border: #D1FAE5;
+  --color-error-border: #FCA5A5;
+  --color-success-bg: #D1FAE5;
+  --color-success-text: #047857;
+  --color-success-border: #34D399;
 }
 
 .dark {
@@ -165,6 +165,7 @@ html {
   min-height: 3rem !important;
   border-radius: 0.875rem !important;
   background: var(--color-accent) !important;
+  color: var(--color-accent-text) !important;
   box-shadow: 0 12px 28px color-mix(in srgb, var(--color-accent) 30%, transparent) !important;
 }
 
@@ -455,6 +456,10 @@ code {
 
 .text-theme-accent {
   color: var(--color-accent);
+}
+
+.text-theme-accent-text {
+  color: var(--color-accent-text);
 }
 
 .text-exam-option {
