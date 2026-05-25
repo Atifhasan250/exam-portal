@@ -1,6 +1,7 @@
 import ExamsPageClient from './ExamsPageClient'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { getCachedPublishedExamPage } from '@/lib/publicCache'
+import { safeJsonLd } from '@/lib/jsonLd'
 
 export const revalidate = 30
 const EXAM_PAGE_SIZE = 12
@@ -23,7 +24,7 @@ export default async function ExamsPage() {
         <script
           key={schema['@type']}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
       <ExamsPageClient initialExamPages={initialExamPages} />

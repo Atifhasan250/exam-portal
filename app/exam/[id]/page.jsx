@@ -1,4 +1,5 @@
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
+import { safeJsonLd } from '@/lib/jsonLd'
 import { isValidObjectId } from '@/lib/routeParams'
 import ExamPageClient from './ExamPageClient'
 import { notFound } from 'next/navigation'
@@ -66,13 +67,6 @@ async function ExamPageWithData({ params }) {
       <ExamPageClient params={Promise.resolve({ id })} initialExam={initialExam} />
     </>
   )
-}
-
-function safeJsonLd(schema) {
-  return JSON.stringify(schema)
-    .replace(/</g, '\\u003c')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029')
 }
 
 async function getPublicExamSummary(id) {

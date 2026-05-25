@@ -12,10 +12,16 @@ function hostnameFromUrl(value) {
 }
 
 const imageKitHost = hostnameFromUrl(process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT)
+const sentryDsnHost = hostnameFromUrl(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN)
 const imageKitFrameSrc = [
   'https://ik.imagekit.io',
   'https://*.imagekit.io',
   imageKitHost ? `https://${imageKitHost}` : '',
+].filter(Boolean).join(' ')
+const sentryConnectSrc = [
+  'https://*.ingest.sentry.io',
+  'https://*.ingest.us.sentry.io',
+  sentryDsnHost ? `https://${sentryDsnHost}` : '',
 ].filter(Boolean).join(' ')
 
 /** @type {import('next').NextConfig} */
@@ -76,7 +82,7 @@ const nextConfig = {
               // Clerk user avatars come from img.clerk.com and Google/social providers
               "img-src 'self' data: blob: https:",
               // Clerk API, WebSocket, and Vercel analytics
-              "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io",
+              `connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io ${sentryConnectSrc}`,
               "worker-src 'self' blob:",
               `frame-src https://*.clerk.accounts.dev https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
               "frame-ancestors 'none'",

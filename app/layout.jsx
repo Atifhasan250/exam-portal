@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import AppProviders from '@/components/ThemeProvider'
 import AppChrome from '@/components/AppChrome'
 import { getSiteUrl } from '@/lib/site'
+import { safeJsonLd } from '@/lib/jsonLd'
 import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({
@@ -137,11 +138,11 @@ export default function RootLayout({ children }) {
         {/* JSON-LD structured data for Google rich results */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(webAppSchema) }}
         />
       </head>
       <body className={inter.className}>

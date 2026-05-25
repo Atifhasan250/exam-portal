@@ -5,6 +5,7 @@ import { connectDB } from '@/lib/db'
 import ResourceProgress from '@/lib/models/ResourceProgress'
 import ResourceVideoPlayer from '@/components/resources/ResourceVideoPlayer'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
+import { safeJsonLd } from '@/lib/jsonLd'
 import { publicResourceSlug, serialize } from '@/lib/resourceUtils'
 import { getCachedCategorySiblingResources, getCachedResourceBySlug } from '@/lib/publicCache'
 
@@ -59,7 +60,7 @@ export default async function ResourceWatchPage({ params }) {
         <script
           key={schema['@type']}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-6">

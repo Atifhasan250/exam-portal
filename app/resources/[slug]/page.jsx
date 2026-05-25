@@ -1,5 +1,6 @@
 import CategoryResourcesClient from './CategoryResourcesClient'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
+import { safeJsonLd } from '@/lib/jsonLd'
 import { publicResourceSlug } from '@/lib/resourceUtils'
 import { notFound } from 'next/navigation'
 import { getCachedCategoryBySlug, getCachedInitialCategoryPageData } from '@/lib/publicCache'
@@ -74,13 +75,6 @@ export default async function CategoryResourcesPage({ params }) {
       />
     </>
   )
-}
-
-function safeJsonLd(schema) {
-  return JSON.stringify(schema)
-    .replace(/</g, '\\u003c')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029')
 }
 
 async function getInitialCategoryPageData(slug) {
