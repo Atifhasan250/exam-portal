@@ -19,7 +19,7 @@ const sections = [
       },
       {
         heading: 'Usage Data',
-        text: 'We automatically collect information about how you interact with the platform — including pages visited, features used, and session duration — to improve performance and user experience.',
+        text: 'We automatically collect information about how you interact with the platform, including pages visited, features used, device/browser information, approximate location derived from network data, errors, and session activity. This helps us improve reliability, security, and user experience.',
       },
     ],
   },
@@ -32,7 +32,7 @@ const sections = [
       },
       {
         heading: 'Improvement & Analytics',
-        text: 'We use aggregated, anonymized usage data to understand how the platform is used and to identify areas for improvement. We do not sell or share your personal data with third parties for marketing purposes.',
+        text: 'We use usage and performance analytics to understand how the platform is used and to identify areas for improvement. Analytics may be associated with your account identifier when you are signed in, but we do not sell your personal data or share it with third parties for their own marketing purposes.',
       },
       {
         heading: 'Communications',
@@ -80,6 +80,14 @@ const sections = [
       {
         heading: 'Vercel (Hosting)',
         text: 'Our platform is hosted on Vercel. Vercel may collect standard server-side logs (e.g., IP addresses) as part of providing hosting services.',
+      },
+      {
+        heading: 'Vercel Analytics, PostHog, and Sentry',
+        text: 'We use Vercel Analytics and PostHog to measure product usage and Sentry to monitor errors and performance. These services may process technical information such as IP address, browser/device data, page URLs, events, and error details.',
+      },
+      {
+        heading: 'ImageKit and YouTube',
+        text: 'We use ImageKit to host and deliver resource images/files, and some resource pages embed or link to YouTube videos. When you open these resources, those providers may process your request under their own privacy policies.',
       },
     ],
   },

@@ -10,10 +10,7 @@ export default function PostHogUserIdentity() {
   useEffect(() => {
     if (!isLoaded) return
     if (user) {
-      posthog.identify(user.id, {
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName || [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username,
-      })
+      posthog.identify(user.id)
     } else {
       posthog.reset()
     }
