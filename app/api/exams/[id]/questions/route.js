@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
-import { validate, addQuestionsSchema } from '@/lib/validation'
+import { validate, addQuestionsSchema, MAX_EXAM_QUESTIONS } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
@@ -34,6 +34,13 @@ export async function POST(request, { params }) {
     }
 
     const existingCount = await Question.countDocuments({ examId: exam._id })
+    if (existingCount + questions.length > MAX_EXAM_QUESTIONS) {
+      return NextResponse.json(
+        { error: `An exam can have at most ${MAX_EXAM_QUESTIONS} questions.` },
+        { status: 400 },
+      )
+    }
+
     const newQuestions = questions.map((question, index) => ({
       ...question,
       examId: exam._id,

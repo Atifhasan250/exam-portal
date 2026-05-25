@@ -37,6 +37,9 @@ export default function AdminExams() {
       setHasMoreExams(!Array.isArray(data) && Boolean(data.hasMore))
     } catch {
       setExams([])
+      setExamTotal(0)
+      setExamOffset(0)
+      setHasMoreExams(false)
     } finally {
       setLoading(false)
     }
