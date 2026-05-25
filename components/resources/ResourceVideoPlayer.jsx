@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import posthog from 'posthog-js'
 
 let youtubeApiPromise = null
 
@@ -34,6 +35,7 @@ export default function ResourceVideoPlayer({ resource, initialProgress, previou
   const playerRef = useRef(null)
   const startSecondsRef = useRef(initialProgress?.progressSeconds || 0)
   const savedSecondsRef = useRef(initialProgress?.progressSeconds || 0)
+  const completedFiredRef = useRef(initialProgress?.completed || false)
   const [currentSeconds, setCurrentSeconds] = useState(initialProgress?.progressSeconds || 0)
   const [saving, setSaving] = useState(false)
 
@@ -60,6 +62,15 @@ export default function ResourceVideoPlayer({ resource, initialProgress, previou
 
       if (!currentTime) return
       if (!force && !completed && Math.abs(currentTime - savedSecondsRef.current) < 10) return
+
+      if (completed && !completedFiredRef.current) {
+        completedFiredRef.current = true
+        posthog.capture('resource_video_completed', {
+          resource_id: resource._id,
+          resource_title: resource.title,
+          duration_seconds: resource.durationSeconds,
+        })
+      }
 
       savedSecondsRef.current = currentTime
       saveProgress(

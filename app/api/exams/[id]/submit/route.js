@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import { invalidateLeaderboardCaches } from '@/lib/publicCache'
+import { getPostHogClient } from '@/lib/posthog-server'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
@@ -291,6 +292,22 @@ export async function POST(request, { params }) {
       })
 
       await invalidateLeaderboardCaches(exam._id.toString())
+
+      const posthog = getPostHogClient()
+      posthog.capture({
+        distinctId: userId,
+        event: 'exam_completed',
+        properties: {
+          exam_id: id,
+          exam_title: exam.title,
+          score,
+          total: questions.length,
+          wrong,
+          unanswered,
+          was_live: wasLive,
+          percentage: questions.length > 0 ? Math.round((score / questions.length) * 100) : 0,
+        },
+      })
 
       return NextResponse.json({
         score,

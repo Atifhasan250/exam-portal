@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import posthog from 'posthog-js'
 
 export default function ResourceOpenButton({
   resourceId,
@@ -18,6 +19,7 @@ export default function ResourceOpenButton({
     : 'inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-theme-accent px-5 text-sm font-bold text-white shadow-lg shadow-theme-accent/25 transition-all hover:brightness-110'
 
   const markComplete = async () => {
+    posthog.capture('resource_opened', { resource_id: resourceId, label })
     if (!resourceId) return
 
     setSaving(true)

@@ -7,6 +7,7 @@ import BottomNav from './BottomNav'
 import Navbar from './Navbar'
 import ClickSpark from './ClickSpark'
 import { useTheme } from '@/context/ThemeContext'
+import PostHogUserIdentity from './PostHogUserIdentity'
 
 const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up']
 
@@ -53,6 +54,7 @@ export default function AppChrome({ children }) {
 
   return (
     <ClickSpark sparkColor={sparkColor} sparkSize={12} sparkRadius={20} sparkCount={8} duration={450}>
+      <PostHogUserIdentity />
       <div className="flex flex-col min-h-screen bg-theme-bg text-theme-primary transition-theme">
         {!isChromeless && <Navbar className={showMobileNavbar ? '' : 'hidden sm:block'} />}
         <div className="flex-grow">{children}</div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import posthog from 'posthog-js'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ProgressBar from '@/components/tasks/ProgressBar'
 import HabitCard from '@/components/tasks/HabitCard'
@@ -77,7 +78,12 @@ export default function TasksPage() {
   const handleToggleHabit = (habitId) => {
     const newHistory = { ...plannerData.habitHistory }
     if (!newHistory[today]) newHistory[today] = {}
-    newHistory[today][habitId] = !newHistory[today][habitId]
+    const nowChecked = !newHistory[today][habitId]
+    newHistory[today][habitId] = nowChecked
+    if (nowChecked) {
+      const habit = plannerData.habits.find((h) => h.id === habitId)
+      posthog.capture('habit_checked', { habit_id: habitId, habit_label: habit?.label })
+    }
     syncData({ ...plannerData, habitHistory: newHistory })
   }
 
@@ -116,6 +122,13 @@ export default function TasksPage() {
     if (task) {
       task.completed = !task.completed
       task.completedDate = task.completed ? today : undefined
+      if (task.completed) {
+        posthog.capture('task_completed', {
+          task_id: taskId,
+          task_label: task.label,
+          week: plannerData.weeks[weekIndex]?.week,
+        })
+      }
       syncData({ ...plannerData, weeks: newWeeks })
     }
   }

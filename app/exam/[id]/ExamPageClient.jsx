@@ -4,6 +4,7 @@ import { use, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import posthog from 'posthog-js'
 import PageSkeleton from '@/components/PageSkeleton'
 import AuthCallout from '@/components/AuthCallout'
 import QuestionReviewCard from '@/components/QuestionReviewCard'
@@ -179,6 +180,12 @@ export default function ExamPageClient({ params, initialExam = null }) {
       setSubmitting(false)
     }
 
+    posthog.capture('exam_started', {
+      exam_id: id,
+      exam_title: exam.title,
+      exam_type: exam.requiresAttempt ? 'live' : 'practice',
+      question_count: exam.questions?.length ?? exam.questionCount,
+    })
     setScreen('exam')
     timerRef.current = setInterval(() => {
       setTimeLeft((previous) => {
@@ -216,6 +223,17 @@ export default function ExamPageClient({ params, initialExam = null }) {
     if (!user) return
     submittingRef.current = true
 
+    if (reason === 'manual-submit') {
+      posthog.capture('exam_submitted', {
+        exam_id: id,
+        answers_count: Object.keys(answersRef.current).length,
+      })
+    } else {
+      posthog.capture('exam_auto_submitted', {
+        exam_id: id,
+        reason,
+      })
+    }
     recordAttemptEvent(reason, beacon)
     const payload = JSON.stringify({
       answers: answersRef.current,
@@ -477,7 +495,7 @@ function ResultScreen({ result, studentName, examId, onBack }) {
           <p className="text-2xl font-bold text-theme-secondary mb-1">/{result.total}</p>
         </div>
         <div>
-          <Link href={`/leaderboard/${examId}`} className="inline-flex items-center space-x-2 text-theme-accent hover:text-theme-primary transition-colors font-bold bg-indigo-500/10 hover:bg-indigo-500/20 px-6 py-3 rounded-xl">
+          <Link href={`/leaderboard/${examId}`} onClick={() => posthog.capture('leaderboard_link_clicked', { exam_id: examId, score: result.score, total: result.total })} className="inline-flex items-center space-x-2 text-theme-accent hover:text-theme-primary transition-colors font-bold bg-indigo-500/10 hover:bg-indigo-500/20 px-6 py-3 rounded-xl">
             <span>See leaderboard</span>
             <i className="fas fa-arrow-right" />
           </Link>

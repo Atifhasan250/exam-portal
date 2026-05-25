@@ -28,6 +28,7 @@ coverage
 scratch.cjs
 
 # Editor directories and files
+.claude/
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -46,3 +47,6 @@ scratch.cjs
 .next/*
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Generated integration reports
+posthog-setup-report.md

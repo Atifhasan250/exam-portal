@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import posthog from 'posthog-js'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 
 const EXAM_PAGE_SIZE = 12
@@ -83,8 +84,13 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
 
   const fmtDate = (date) => new Date(date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 
-  const handleTakeExam = (examId) => {
+  const handleTakeExam = (examId, examTitle, examStatus) => {
     if (!isLoaded || liveAccessLoading) return
+    posthog.capture('exam_card_clicked', {
+      exam_id: examId,
+      exam_title: examTitle,
+      exam_status: examStatus,
+    })
     if (!user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${examId}`)}`)
       return
@@ -213,7 +219,7 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
                 badge="LIVE"
                 badgeColor="bg-red-500/10 text-red-500 border-red-500/20"
                 fmtDate={fmtDate}
-                onStart={() => handleTakeExam(exam._id)}
+                onStart={() => handleTakeExam(exam._id, exam.title, 'live')}
                 disabled={checkingLiveAccess || alreadyConsumed}
                 disabledLabel={checkingLiveAccess ? 'Checking...' : 'Attempt Used'}
                 index={index}
@@ -231,7 +237,7 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
           {pastExams.length === 0 ? (
             <p className="text-theme-secondary text-sm">No past exams yet.</p>
           ) : pastExams.map((exam, index) => (
-            <ExamCard key={exam._id} exam={exam} badge="Practice" badgeColor="bg-theme-accent/10 text-theme-accent border border-theme-accent/20" fmtDate={fmtDate} onStart={() => handleTakeExam(exam._id)} index={index} />
+            <ExamCard key={exam._id} exam={exam} badge="Practice" badgeColor="bg-theme-accent/10 text-theme-accent border border-theme-accent/20" fmtDate={fmtDate} onStart={() => handleTakeExam(exam._id, exam.title, 'past')} index={index} />
           ))}
         </Section>
       </main>
