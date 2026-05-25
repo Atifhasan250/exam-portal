@@ -50,7 +50,7 @@ export default function AppChrome({ children }) {
   const { theme } = useTheme()
 
   // Lighter spark for dark bg, deeper for light bg
-  const sparkColor = theme === 'dark' ? '#a5b4fc' : '#4338ca'
+  const sparkColor = theme === 'dark' ? '#a5b4fc' : '#ea7a53'
 
   return (
     <ClickSpark sparkColor={sparkColor} sparkSize={12} sparkRadius={20} sparkCount={8} duration={450}>

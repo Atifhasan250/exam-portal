@@ -127,7 +127,7 @@ export default function WeekCard({
             </button>
             <button
               onClick={isEdit ? handleEditTask : handleAddTask}
-              className="flex-1 bg-theme-accent text-white py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
+              className="flex-1 bg-theme-accent text-theme-accent-text py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-lg shadow-theme-accent/20"
             >
               {isEdit ? 'Save' : 'Add Task'}
             </button>

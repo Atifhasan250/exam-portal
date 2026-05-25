@@ -22,8 +22,8 @@ export default function ProgressBar({ percent, completed, total }) {
           <span className="text-sm font-semibold text-theme-secondary">{completed}/{total} Completed</span>
         </div>
         <div className="h-6 rounded-full overflow-hidden border border-theme-border bg-theme-surfaceElevated shadow-inner relative">
-          <div 
-            className="h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r from-theme-primary to-theme-accent relative overflow-hidden"
+          <div
+            className="h-full rounded-full transition-all duration-1000 ease-out bg-theme-accent dark:bg-gradient-to-r dark:from-theme-primary dark:to-theme-accent relative overflow-hidden"
             style={{ width: `${width}%` }}
           >
             {/* Subtle shine effect on the progress bar */}

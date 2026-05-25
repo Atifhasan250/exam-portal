@@ -196,7 +196,7 @@ function ResourceNavButton({ resource, direction }) {
       href={resource.href}
       title={resource.title}
       aria-label={label}
-      className="h-11 w-full sm:w-32 rounded-xl border border-theme-accent bg-theme-accent text-white text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-theme-accent/30 hover:brightness-110"
+      className="h-11 w-full sm:w-32 rounded-xl border border-theme-accent bg-theme-accent text-theme-accent-text text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-theme-accent/30 hover:brightness-110"
     >
       {content}
     </Link>
