@@ -3,8 +3,9 @@ import { connectDB } from '@/lib/db'
 import { requireUserOrAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import Submission from '@/lib/models/Submission'
+import ExamAttempt from '@/lib/models/ExamAttempt'
 
-// Returns array of examId strings where this user submitted a LIVE attempt
+// Returns array of live exam ids already consumed by this user.
 export async function GET(_request, { params }) {
   try {
     const { clerkUserId } = await params
@@ -13,7 +14,12 @@ export async function GET(_request, { params }) {
 
     await connectDB()
 
-    const examIds = (await Submission.distinct('examId', { clerkUserId, wasLive: true }))
+    const [submittedExamIds, startedExamIds] = await Promise.all([
+      Submission.distinct('examId', { clerkUserId, wasLive: true }),
+      ExamAttempt.distinct('examId', { clerkUserId }),
+    ])
+
+    const examIds = [...new Set([...submittedExamIds, ...startedExamIds])]
       .map((examId) => examId?.toString())
       .filter(Boolean)
 

@@ -16,6 +16,7 @@ import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
 import ExamAttempt from '@/lib/models/ExamAttempt'
+import PracticeAttempt from '@/lib/models/PracticeAttempt'
 
 export async function GET(_request, { params }) {
   try {
@@ -104,6 +105,7 @@ export async function DELETE(request, { params }) {
         await Question.deleteMany({ examId: id }).session(session)
         await Submission.deleteMany({ examId: id }).session(session)
         await ExamAttempt.deleteMany({ examId: id }).session(session)
+        await PracticeAttempt.deleteMany({ examId: id }).session(session)
       })
     } finally {
       await session.endSession()

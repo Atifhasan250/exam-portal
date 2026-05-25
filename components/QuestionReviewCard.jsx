@@ -42,15 +42,15 @@ export default function QuestionReviewCard({ question, index, userAnswer, total 
               optionClass += 'bg-theme-error-bg border-theme-error-border '
               dotClass += 'bg-theme-error-text text-white '
             } else {
-              optionClass += 'bg-theme-bg border-theme-border opacity-60 '
-              dotClass += 'bg-theme-surface text-theme-secondary border border-theme-border '
+              optionClass += 'bg-theme-bg border-theme-border opacity-85 '
+              dotClass += 'bg-theme-surface text-review-option-muted border border-theme-border '
             }
 
             return (
               <div key={i} className={optionClass}>
                 <span className={dotClass}>{OPTION_LABELS[i] || i + 1}</span>
                 <span
-                  className={`leading-snug whitespace-pre-wrap [&_p]:m-0 [&_p]:inline ${isCorrectChoice ? 'text-theme-success-text font-semibold' : isUserChoice ? 'text-theme-error-text font-semibold' : 'text-theme-secondary'}`}
+                  className={`leading-snug whitespace-pre-wrap [&_p]:m-0 [&_p]:inline ${isCorrectChoice ? 'text-theme-success-text font-semibold' : isUserChoice ? 'text-theme-error-text font-semibold' : 'text-review-option-muted font-medium'}`}
                   dangerouslySetInnerHTML={{ __html: safeHTML(option) }}
                 />
                 {isCorrectChoice && (

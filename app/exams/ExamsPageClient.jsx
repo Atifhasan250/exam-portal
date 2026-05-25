@@ -14,9 +14,10 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
   const [examPages, setExamPages] = useState(() => normalizeInitialExamPages(initialExamPages, initialExams))
   const [loading, setLoading] = useState(!hasInitialData)
   const [loadingMoreStatus, setLoadingMoreStatus] = useState({})
-  const [submittedLiveIds, setSubmittedLiveIds] = useState(new Set())
+  const [consumedLiveIds, setConsumedLiveIds] = useState(new Set())
+  const [liveAccessLoading, setLiveAccessLoading] = useState(true)
   const router = useRouter()
-  const { user } = useUser()
+  const { user, isLoaded } = useUser()
   const CACHE_TTL_MS = 30 * 1000
 
   useEffect(() => {
@@ -52,20 +53,38 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
   }, [hasInitialData, initialExamPages, initialExams])
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!isLoaded) {
+      setLiveAccessLoading(true)
+      return
+    }
+
+    if (!user?.id) {
+      setConsumedLiveIds(new Set())
+      setLiveAccessLoading(false)
+      return
+    }
+
+    let active = true
+    setLiveAccessLoading(true)
     fetch(`/api/submissions/user/${encodeURIComponent(user.id)}/live`)
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) {
-          setSubmittedLiveIds(new Set(data))
+        if (active && Array.isArray(data)) {
+          setConsumedLiveIds(new Set(data))
         }
       })
       .catch(() => { })
-  }, [user?.id])
+      .finally(() => {
+        if (active) setLiveAccessLoading(false)
+      })
+
+    return () => { active = false }
+  }, [isLoaded, user?.id])
 
   const fmtDate = (date) => new Date(date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 
   const handleTakeExam = (examId) => {
+    if (!isLoaded || liveAccessLoading) return
     if (!user) {
       router.push(`/sign-in?redirect_url=${encodeURIComponent(`/exam/${examId}`)}`)
       return
@@ -185,7 +204,8 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
           {liveExams.length === 0 ? (
             <p className="text-theme-secondary text-sm">No exams are live right now.</p>
           ) : liveExams.map((exam, index) => {
-            const alreadySubmitted = submittedLiveIds.has(exam._id?.toString())
+            const alreadyConsumed = consumedLiveIds.has(exam._id?.toString())
+            const checkingLiveAccess = !isLoaded || liveAccessLoading
             return (
               <ExamCard
                 key={exam._id}
@@ -194,8 +214,8 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
                 badgeColor="bg-red-500/10 text-red-500 border-red-500/20"
                 fmtDate={fmtDate}
                 onStart={() => handleTakeExam(exam._id)}
-                disabled={alreadySubmitted}
-                disabledLabel="Exam Submitted"
+                disabled={checkingLiveAccess || alreadyConsumed}
+                disabledLabel={checkingLiveAccess ? 'Checking...' : 'Attempt Used'}
                 index={index}
               />
             )

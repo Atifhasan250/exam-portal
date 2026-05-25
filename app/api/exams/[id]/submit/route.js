@@ -13,6 +13,7 @@ import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
 import ExamAttempt from '@/lib/models/ExamAttempt'
+import PracticeAttempt from '@/lib/models/PracticeAttempt'
 
 async function getTrustedStudentName(userId) {
   try {
@@ -199,10 +200,17 @@ export async function POST(request, { params }) {
             .sort({ score: -1, submittedAt: -1 })
             .session(session)
 
-          const attemptCount = existingPracticeSubmissions.reduce(
+          const submittedPracticeAttemptCount = existingPracticeSubmissions.reduce(
             (totalAttempts, submission) => totalAttempts + (submission.attemptCount || 1),
-            1,
+            0,
           )
+          const recordedPracticeStartCount = await PracticeAttempt.countDocuments({
+            examId: exam._id,
+            clerkUserId: userId,
+          }).session(session)
+          const attemptCount = recordedPracticeStartCount > 0
+            ? Math.max(recordedPracticeStartCount, submittedPracticeAttemptCount)
+            : submittedPracticeAttemptCount + 1
 
           const practicePayload = {
             examId: exam._id,

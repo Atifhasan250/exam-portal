@@ -44,6 +44,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false) // ref guard prevents race condition double-submit
+  const startingRef = useRef(false)
   const [toast, setToast] = useState({ show: false, text: '' })
   const [lastSelected, setLastSelected] = useState({})
   const timerRef = useRef(null)
@@ -83,6 +84,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
 
   useEffect(() => {
     if (screen !== 'exam') return undefined
+    window.history.pushState({ examLocked: true }, '', window.location.href)
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -97,6 +99,12 @@ export default function ExamPageClient({ params, initialExam = null }) {
       submitExam({ reason: 'beforeunload', beacon: true })
     }
 
+    const handleBackNavigation = () => {
+      window.history.pushState({ examLocked: true }, '', window.location.href)
+      showToast('Back navigation detected. Submitting exam...')
+      submitExam({ reason: 'browser-back', redirectTo: '/exams' })
+    }
+
     const blockContext = (event) => event.preventDefault()
     const blockKeys = (event) => {
       if ((event.ctrlKey || event.metaKey) && ['c', 'v', 'p', 'a', 's', 'u'].includes(event.key.toLowerCase())) {
@@ -107,6 +115,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('beforeunload', handleBeforeUnload)
     window.addEventListener('pagehide', handleBeforeUnload)
+    window.addEventListener('popstate', handleBackNavigation)
     document.addEventListener('contextmenu', blockContext)
     document.addEventListener('keydown', blockKeys)
 
@@ -114,6 +123,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       window.removeEventListener('pagehide', handleBeforeUnload)
+      window.removeEventListener('popstate', handleBackNavigation)
       document.removeEventListener('contextmenu', blockContext)
       document.removeEventListener('keydown', blockKeys)
     }
@@ -132,9 +142,11 @@ export default function ExamPageClient({ params, initialExam = null }) {
       return
     }
 
-    if (exam.requiresAttempt) {
-      setSubmitting(true)
-      try {
+    if (startingRef.current) return
+    startingRef.current = true
+    setSubmitting(true)
+    try {
+      if (exam.requiresAttempt) {
         const response = await fetch(`/api/exams/${id}/attempts/start`, { method: 'POST' })
         const data = await response.json()
         if (!response.ok) {
@@ -143,16 +155,28 @@ export default function ExamPageClient({ params, initialExam = null }) {
         }
 
         attemptIdRef.current = data.attemptId
+        const serverAnswers = data.answers && typeof data.answers === 'object' ? data.answers : {}
+        setAnswers(serverAnswers)
+        answersRef.current = serverAnswers
+        setLastSelected({})
         setExam((previous) => ({ ...previous, questions: data.questions || [] }))
         if (data.expiresAt) {
           setTimeLeft(Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000)))
         }
-      } catch {
-        setError('Failed to start exam attempt')
-        return
-      } finally {
-        setSubmitting(false)
+      } else {
+        const response = await fetch(`/api/exams/${id}/practice-attempts/start`, { method: 'POST' })
+        const data = await response.json()
+        if (!response.ok) {
+          setError(data.error || 'Failed to start practice attempt')
+          return
+        }
       }
+    } catch {
+      setError('Failed to start attempt')
+      return
+    } finally {
+      startingRef.current = false
+      setSubmitting(false)
     }
 
     setScreen('exam')
@@ -185,7 +209,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
     }).catch(() => {})
   }
 
-  const submitExam = async ({ reason = 'manual-submit', beacon = false } = {}) => {
+  const submitExam = async ({ reason = 'manual-submit', beacon = false, redirectTo = '' } = {}) => {
     // useRef guard prevents race condition: timer expiry + tab-switch firing
     // simultaneously can both pass the state check before React re-renders
     if (submittingRef.current) return
@@ -227,6 +251,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
       sessionStorage.removeItem('exams_cache')
       sessionStorage.removeItem('leaderboard_cache')
       setResult({ ...data, answers: answersRef.current })
+      if (redirectTo) router.replace(redirectTo)
     } catch {
       setResult(null)
     } finally {
@@ -286,7 +311,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
       <main className="max-w-4xl mx-auto p-4 md:p-8">
         {screen !== 'exam' ? (
           <div className="mb-6">
-            <Link href="/" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shadow-sm">
+            <Link href={screen === 'result' ? '/exams' : '/'} className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shadow-sm">
               <i className="fas fa-arrow-left" />
             </Link>
           </div>
@@ -316,8 +341,11 @@ export default function ExamPageClient({ params, initialExam = null }) {
                 { icon: 'fa-clock', label: 'Duration', val: `${exam.duration} Minutes` },
                 { icon: 'fa-question-circle', label: 'Questions', val: questionCount },
                 { icon: 'fa-lock', label: 'Answers', val: 'Cannot be changed once selected' },
+                exam.requiresAttempt
+                  ? { icon: 'fa-user-check', label: 'Live Attempt', val: 'Begin counts as your one live attempt', warn: true }
+                  : { icon: 'fa-redo', label: 'Practice Count', val: 'Every begin adds one practice attempt' },
                 { icon: 'fa-shield-alt', label: 'Auto-Submit', val: 'Tab switch or browser close will submit your exam', warn: true },
-              ].map((item) => (
+              ].filter(Boolean).map((item) => (
                 <div key={item.label} className={`bg-theme-bg border rounded-xl p-4 flex items-start space-x-3 ${item.warn ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-theme-border'}`}>
                   <i className={`fas ${item.icon} mt-0.5 ${item.warn ? 'text-yellow-500' : 'text-theme-accent'}`} />
                   <div><p className={`font-semibold text-sm ${item.warn ? 'text-yellow-600 dark:text-yellow-400' : 'text-theme-primary'}`}>{item.label}</p><p className="text-theme-secondary text-sm">{item.val}</p></div>
@@ -354,7 +382,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
                       const selected = answers[questionIndex] === optionIndex
                       let classes = 'group flex items-center p-3 sm:p-4 rounded-xl border transition-all duration-200 '
                       classes += hasAnswered
-                        ? selected ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default' : 'border-theme-border bg-theme-surface opacity-50 cursor-default'
+                        ? selected ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default' : 'border-theme-border bg-theme-surface opacity-75 cursor-default'
                         : selected ? 'border-theme-accent bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-pointer' : 'border-theme-border bg-theme-surface hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
                       const dotClasses = selected ? 'border-theme-accent bg-theme-accent' : 'border-theme-border group-hover:border-theme-accent'
 
@@ -367,7 +395,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
                           <div className={`flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all ${dotClasses}`}>
                             {selected ? <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full scale-in-center" /> : null}
                           </div>
-                          <span className={`ml-2 sm:ml-3 text-sm sm:text-base leading-snug whitespace-pre-wrap [&_p]:m-0 [&_p]:inline ${selected ? 'text-theme-primary font-bold' : 'text-theme-secondary font-medium'}`} dangerouslySetInnerHTML={{ __html: safeHTML(option) }} />
+                          <span className={`ml-2 sm:ml-3 text-sm sm:text-base leading-snug whitespace-pre-wrap [&_p]:m-0 [&_p]:inline ${selected ? 'text-theme-primary font-bold' : 'text-exam-option font-semibold'}`} dangerouslySetInnerHTML={{ __html: safeHTML(option) }} />
                         </label>
                       )
                     })}
@@ -384,7 +412,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
         ) : null}
 
         {screen === 'result' && result ? (
-          <ResultScreen result={result} studentName={studentName} examId={id} onBack={() => router.push('/')} />
+          <ResultScreen result={result} studentName={studentName} examId={id} onBack={() => router.push('/exams')} />
         ) : null}
         {screen === 'result' && !result ? (
           <div className="text-center py-20 text-theme-secondary">Calculating results...</div>
@@ -496,7 +524,7 @@ function ResultScreen({ result, studentName, examId, onBack }) {
       </div>
 
       <button onClick={onBack} className="text-theme-secondary hover:text-theme-primary flex items-center justify-center mx-auto space-x-2 transition-colors text-sm pb-6">
-        <i className="fas fa-arrow-left" /><span>Back to Home</span>
+        <i className="fas fa-arrow-left" /><span>Back to Exams</span>
       </button>
     </div>
   )

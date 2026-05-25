@@ -8,6 +8,7 @@ import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
 import ResourceProgress from '@/lib/models/ResourceProgress'
 import ExamAttempt from '@/lib/models/ExamAttempt'
+import PracticeAttempt from '@/lib/models/PracticeAttempt'
 
 export async function DELETE(request) {
   const originCheck = enforceSameOrigin(request)
@@ -28,6 +29,7 @@ export async function DELETE(request) {
         await PlannerData.deleteOne({ clerkUserId: userId }).session(session)
         await ResourceProgress.deleteMany({ clerkUserId: userId }).session(session)
         await ExamAttempt.deleteMany({ clerkUserId: userId }).session(session)
+        await PracticeAttempt.deleteMany({ clerkUserId: userId }).session(session)
       })
     } finally {
       await session.endSession()

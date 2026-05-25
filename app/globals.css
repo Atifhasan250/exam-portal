@@ -457,6 +457,14 @@ code {
   color: var(--color-accent);
 }
 
+.text-exam-option {
+  color: color-mix(in srgb, var(--color-primary) 70%, var(--color-secondary));
+}
+
+.text-review-option-muted {
+  color: color-mix(in srgb, var(--color-primary) 62%, var(--color-secondary));
+}
+
 .text-theme-error-text {
   color: var(--color-error-text);
 }

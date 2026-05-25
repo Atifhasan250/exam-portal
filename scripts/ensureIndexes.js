@@ -13,6 +13,7 @@ import mongoose from 'mongoose'
 // Import all models to register their schemas
 import '../lib/models/Exam.js'
 import '../lib/models/ExamAttempt.js'
+import '../lib/models/PracticeAttempt.js'
 import '../lib/models/Question.js'
 import '../lib/models/Submission.js'
 import '../lib/models/PlannerData.js'

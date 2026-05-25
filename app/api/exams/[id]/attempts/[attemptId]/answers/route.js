@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { getClerkSession } from '@/lib/auth'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { rateLimit } from '@/lib/rateLimit'
 import { validate, attemptAnswerSchema } from '@/lib/validation'
 import { logger } from '@/lib/logger'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
@@ -19,6 +20,16 @@ export async function POST(request, { params }) {
 
     const { userId } = await getClerkSession()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const limited = await rateLimit(request, {
+      name: 'attempt-answers',
+      windowMs: 60 * 1000,
+      max: 120,
+      keyParts: [userId, id, attemptId],
+      message: 'Too many answer requests.',
+      requirePersistent: true,
+    })
+    if (limited) return limited
 
     const raw = await request.json()
     const parsed = validate(attemptAnswerSchema, raw)

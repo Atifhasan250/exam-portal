@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useTheme } from '@/context/ThemeContext'
 
-const LAST_UPDATED = 'May 10, 2025'
+const LAST_UPDATED = 'May 25, 2026'
 
 const sections = [
   {
@@ -15,7 +15,7 @@ const sections = [
       },
       {
         heading: 'Exam & Performance Data',
-        text: 'We record your exam submissions, scores, time taken, and answers to provide you with results, analytics, and leaderboard rankings. This data is essential to the core functionality of the platform.',
+        text: 'We record your exam submissions, scores, time taken, and answers to provide you with results, analytics, and leaderboard rankings. Your leaderboard name and exam score may be publicly visible on leaderboard pages. This data is essential to the core functionality of the platform.',
       },
       {
         heading: 'Usage Data',
@@ -123,7 +123,7 @@ const sections = [
     content: [
       {
         heading: 'Get in Touch',
-        text: 'If you have any questions about this Privacy Policy or how we handle your data, please contact us at itresourcezone@gmail.com.com. You can also reach us through our Telegram channel at t.me/Itzonei.',
+        text: 'If you have any questions about this Privacy Policy or how we handle your data, please contact us at itresourcezone@gmail.com. You can also reach us through our Telegram channel at t.me/Itzonei.',
       },
     ],
   },
@@ -176,7 +176,7 @@ export default function PrivacyContent() {
           </div>
 
           <p className="mt-10 text-center text-xs text-theme-secondary">
-            © {new Date().getFullYear()} IT Resource Zone ·{' '}
+            {'\u00A9'} {new Date().getFullYear()} IT Resource Zone {' | '}
             <Link href="/terms" className="hover:text-theme-accent transition-colors">Terms of Service</Link>
           </p>
         </div>

@@ -32,6 +32,14 @@ function orderQuestionsByAttempt(questionIds, questions) {
     .filter(Boolean)
 }
 
+function normalizeAttemptAnswers(answers) {
+  if (!answers) return {}
+  if (answers instanceof Map) return Object.fromEntries(answers.entries())
+  return Object.fromEntries(
+    Object.entries(answers).map(([key, value]) => [key, Number(value)]),
+  )
+}
+
 export async function POST(request, { params }) {
   const originCheck = enforceSameOrigin(request)
   if (originCheck) return originCheck
@@ -86,6 +94,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({
         attemptId: existingAttempt._id,
         expiresAt: existingAttempt.expiresAt,
+        answers: normalizeAttemptAnswers(existingAttempt.answers),
         questions: orderQuestionsByAttempt(existingAttempt.questionIds, questions).map(toPublicQuestion),
       })
     }
@@ -105,6 +114,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({
       attemptId: attempt._id,
       expiresAt: attempt.expiresAt,
+      answers: {},
       questions: questions.map(toPublicQuestion),
     }, { status: 201 })
   } catch (error) {
