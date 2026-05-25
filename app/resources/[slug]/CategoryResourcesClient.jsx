@@ -48,8 +48,8 @@ export default function CategoryResourcesClient({
 
   const refreshProgress = useCallback(async () => {
     const now = Date.now()
-    if (now - progressRefreshAtRef.current < 15000) return progressRefreshPromiseRef.current
     if (progressRefreshPromiseRef.current) return progressRefreshPromiseRef.current
+    if (now - progressRefreshAtRef.current < 15000) return Promise.resolve()
 
     progressRefreshPromiseRef.current = fetch('/api/resources/progress', { cache: 'no-store' })
       .then((response) => response.json())
