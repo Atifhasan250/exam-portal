@@ -154,7 +154,7 @@ export default function ProfilePwaPanel() {
       await fetch('/api/push/subscription', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpoint }),
+        body: JSON.stringify(endpoint ? { endpoint } : { all: true }),
       })
 
       const nextPreference = {

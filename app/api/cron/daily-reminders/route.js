@@ -14,8 +14,7 @@ function isAuthorized(request) {
   const authHeader = request.headers.get('authorization') || ''
   if (authHeader === `Bearer ${secret}`) return true
 
-  const url = new URL(request.url)
-  return url.searchParams.get('secret') === secret
+  return request.headers.get('x-cron-secret') === secret
 }
 
 export async function GET(request) {

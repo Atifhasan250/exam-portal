@@ -66,18 +66,42 @@ export async function DELETE(request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    let endpoint = ''
-    try {
-      const body = await request.json()
-      endpoint = typeof body?.endpoint === 'string' ? body.endpoint : ''
-    } catch {
-      endpoint = ''
+    const deleteAllFromQuery = request.nextUrl.searchParams.get('all') === 'true'
+    let body = {}
+    const contentLength = request.headers.get('content-length')
+    const hasBody = contentLength === null
+      ? request.headers.has('content-type') || request.headers.has('transfer-encoding')
+      : Number(contentLength) > 0
+
+    if (hasBody) {
+      try {
+        body = await request.json()
+      } catch {
+        return NextResponse.json({ error: 'Malformed JSON body' }, { status: 400 })
+      }
+    }
+
+    const deleteAll = deleteAllFromQuery || body?.all === true
+    const endpoint = typeof body?.endpoint === 'string' ? body.endpoint.trim() : ''
+
+    if (!deleteAll && !endpoint) {
+      return NextResponse.json({ error: 'Endpoint is required unless all=true is set.' }, { status: 400 })
+    }
+    if (!deleteAll) {
+      try {
+        new URL(endpoint)
+      } catch {
+        return NextResponse.json({ error: 'Endpoint must be a valid URL.' }, { status: 400 })
+      }
+      if (endpoint.length > 2048) {
+        return NextResponse.json({ error: 'Endpoint must be 2048 characters or fewer.' }, { status: 400 })
+      }
     }
 
     await connectDB()
-    const filter = endpoint
-      ? { clerkUserId: userId, endpoint }
-      : { clerkUserId: userId }
+    const filter = deleteAll
+      ? { clerkUserId: userId }
+      : { clerkUserId: userId, endpoint }
     await PushSubscription.updateMany(filter, { $set: { active: false } })
 
     return NextResponse.json({ success: true })
