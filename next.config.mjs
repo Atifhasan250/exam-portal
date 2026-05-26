@@ -24,10 +24,21 @@ const sentryConnectSrc = [
   sentryDsnHost ? `https://${sentryDsnHost}` : '',
 ].filter(Boolean).join(' ')
 
-// Clerk custom domain (e.g. clerk.irz.atifhasan.com).
-// Vercel injects NEXT_PUBLIC_CLERK_FRONTEND_API_URL automatically when a
-// custom domain is configured in the Clerk dashboard.
-const clerkFrontendApiHost = hostnameFromUrl(process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL)
+// Derive the Clerk frontend API host directly from the publishable key.
+// Clerk encodes the host in base64 inside the key (after pk_live_ / pk_test_),
+// so no extra env var is needed — NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is enough.
+function clerkHostFromPublishableKey(key) {
+  if (!key) return null
+  try {
+    const b64 = key.replace(/^pk_(live|test)_/, '')
+    return Buffer.from(b64, 'base64').toString('utf8').replace(/\$+$/, '') || null
+  } catch {
+    return null
+  }
+}
+const clerkFrontendApiHost = clerkHostFromPublishableKey(
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+)
 const clerkCustomDomainSrc = clerkFrontendApiHost
   ? `https://${clerkFrontendApiHost} wss://${clerkFrontendApiHost}`
   : ''
