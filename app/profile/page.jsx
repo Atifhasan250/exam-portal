@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { useClerk, useUser } from '@clerk/nextjs'
 import PageSkeleton from '@/components/PageSkeleton'
 import AuthCallout from '@/components/AuthCallout'
-import ProfilePwaPanel from '@/components/ProfilePwaPanel'
 import { getPlannerData } from '@/app/tasks/actions'
 
 export default function ProfilePage() {
@@ -234,8 +233,6 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
-
-        <ProfilePwaPanel />
 
         {/* Tasks History Section */}
         <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Tasks History</h3>
