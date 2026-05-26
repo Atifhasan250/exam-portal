@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { SignIn } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
 import { clerkAppearance } from '@/lib/clerkTheme'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
@@ -65,9 +66,7 @@ export default function SignInPage() {
                 <h1 className="text-2xl sm:text-3xl font-black text-theme-primary">Welcome Back</h1>
                 <p className="text-theme-secondary text-sm sm:text-base mt-1">Sign in to access your exam history</p>
               </div>
-              <button onClick={toggleTheme} className="shrink-0 w-11 h-11 rounded-full bg-theme-bg border border-theme-border text-theme-secondary hover:text-theme-primary transition-all">
-                <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
-              </button>
+              <ThemeToggle theme={theme} onToggle={toggleTheme} />
             </div>
 
             <div className="auth-clerk w-full mt-2 sm:mt-4">

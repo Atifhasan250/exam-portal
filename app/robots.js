@@ -9,6 +9,8 @@ export default function robots() {
     '/api/admin/',
     '/profile',
     '/profile/',
+    '/resources',
+    '/resources/',
     '/tasks/history',
     '/tasks/history/',
   ]
