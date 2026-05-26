@@ -15,7 +15,7 @@ export const metadata = {
     path: '/resources',
     keywords: ['IT learning resources', 'student resource hub', 'exam preparation materials'],
   }),
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: false },
 }
 
 export default async function ResourcesPage() {

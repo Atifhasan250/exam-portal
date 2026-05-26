@@ -13,7 +13,7 @@ IT Resource Zone helps IT students prepare with:
 - Registered student accounts for live and practice exams
 - Timed exam attempts, secure answer locking, and instant scoring
 - Public per-exam and global leaderboards
-- A curated resource library with YouTube lessons, PDFs, files, and useful links
+- A signed-in resource library with YouTube lessons, PDFs, files, and useful links
 - Personal study planning, habit tracking, and progress analytics
 
 ## Key Public Pages
@@ -23,9 +23,6 @@ IT Resource Zone helps IT students prepare with:
 | `/` | Home page |
 | `/exams` | Published live, upcoming, and past exams |
 | `/exam/[id]` | Public exam overview and signed-in exam entry |
-| `/resources` | Curated IT learning resource library |
-| `/resources/[slug]` | Resource category page |
-| `/resources/watch/[slug]` | Public video lesson page |
 | `/leaderboard` | Global leaderboard |
 | `/leaderboard/[id]` | Per-exam leaderboard |
 | `/privacy` | Privacy Policy |
@@ -38,6 +35,10 @@ IT Resource Zone helps IT students prepare with:
 | `/profile` | Student profile and submission history |
 | `/tasks` | Personal study planner |
 | `/tasks/history` | Personal study analytics |
+| `/resources` | Signed-in learning resource library |
+| `/resources/[slug]` | Signed-in resource category page |
+| `/resources/watch/[slug]` | Signed-in video lesson page |
+| `/resources/view/[slug]` | Signed-in resource viewer |
 | `/admin` | Private admin panel |
 | `/api/*` | API routes |
 

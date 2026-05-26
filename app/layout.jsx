@@ -129,7 +129,7 @@ const webAppSchema = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`dark ${inter.variable}`}>
+    <html lang="en" className={`dark ${inter.variable}`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -147,7 +147,7 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: safeJsonLd(webAppSchema) }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <AppProviders>
           <PwaRuntime />
           <AppChrome>{children}</AppChrome>

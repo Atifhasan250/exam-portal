@@ -8,9 +8,15 @@ import ResourceProgress from '@/lib/models/ResourceProgress'
 import Resource from '@/lib/models/Resource'
 import { serialize } from '@/lib/resourceUtils'
 
+export const dynamic = 'force-dynamic'
+
+const noStoreHeaders = {
+  'Cache-Control': 'private, no-store, max-age=0',
+}
+
 export async function GET() {
   const { userId } = await auth()
-  if (!userId) return NextResponse.json([])
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: noStoreHeaders })
 
   try {
     await connectDB()
@@ -24,10 +30,10 @@ export async function GET() {
       .sort({ lastAccessedAt: -1 })
       .lean()
 
-    return NextResponse.json(serialize(progress.filter((item) => item.resourceId)))
+    return NextResponse.json(serialize(progress.filter((item) => item.resourceId)), { headers: noStoreHeaders })
   } catch (error) {
     logger.error('[GET /api/resources/progress]', { error })
-    return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
+    return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500, headers: noStoreHeaders })
   }
 }
 
@@ -36,7 +42,7 @@ export async function POST(request) {
   if (originCheck) return originCheck
 
   const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: noStoreHeaders })
 
   try {
     const raw = await request.json()
@@ -46,7 +52,7 @@ export async function POST(request) {
     await connectDB()
     const resource = await Resource.exists({ _id: parsed.data.resourceId, published: true })
     if (!resource) {
-      return NextResponse.json({ error: 'Resource not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Resource not found' }, { status: 404, headers: noStoreHeaders })
     }
 
     const update = {
@@ -70,9 +76,9 @@ export async function POST(request) {
       { new: true, upsert: true, lean: true, setDefaultsOnInsert: true },
     )
 
-    return NextResponse.json(serialize(progress))
+    return NextResponse.json(serialize(progress), { headers: noStoreHeaders })
   } catch (error) {
     logger.error('[POST /api/resources/progress]', { error })
-    return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
+    return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500, headers: noStoreHeaders })
   }
 }

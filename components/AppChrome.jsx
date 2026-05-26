@@ -46,6 +46,7 @@ export default function AppChrome({ children }) {
   const pathname = usePathname()
   const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   const showMobileNavbar = pathname === '/'
+  const showBottomNav = !isChromeless && pathname !== '/'
   const year = new Date().getFullYear()
   const { theme } = useTheme()
 
@@ -197,7 +198,7 @@ export default function AppChrome({ children }) {
           </footer>
         )}
 
-        {!isChromeless ? <BottomNav /> : null}
+        {showBottomNav ? <BottomNav /> : null}
       </div>
     </ClickSpark>
   )

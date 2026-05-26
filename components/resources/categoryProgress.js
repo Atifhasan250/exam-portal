@@ -49,7 +49,7 @@ export function CategoryProgressBar({ summary }) {
       <div className="flex items-center justify-end gap-3 text-xs font-bold">
         <span className="text-theme-primary">{summary.percent}%</span>
       </div>
-      <div className="h-2 bg-theme-bg rounded-full overflow-hidden">
+      <div className="h-2 bg-theme-progress-track rounded-full overflow-hidden">
         <div className="h-full bg-theme-accent rounded-full" style={{ width: `${summary.percent}%` }} />
       </div>
       <p className="text-xs font-medium text-theme-secondary">

@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server'
 import mongoose from 'mongoose'
 import { NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
@@ -7,7 +8,14 @@ import { getCachedPublicResources } from '@/lib/publicCache'
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
+const privateHeaders = {
+  'Cache-Control': 'private, no-store, max-age=0',
+}
+
 export async function GET(request) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: privateHeaders })
+
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')?.trim()
@@ -38,7 +46,7 @@ export async function GET(request) {
 
     return NextResponse.json(resources, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        ...privateHeaders,
         'X-Total-Count': String(totalCount),
         'X-Has-More': String(hasMoreResources),
       },

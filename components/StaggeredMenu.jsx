@@ -17,6 +17,7 @@ export const StaggeredMenu = ({
   openMenuButtonColor = '#1A2040',
   changeMenuColorOnOpen = false,
   closeOnClickAway = true,
+  mobileCompact = false,
   onMenuOpen,
   onMenuClose,
 }) => {
@@ -317,7 +318,7 @@ export const StaggeredMenu = ({
     <>
       <button
         ref={toggleBtnRef}
-        className="sm-nav-toggle"
+        className={`sm-nav-toggle ${mobileCompact ? 'sm-nav-toggle--mobile-compact' : ''}`}
         aria-label={open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
         aria-controls="staggered-menu-panel"

@@ -158,7 +158,7 @@ export default function ResourceVideoPlayer({ resource, initialProgress, previou
           <span className="text-sm font-bold text-theme-primary">Progress</span>
           <span className="text-sm text-theme-secondary">{saving ? 'Saving...' : `${percent}%`}</span>
         </div>
-        <div className="h-2 bg-theme-bg rounded-full overflow-hidden">
+        <div className="h-2 bg-theme-progress-track rounded-full overflow-hidden">
           <div className="h-full bg-theme-accent rounded-full" style={{ width: `${percent}%` }} />
         </div>
       </div>

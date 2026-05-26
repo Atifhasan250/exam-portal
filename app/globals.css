@@ -11,6 +11,8 @@ html {
 :root {
   --color-bg: #fff9e3;
   --color-surface: #fff8e7;
+  --color-surface-elevated: #f8edcf;
+  --color-progress-track: #eadfbd;
   --color-footer-bg: #f6eecf;
   --color-primary: #081126;
   --color-secondary: rgba(0, 0, 0, 0.6);
@@ -29,6 +31,8 @@ html {
 .dark {
   --color-bg: #070A14;
   --color-surface: #0F1524;
+  --color-surface-elevated: #11192b;
+  --color-progress-track: #050816;
   --color-footer-bg: #0F1524;
   --color-primary: #E8EAF6;
   --color-secondary: #7080A0;
@@ -440,6 +444,14 @@ code {
 
 .bg-theme-surface {
   background-color: var(--color-surface);
+}
+
+.bg-theme-surfaceElevated {
+  background-color: var(--color-surface-elevated);
+}
+
+.bg-theme-progress-track {
+  background-color: var(--color-progress-track);
 }
 
 .bg-theme-accent {

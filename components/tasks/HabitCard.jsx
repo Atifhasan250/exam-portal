@@ -307,7 +307,7 @@ export default function HabitCard({
           <div className="flex justify-center gap-4 sm:gap-8 mt-6">
             {[25, 50, 75, 100].map(val => (
               <div key={val} className="flex items-center gap-1.5">
-                <div className="w-3 h-5 rounded-[2px] bg-theme-bg border border-theme-border overflow-hidden flex flex-col justify-end">
+                <div className="w-3 h-5 rounded-[2px] bg-theme-progress-track border border-theme-border overflow-hidden flex flex-col justify-end">
                   <div className="w-full bg-theme-accent" style={{ height: `${val}%` }} />
                 </div>
                 <span className="text-[10px] sm:text-xs text-theme-secondary font-medium">{val}%</span>

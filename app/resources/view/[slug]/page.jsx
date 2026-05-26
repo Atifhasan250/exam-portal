@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { publicResourceSlug } from '@/lib/resourceUtils'
+import { getResourceThumbnailUrl, publicResourceSlug } from '@/lib/resourceUtils'
 import { getCachedCategorySiblingResources, getCachedResourcePageBySlug } from '@/lib/publicCache'
 import { safeJsonLd } from '@/lib/jsonLd'
-import PdfPreviewFrame from '@/components/resources/PdfPreviewFrame'
 import ResourceOpenButton from '@/components/resources/ResourceOpenButton'
 
 export async function generateMetadata({ params }) {
@@ -25,14 +24,17 @@ export async function generateMetadata({ params }) {
   const description = resource.description?.trim()
     || `Open ${resource.title} on IT Resource Zone.`
 
-  return buildPageMetadata({
-    title: resource.title,
-    description,
-    path: `/resources/view/${publicResourceSlug(resource)}`,
-    keywords: ['IT learning resource', resource.categoryId?.name, labelForType(resource.type)].filter(Boolean),
-    image: resource.thumbnailUrl || '/link-preview.jpg',
-    imageAlt: resource.title,
-  })
+  return {
+    ...buildPageMetadata({
+      title: resource.title,
+      description,
+      path: `/resources/view/${publicResourceSlug(resource)}`,
+      keywords: ['IT learning resource', resource.categoryId?.name, labelForType(resource.type)].filter(Boolean),
+      image: getResourceThumbnailUrl(resource) || '/link-preview.jpg',
+      imageAlt: resource.title,
+    }),
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function ResourceViewPage({ params }) {
@@ -105,13 +107,22 @@ const getResourceBySlug = getCachedResourcePageBySlug
 function ResourcePreview({ resource, resourceUrl }) {
   const isPdf = resource.type === 'pdf' && resourceUrl
   const isImage = resource.type === 'image' && (resource.imagekitUrl || resource.thumbnailUrl || resourceUrl)
+  const thumbnailUrl = getResourceThumbnailUrl(resource)
   const downloadUrl = getDownloadUrl(resource, resourceUrl)
   const showDownloadButton = Boolean(downloadUrl && ['pdf', 'image'].includes(resource.type))
 
   return (
     <div className="bg-theme-surface border border-theme-border rounded-2xl overflow-hidden shadow-xl">
       {isPdf ? (
-        <PdfPreviewFrame title={resource.title} src={resourceUrl} thumbnailUrl={resource.thumbnailUrl} />
+        <div className="relative aspect-video bg-theme-progress-track overflow-hidden">
+          {thumbnailUrl ? (
+            <img src={thumbnailUrl} alt={`${resource.title} thumbnail`} className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-theme-secondary">
+              <i className="fas fa-file-pdf text-4xl" />
+            </div>
+          )}
+        </div>
       ) : isImage ? (
         <div className="relative aspect-[4/3] sm:aspect-video bg-theme-bg">
           <img src={resource.imagekitUrl || resource.thumbnailUrl || resourceUrl} alt={resource.title} className="h-full w-full object-contain" />

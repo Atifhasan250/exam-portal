@@ -192,20 +192,20 @@ export default function ResourcesPageClient({
         {!loading && !loadingResources && !isSearching ? (
           <>
             <SectionTitle title="Categories" subtitle="Choose a topic and follow the resources in a clean order." />
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((category) => (
-                <Link key={category._id} href={`/resources/${category.slug}`} className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:border-theme-accent/40 transition-all">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-theme-bg flex items-center justify-center shrink-0" style={{ color: category.color || 'var(--color-accent)' }}>
+                <Link key={category._id} href={`/resources/${category.slug}`} className="min-w-0 w-full bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-5 shadow-sm hover:border-theme-accent/40 transition-all">
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-theme-progress-track flex items-center justify-center shrink-0" style={{ color: category.color || 'var(--color-accent)' }}>
                         <i className={`fas ${category.icon || 'fa-book-open'}`} />
                       </div>
-                      <h2 className="text-xl font-extrabold truncate">{category.name}</h2>
+                      <h2 className="min-w-0 text-lg sm:text-xl font-extrabold leading-snug break-words">{category.name}</h2>
                     </div>
-                    <span className="text-xs font-bold text-theme-secondary shrink-0">{category.resourceCounts?.total || 0} items</span>
+                    <span className="self-start rounded-lg bg-theme-progress-track px-2.5 py-1 text-xs font-bold text-theme-secondary shrink-0">{category.resourceCounts?.total || 0} items</span>
                   </div>
                   {category.description?.trim() ? (
-                    <p className="text-sm text-theme-secondary mt-2 line-clamp-2">{category.description.trim()}</p>
+                    <p className="text-sm text-theme-secondary mt-3 line-clamp-2 break-words">{category.description.trim()}</p>
                   ) : null}
                   <div className="flex flex-wrap gap-2 mt-4 text-xs font-bold text-theme-secondary">
                     <span>{category.resourceCounts?.youtube || 0} videos</span>
@@ -244,7 +244,7 @@ function ResourceGrid({ resources, allResources, progressByResourceId, metaMode 
   const serialMap = buildCategoryResourceSerialMap(allResources || resources)
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {resources.map((resource) => (
         <ResourceCard
           key={resource._id}

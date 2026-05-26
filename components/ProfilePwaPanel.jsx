@@ -21,6 +21,8 @@ function isIosSafari() {
   return /iphone|ipad|ipod/.test(userAgent) && /safari/.test(userAgent) && !/crios|fxios|edgios/.test(userAgent)
 }
 
+const APK_DOWNLOAD_URL = '/IT%20Resource%20Zone.apk'
+
 export default function ProfilePwaPanel() {
   const [installPrompt, setInstallPrompt] = useState(null)
   const [isStandalone, setIsStandalone] = useState(false)
@@ -88,9 +90,9 @@ export default function ProfilePwaPanel() {
     setInstallPrompt(null)
   }
 
-  const enableReminders = async () => {
+  const enableNotifications = async () => {
     if (!pushSupported) {
-      setMessage('Push reminders need a configured VAPID public key and browser support.')
+      setMessage('Notifications need browser support and push configuration.')
       return
     }
 
@@ -105,7 +107,8 @@ export default function ProfilePwaPanel() {
       }
 
       const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.subscribe({
+      const existingSubscription = await registration.pushManager.getSubscription()
+      const subscription = existingSubscription || await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
       })
@@ -131,15 +134,15 @@ export default function ProfilePwaPanel() {
 
       setSubscriptionState({ subscribed: true, count: 1 })
       setPreference(nextPreference)
-      setMessage('Daily reminders are on.')
+      setMessage('Notifications are on.')
     } catch (error) {
-      setMessage(error.message || 'Could not enable reminders.')
+      setMessage(error.message || 'Could not enable notifications.')
     } finally {
       setBusy(false)
     }
   }
 
-  const disableReminders = async () => {
+  const disableNotifications = async () => {
     setBusy(true)
     setMessage('')
     try {
@@ -170,9 +173,9 @@ export default function ProfilePwaPanel() {
 
       setSubscriptionState({ subscribed: false, count: 0 })
       setPreference(nextPreference)
-      setMessage('Daily reminders are off.')
+      setMessage('Notifications are off.')
     } catch (error) {
-      setMessage(error.message || 'Could not disable reminders.')
+      setMessage(error.message || 'Could not disable notifications.')
     } finally {
       setBusy(false)
     }
@@ -187,7 +190,7 @@ export default function ProfilePwaPanel() {
             Mobile App
           </h3>
           <p className="text-theme-secondary text-sm mt-2 leading-relaxed">
-            Install IT Resource Zone on your phone and use daily task reminders at 8 PM.
+            Install IT Resource Zone and control app notifications from this profile.
           </p>
           {message ? (
             <p className="mt-3 text-sm font-semibold text-theme-secondary">{message}</p>
@@ -204,30 +207,40 @@ export default function ProfilePwaPanel() {
               Install App
             </button>
           ) : (
-            <div className="w-full px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-sm font-bold text-theme-secondary text-center">
-              {isStandalone ? 'Installed mode active' : isIosSafari() ? 'Use Share > Add to Home Screen' : 'Install prompt appears when available'}
-            </div>
+            <a
+              href={APK_DOWNLOAD_URL}
+              download="IT Resource Zone.apk"
+              className="w-full px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-all inline-flex items-center justify-center gap-2 text-center"
+            >
+              <i className="fas fa-download" />
+              {isStandalone ? 'Download APK' : isIosSafari() ? 'Download APK' : 'Download App'}
+            </a>
           )}
 
           {preference.enabled && subscriptionState.subscribed ? (
             <button
-              onClick={disableReminders}
+              onClick={disableNotifications}
               disabled={busy}
               className="w-full px-4 py-3 rounded-xl font-bold bg-theme-bg text-theme-primary border border-theme-border hover:border-theme-accent disabled:opacity-60 transition-all inline-flex items-center justify-center gap-2"
             >
               <i className="fas fa-bell-slash" />
-              Turn Off
+              Turn Off Notifications
             </button>
           ) : (
             <button
-              onClick={enableReminders}
+              onClick={enableNotifications}
               disabled={busy || notificationPermission === 'denied'}
               className="w-full px-4 py-3 rounded-xl font-bold bg-theme-bg text-theme-primary border border-theme-border hover:border-theme-accent disabled:opacity-60 transition-all inline-flex items-center justify-center gap-2"
             >
               <i className="fas fa-bell" />
-              Remind Me
+              Enable Notifications
             </button>
           )}
+          {notificationPermission === 'denied' ? (
+            <div className="text-xs text-theme-secondary text-center">
+              Notifications are blocked in your browser settings.
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

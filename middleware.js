@@ -7,6 +7,7 @@ const isProtectedRoute = createRouteMatcher([
   '/profile(.*)',
   '/profile/submission(.*)',
 ])
+const isProtectedResourceRoute = createRouteMatcher(['/resources(.*)'])
 
 const MARKDOWN_CONTENT = `# IT Resource Zone
 
@@ -20,7 +21,7 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 - Timed live exams with secure attempt tracking
 - Practice mode for past exams
 - Per-exam and global leaderboards
-- Public resource library with YouTube lessons, PDFs, files, and useful links
+- Private resource library with YouTube lessons, PDFs, files, and useful links
 - Personal study planner, habit tracking, and score history for signed-in students
 - Admin panel for exam, question, category, and resource management
 
@@ -28,9 +29,6 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 - / - Home
 - /exams - Published live, upcoming, and past exams
 - /exam/[id] - Public exam overview and signed-in exam entry
-- /resources - Curated IT learning resource library
-- /resources/[slug] - Resource category page
-- /resources/watch/[slug] - Public video lesson page
 - /leaderboard - Global leaderboard
 - /leaderboard/[id] - Per-exam leaderboard
 - /privacy - Privacy Policy
@@ -40,6 +38,10 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 - /profile - Student account and submission history
 - /tasks - Personal study planner
 - /tasks/history - Personal planner analytics
+- /resources - Signed-in learning resource library
+- /resources/[slug] - Signed-in resource category page
+- /resources/watch/[slug] - Signed-in video lesson page
+- /resources/view/[slug] - Signed-in resource viewer
 - /admin - Admin tools
 
 ## Constraints
@@ -141,6 +143,15 @@ export default clerkMiddleware(async (auth, req) => {
         maxAge: 0,
       })
       return response
+    }
+  }
+
+  if (isProtectedResourceRoute(req)) {
+    const { userId } = await auth()
+    if (!userId) {
+      const signInUrl = new URL('/sign-in', req.url)
+      signInUrl.searchParams.set('redirect_url', `${pathname}${req.nextUrl.search}`)
+      return NextResponse.redirect(signInUrl)
     }
   }
 

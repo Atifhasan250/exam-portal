@@ -13,6 +13,8 @@ module.exports = {
         theme: {
           bg: 'var(--color-bg)',
           surface: 'var(--color-surface)',
+          surfaceElevated: 'var(--color-surface-elevated)',
+          'progress-track': 'var(--color-progress-track)',
           primary: 'var(--color-primary)',
           secondary: 'var(--color-secondary)',
           accent: 'var(--color-accent)',
