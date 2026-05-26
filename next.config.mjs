@@ -88,6 +88,8 @@ const nextConfig = {
       'https://clerk.com',
       // Clerk custom domain (e.g. clerk.irz.atifhasan.com)
       clerkFrontendApiHost ? `https://${clerkFrontendApiHost}` : '',
+      // Cloudflare Turnstile — used by Clerk for CAPTCHA
+      'https://challenges.cloudflare.com',
       'https://www.youtube.com',
       'https://s.ytimg.com',
     ].filter(Boolean).join(' ')
@@ -126,7 +128,7 @@ const nextConfig = {
               // Clerk API, WebSocket, and Vercel analytics
               `connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.clerk.com https://api.clerk.com wss://*.clerk.com ${clerkCustomDomainSrc} https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io ${sentryConnectSrc}`,
               "worker-src 'self' blob:",
-              `frame-src https://*.clerk.accounts.dev https://*.clerk.com${clerkFrontendApiHost ? ` https://${clerkFrontendApiHost}` : ''} https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
+              `frame-src https://*.clerk.accounts.dev https://*.clerk.com${clerkFrontendApiHost ? ` https://${clerkFrontendApiHost}` : ''} https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },
