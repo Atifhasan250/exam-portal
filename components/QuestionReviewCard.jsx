@@ -16,7 +16,7 @@ export default function QuestionReviewCard({ question, index, userAnswer, total 
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div
-            className="flex-1 text-theme-primary font-semibold text-sm sm:text-base leading-relaxed [&_p]:m-0 [&_p]:inline"
+            className="flex-1 text-theme-primary font-semibold text-sm sm:text-base leading-relaxed whitespace-pre-wrap [&_p]:m-0 [&_p]:inline"
             dangerouslySetInnerHTML={{ __html: safeHTML(`${index + 1}. ${question.question}`) }}
           />
           <div className="flex items-center gap-2 shrink-0">
@@ -42,15 +42,15 @@ export default function QuestionReviewCard({ question, index, userAnswer, total 
               optionClass += 'bg-theme-error-bg border-theme-error-border '
               dotClass += 'bg-theme-error-text text-white '
             } else {
-              optionClass += 'bg-theme-bg border-theme-border opacity-60 '
-              dotClass += 'bg-theme-surface text-theme-secondary border border-theme-border '
+              optionClass += 'bg-theme-bg border-theme-border opacity-85 '
+              dotClass += 'bg-theme-surface text-review-option-muted border border-theme-border '
             }
 
             return (
               <div key={i} className={optionClass}>
                 <span className={dotClass}>{OPTION_LABELS[i] || i + 1}</span>
                 <span
-                  className={`leading-snug [&_p]:m-0 [&_p]:inline ${isCorrectChoice ? 'text-theme-success-text font-semibold' : isUserChoice ? 'text-theme-error-text font-semibold' : 'text-theme-secondary'}`}
+                  className={`leading-snug whitespace-pre-wrap [&_p]:m-0 [&_p]:inline ${isCorrectChoice ? 'text-theme-success-text font-semibold' : isUserChoice ? 'text-theme-error-text font-semibold' : 'text-review-option-muted font-medium'}`}
                   dangerouslySetInnerHTML={{ __html: safeHTML(option) }}
                 />
                 {isCorrectChoice && (
@@ -81,7 +81,7 @@ export default function QuestionReviewCard({ question, index, userAnswer, total 
           {showExplanation && (
             <div className="bg-theme-success-bg border-t border-theme-success-border px-5 py-4 opacity-90">
               <div
-                className="text-sm text-theme-primary leading-relaxed [&_p]:m-0 [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-3"
+                className="text-sm text-theme-primary leading-relaxed whitespace-pre-wrap [&_p]:m-0 [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-3"
                 dangerouslySetInnerHTML={{ __html: safeHTML(question.explanation) }}
               />
             </div>

@@ -6,9 +6,14 @@ import { SignIn } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
 import { clerkAppearance } from '@/lib/clerkTheme'
 
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
 export default function SignInPage() {
   const { theme, toggleTheme } = useTheme()
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
+
+  if (!clerkPublishableKey) {
+    throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: Clerk sign-in cannot render without a publishable key.')
+  }
 
   return (
     <div className="bg-theme-bg min-h-screen flex items-center justify-center px-4 pt-24 pb-8 sm:py-12 transition-theme relative overflow-hidden">
@@ -19,8 +24,8 @@ export default function SignInPage() {
         </>
       ) : (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_30%,_rgba(79,70,229,0.10),_transparent_45%),radial-gradient(circle_at_85%_70%,_rgba(99,102,241,0.07),_transparent_40%)]" />
-          <div className="absolute inset-x-0 top-0 h-64 bg-[linear-gradient(180deg,rgba(79,70,229,0.06),transparent)] blur-2xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_30%,_rgba(234,122,83,0.16),_transparent_45%),radial-gradient(circle_at_85%_70%,_rgba(8,17,38,0.05),_transparent_40%)]" />
+          <div className="absolute inset-x-0 top-0 h-64 bg-[linear-gradient(180deg,rgba(234,122,83,0.10),transparent)] blur-2xl" />
         </>
       )}
 
@@ -49,8 +54,8 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <div className="relative w-full min-w-0">
-          <div className="bg-theme-surface/95 backdrop-blur-xl border border-theme-border rounded-2xl sm:rounded-[28px] lg:rounded-[30px] shadow-[0_12px_40px_rgba(0,0,0,0.10)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.35)] p-4 sm:p-6 lg:p-8 overflow-hidden">
+        <div className="relative w-full min-w-0 max-w-[560px] mx-auto">
+          <div className="bg-theme-surface/95 backdrop-blur-xl border border-theme-border rounded-2xl sm:rounded-[28px] lg:rounded-[30px] shadow-[0_12px_40px_rgba(0,0,0,0.10)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.35)] p-5 sm:p-7 lg:p-8 overflow-visible">
             <div className="flex items-center justify-between gap-4 mb-6 lg:mb-7">
               <div className="min-w-0">
                 <Link href="/" className="lg:hidden inline-flex items-center gap-3 mb-4">
@@ -65,19 +70,13 @@ export default function SignInPage() {
               </button>
             </div>
 
-            {hasClerk ? (
-              <div className="w-full mt-2 sm:mt-4">
-                <SignIn
-                  appearance={clerkAppearance}
-                  fallbackRedirectUrl="/"
-                  signUpUrl="/sign-up"
-                />
-              </div>
-            ) : (
-              <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center text-theme-secondary mt-2 sm:mt-4">
-                Clerk is not configured yet. Add your Clerk publishable and secret keys to enable sign-in.
-              </div>
-            )}
+            <div className="auth-clerk w-full mt-2 sm:mt-4">
+              <SignIn
+                appearance={clerkAppearance}
+                fallbackRedirectUrl="/"
+                signUpUrl="/sign-up"
+              />
+            </div>
           </div>
 
           {/* Footer Text */}

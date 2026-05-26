@@ -5,6 +5,7 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 
@@ -29,7 +30,16 @@ export async function DELETE(request, { params }) {
     const question = await Question.findOne({ _id: questionId, examId: exam._id })
     if (question) {
       await Question.findByIdAndDelete(question._id)
-      logAdminAction(request, adminCheck.admin, 'DELETE_QUESTION', exam._id, { questionId })
+      try {
+        await logAdminAction(request, adminCheck.admin, 'DELETE_QUESTION', exam._id, { questionId })
+      } catch (error) {
+        logger.error('[DELETE /api/exams/[id]/questions/[questionId]] audit log failed', { error, examId: exam._id, questionId })
+      }
+      try {
+        await invalidateExamCaches(exam._id.toString())
+      } catch (error) {
+        logger.error('[DELETE /api/exams/[id]/questions/[questionId]] cache invalidation failed', { error, examId: exam._id })
+      }
     }
 
     const remaining = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()

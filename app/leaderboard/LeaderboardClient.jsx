@@ -3,22 +3,35 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 
 export default function LeaderboardClient({ initialData, selectedExamId = null }) {
-  const [data, setData] = useState(initialData)
-  const [loading, setLoading] = useState(!initialData?.length)
+  const [data, setData] = useState(() => normalizeLeaderboardData(initialData, selectedExamId))
+  const [loading, setLoading] = useState(!normalizeLeaderboardData(initialData, selectedExamId).length)
+  const [loadingMore, setLoadingMore] = useState(false)
   const router = useRouter()
+  const CACHE_TTL_MS = 30 * 1000
 
   useEffect(() => {
+    if (selectedExamId) return
+
     if (initialData?.length) {
-      sessionStorage.setItem('leaderboard_cache', JSON.stringify(initialData))
+      sessionStorage.setItem('leaderboard_cache', JSON.stringify({ items: initialData, cachedAt: Date.now() }))
       return
     }
 
     const cached = sessionStorage.getItem('leaderboard_cache')
     if (cached) {
-      setData(JSON.parse(cached))
-      setLoading(false)
+      try {
+        const parsed = JSON.parse(cached)
+        if (Date.now() - (parsed.cachedAt || 0) < CACHE_TTL_MS) {
+          setData(parsed.items || [])
+          setLoading(false)
+          return
+        }
+      } catch {
+        sessionStorage.removeItem('leaderboard_cache')
+      }
     }
 
     fetch('/api/leaderboard')
@@ -26,13 +39,13 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
       .then((items) => {
         const list = Array.isArray(items) ? items : []
         setData(list)
-        sessionStorage.setItem('leaderboard_cache', JSON.stringify(list))
+        sessionStorage.setItem('leaderboard_cache', JSON.stringify({ items: list, cachedAt: Date.now() }))
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [initialData])
+  }, [initialData, selectedExamId])
 
-  const selectedData = selectedExamId ? data.find((item) => item.exam._id === selectedExamId) : null
+  const selectedData = selectedExamId ? data.find((item) => item.exam?._id === selectedExamId) : null
   const fmtDate = (date) => new Date(date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 
   const getRankStyle = (rank) => {
@@ -49,6 +62,62 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
     return null
   }
 
+  const loadMoreSubmissions = async () => {
+    if (!selectedData || loadingMore) return
+
+    setLoadingMore(true)
+    try {
+      const offset = selectedData.nextOffset ?? selectedData.submissions.length
+      const response = await fetch(`/api/exams/${selectedExamId}/leaderboard?limit=50&offset=${offset}`)
+      if (!response.ok) return
+      const page = await response.json()
+      if (!page?.exam) return
+
+      setData((current) => current.map((item) => (
+        item.exam?._id === selectedExamId
+          ? {
+              ...item,
+              submissions: [...(item.submissions || []), ...(page.submissions || [])],
+              submissionCount: page.submissionCount || page.totalCount || item.submissionCount || 0,
+              totalCount: page.totalCount || item.totalCount || 0,
+              nextOffset: page.nextOffset ?? offset + (page.submissions || []).length,
+              hasMore: Boolean(page.hasMore),
+            }
+          : item
+      )))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  if (loading) return (
+    <PageLoadingOverlay>
+      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20">
+        <main className="max-w-5xl mx-auto px-4 py-10 space-y-12">
+          {!selectedExamId ? (
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="skeleton h-10 w-10 rounded-full" />
+              <div className="skeleton h-9 w-52 rounded-xl" />
+            </div>
+          ) : null}
+
+          <div className="space-y-5">
+            <div className="skeleton h-10 w-64 rounded-xl" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-6 space-y-3">
+                  <div className="skeleton h-6 w-3/4 rounded-lg" />
+                  <div className="skeleton h-4 w-1/2 rounded-lg" />
+                  <div className="skeleton h-4 w-2/3 rounded-lg" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    </PageLoadingOverlay>
+  )
+
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
 
@@ -62,28 +131,15 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
           </div>
         ) : null}
 
-        {loading ? (
-          <div className="space-y-5">
-            <div className="skeleton h-10 w-64 rounded-xl" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[0, 1, 2].map((item) => (
-                <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-6 space-y-3">
-                  <div className="skeleton h-6 w-3/4 rounded-lg" />
-                  <div className="skeleton h-4 w-1/2 rounded-lg" />
-                  <div className="skeleton h-4 w-2/3 rounded-lg" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : data.length === 0 ? (
+        {data.length === 0 ? (
           <div className="text-center py-20 text-theme-secondary">
             <i className="fas fa-trophy text-5xl mb-4 opacity-30" />
             <p className="font-medium">No live exam results yet.</p>
           </div>
         ) : !selectedExamId ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {data.map(({ exam, submissions }, index) => (
-              <div key={exam._id} onClick={() => router.push(`/leaderboard/${exam._id}`)} className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/40 hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: `${index * 80}ms` }}>
+            {data.map(({ exam, submissions, submissionCount }, index) => (
+              <div key={exam._id} onClick={() => router.push(`/leaderboard/${exam._id}`)} className="card-enter bg-theme-surface border border-theme-border rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:border-theme-accent/40 hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: `${index * 80}ms` }}>
                 <div>
                   <h3 className="font-bold text-theme-primary text-lg leading-snug mb-3">{exam.title}</h3>
                   <div className="space-y-1 text-sm text-theme-secondary">
@@ -92,8 +148,8 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
                   </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-theme-border pt-4 mt-2">
-                  <span className="text-sm font-bold text-theme-accent bg-indigo-500/10 px-3 py-1 rounded-lg">
-                    <i className="fas fa-users mr-2" />{submissions.length} Taken
+                  <span className="text-sm font-bold text-theme-accent bg-theme-accent/10 px-3 py-1 rounded-lg">
+                    <i className="fas fa-users mr-2" />{submissionCount ?? submissions.length} Taken
                   </span>
                   <i className="fas fa-arrow-right text-theme-secondary" />
                 </div>
@@ -146,10 +202,26 @@ export default function LeaderboardClient({ initialData, selectedExamId = null }
                   </div>
                 )
               })}
+              {selectedData.hasMore ? (
+                <div className="p-4 bg-theme-bg/30">
+                  <button
+                    onClick={loadMoreSubmissions}
+                    disabled={loadingMore}
+                    className="w-full px-4 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                  >
+                    {loadingMore ? 'Loading...' : 'Load More Results'}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </section>
         ) : null}
       </main>
     </div>
   )
+}
+
+function normalizeLeaderboardData(initialData, selectedExamId) {
+  if (selectedExamId && initialData?.exam) return [initialData]
+  return Array.isArray(initialData) ? initialData : []
 }

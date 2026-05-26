@@ -5,14 +5,33 @@ import { validate, createExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { getCachedPublishedExamPage, getCachedPublishedExams, invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 
 export const revalidate = 30
 
-export async function GET() {
+export async function GET(request) {
   try {
-    await connectDB()
-    const exams = await Exam.find({ published: true }, { questions: 0 }).sort({ createdAt: -1 })
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')?.trim()
+    if (status) {
+      if (!['live', 'upcoming', 'past'].includes(status)) {
+        return NextResponse.json({ error: 'Invalid exam status' }, { status: 400 })
+      }
+
+      const page = await getCachedPublishedExamPage({
+        status,
+        limit: searchParams.get('limit'),
+        offset: searchParams.get('offset'),
+      })
+
+      return NextResponse.json(page, {
+        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
+      })
+    }
+
+    const exams = await getCachedPublishedExams()
+
     return NextResponse.json(exams, {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
     })
@@ -40,7 +59,16 @@ export async function POST(request) {
     const exam = new Exam(parsed.data)
     await exam.save()
 
-    logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
+    try {
+      await logAdminAction(request, adminCheck.admin, 'CREATE_EXAM', exam._id, { title: exam.title })
+    } catch (error) {
+      logger.error('[POST /api/exams] logAdminAction failed', { error, examId: exam._id, action: 'CREATE_EXAM' })
+    }
+    try {
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[POST /api/exams] invalidateExamCaches failed', { error, examId: exam._id, action: 'CREATE_EXAM' })
+    }
 
     return NextResponse.json(exam, { status: 201 })
   } catch (error) {

@@ -16,22 +16,22 @@ const MENU_ITEMS = [
   { label: 'Profile',     ariaLabel: 'View your profile',      link: '/profile' },
 ]
 
-export default function Navbar() {
+export default function Navbar({ className = '' }) {
   const { theme, toggleTheme } = useTheme()
   const { user, isLoaded } = useUser()
 
   // Theme-aware StaggeredMenu colours
   const isDark = theme === 'dark'
-  const menuBtnColor   = isDark ? '#E8EAF6' : '#1A2040'
-  const accentColor    = isDark ? '#6366F1' : '#4F46E5'
+  const menuBtnColor   = isDark ? '#E8EAF6' : '#081126'
+  const accentColor    = isDark ? '#6366F1' : '#ea7a53'
   const underlayColors = isDark
     ? ['#1E2A48', '#0F1524']
-    : ['#BCC6DF', '#d0d9f0']
+    : ['#f6eecf', '#fff8e7']
 
-  if (!isLoaded) return <PageSkeleton />
+  if (!isLoaded) return <div className={className}><PageSkeleton /></div>
 
   return (
-    <div className="sticky top-2.5 sm:top-2.5 z-[9999] px-4 transition-theme pointer-events-none">
+    <div className={`sticky top-2.5 sm:top-2.5 z-[9999] px-4 transition-theme pointer-events-none ${className}`}>
       <header
         className="max-w-6xl mx-auto backdrop-blur-xl border border-theme-border rounded-2xl shadow-lg h-16 flex items-center justify-between px-4 sm:px-6 pointer-events-auto"
         style={{ background: 'color-mix(in srgb, var(--color-surface) 70%, transparent)' }}
@@ -59,7 +59,7 @@ export default function Navbar() {
             {!user ? (
               <Link
                 href="/sign-in"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-theme-accent text-white hover:opacity-90 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-md"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 hover:shadow-lg hover:shadow-theme-accent/30 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-md"
               >
                 <i className="fas fa-right-to-bracket text-xs" />
                 Sign In

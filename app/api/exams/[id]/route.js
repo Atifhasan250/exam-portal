@@ -7,35 +7,28 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import {
+  getCachedPublicExamDetail,
+  invalidateExamCaches,
+  publicExamWithRuntimeAccess,
+} from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
 import Submission from '@/lib/models/Submission'
-
-function toPublicQuestion(question) {
-  return {
-    _id: question._id,
-    question: question.question,
-    options: question.options,
-    order: question.order,
-  }
-}
+import ExamAttempt from '@/lib/models/ExamAttempt'
+import PracticeAttempt from '@/lib/models/PracticeAttempt'
 
 export async function GET(_request, { params }) {
   try {
     const { id } = await params
     if (!isValidObjectId(id)) return invalidIdResponse('exam id')
 
-    await connectDB()
-    const exam = await Exam.findOne({ _id: id, published: true }).lean()
+    const exam = publicExamWithRuntimeAccess(await getCachedPublicExamDetail(id))
     if (!exam) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
-    const questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
-    return NextResponse.json({
-      ...exam,
-      questions: questions.map(toPublicQuestion),
-    })
+    return NextResponse.json(exam)
   } catch (error) {
     logger.error('[GET /api/exams/[id]]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
@@ -73,7 +66,16 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 })
     }
 
-    logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
+    try {
+      await logAdminAction(request, adminCheck.admin, 'UPDATE_EXAM', exam._id, { title: exam.title })
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]] audit log failed', { error, examId: exam._id, action: 'UPDATE_EXAM' })
+    }
+    try {
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]] cache invalidation failed', { error, examId: exam._id })
+    }
 
     return NextResponse.json(exam)
   } catch (error) {
@@ -102,12 +104,23 @@ export async function DELETE(request, { params }) {
         await Exam.findByIdAndDelete(id).session(session)
         await Question.deleteMany({ examId: id }).session(session)
         await Submission.deleteMany({ examId: id }).session(session)
+        await ExamAttempt.deleteMany({ examId: id }).session(session)
+        await PracticeAttempt.deleteMany({ examId: id }).session(session)
       })
     } finally {
       await session.endSession()
     }
 
-    logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
+    try {
+      await logAdminAction(request, adminCheck.admin, 'DELETE_EXAM', id)
+    } catch (error) {
+      logger.error('[DELETE /api/exams/[id]] audit log failed', { error, examId: id, action: 'DELETE_EXAM' })
+    }
+    try {
+      await invalidateExamCaches(id)
+    } catch (error) {
+      logger.error('[DELETE /api/exams/[id]] cache invalidation failed', { error, examId: id })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

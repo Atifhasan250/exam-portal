@@ -1,6 +1,6 @@
 import LeaderboardClient from './LeaderboardClient'
 import { buildPageMetadata } from '@/lib/site'
-import { getLeaderboardData } from '@/lib/leaderboard'
+import { getCachedLeaderboardData } from '@/lib/publicCache'
 
 export const revalidate = 60
 export const metadata = buildPageMetadata({
@@ -12,6 +12,6 @@ export const metadata = buildPageMetadata({
 })
 
 export default async function LeaderboardPage() {
-  const data = JSON.parse(JSON.stringify(await getLeaderboardData()))
+  const data = await getCachedLeaderboardData()
   return <LeaderboardClient initialData={data} />
 }

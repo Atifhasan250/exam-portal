@@ -3,7 +3,9 @@ import { Inter } from 'next/font/google'
 import AppProviders from '@/components/ThemeProvider'
 import AppChrome from '@/components/AppChrome'
 import { getSiteUrl } from '@/lib/site'
+import { safeJsonLd } from '@/lib/jsonLd'
 import { Analytics } from '@vercel/analytics/react'
+import PwaRuntime from '@/components/PwaRuntime'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,16 +24,16 @@ export const metadata = {
   description:
     'IT Resource Zone is a free online platform for IT exams, study planning, daily habits tracking, and learning resources. Test your knowledge, build consistency, and climb the leaderboard.',
   keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'IT Resource Zone'],
-  authors: [{ name: 'Atif Hasan', url: 'https://atifs-portfolio.vercel.app/' }],
+  authors: [{ name: 'Atif Hasan', url: 'https://atifhasan.com/' }],
   creator: 'Atif Hasan',
-  // Canonical URL — tells search engines the authoritative address for this site
+  // Canonical URL tells search engines the authoritative address for this site
   alternates: {
     canonical: siteUrl,
   },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    apple: '/icons/apple-touch-icon.png',
   },
   openGraph: {
     type: 'website',
@@ -76,7 +78,7 @@ export const metadata = {
   },
 }
 
-// ── JSON-LD Structured Data ───────────────────────────────────────────────────
+// JSON-LD Structured Data
 // Schema.org markup tells Google exactly what this site is, enabling rich results.
 // Test at: https://search.google.com/test/rich-results
 
@@ -90,7 +92,7 @@ const websiteSchema = {
   author: {
     '@type': 'Person',
     name: 'Atif Hasan',
-    url: 'https://atifs-portfolio.vercel.app/',
+    url: 'https://atifhasan.com/',
   },
 }
 
@@ -113,7 +115,7 @@ const webAppSchema = {
   author: {
     '@type': 'Person',
     name: 'Atif Hasan',
-    url: 'https://atifs-portfolio.vercel.app/',
+    url: 'https://atifhasan.com/',
   },
   featureList: [
     'Live timed IT exams',
@@ -130,22 +132,24 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`dark ${inter.variable}`}>
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
-        {/* JSON-LD structured data — machine-readable site description for Google rich results */}
+        {/* JSON-LD structured data for Google rich results */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(webAppSchema) }}
         />
       </head>
       <body className={inter.className}>
         <AppProviders>
+          <PwaRuntime />
           <AppChrome>{children}</AppChrome>
         </AppProviders>
         <Analytics />

@@ -2,13 +2,23 @@ import { getSiteUrl } from '@/lib/site'
 
 export default function robots() {
   const baseUrl = getSiteUrl()
+  const privatePaths = [
+    '/admin',
+    '/admin/',
+    '/api/',
+    '/api/admin/',
+    '/profile',
+    '/profile/',
+    '/tasks/history',
+    '/tasks/history/',
+  ]
 
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/admin/', '/api/admin/'],
+        disallow: privatePaths,
       },
       {
         userAgent: [
@@ -24,7 +34,7 @@ export default function robots() {
           'cohere-ai',
         ],
         allow: '/',
-        disallow: ['/admin', '/admin/', '/api/admin/'],
+        disallow: privatePaths,
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

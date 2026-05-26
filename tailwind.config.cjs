@@ -5,6 +5,7 @@ module.exports = {
     './app/**/*.{js,jsx,ts,tsx}',
     './components/**/*.{js,jsx,ts,tsx}',
     './context/**/*.{js,jsx,ts,tsx}',
+    './lib/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
     extend: {
@@ -15,6 +16,7 @@ module.exports = {
           primary: 'var(--color-primary)',
           secondary: 'var(--color-secondary)',
           accent: 'var(--color-accent)',
+          'accent-text': 'var(--color-accent-text)',
           border: 'var(--color-border)',
           'error-bg': 'var(--color-error-bg)',
           'error-text': 'var(--color-error-text)',

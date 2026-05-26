@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import posthog from 'posthog-js'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ProgressBar from '@/components/tasks/ProgressBar'
 import HabitCard from '@/components/tasks/HabitCard'
 import WeekCard from '@/components/tasks/WeekCard'
@@ -76,7 +78,12 @@ export default function TasksPage() {
   const handleToggleHabit = (habitId) => {
     const newHistory = { ...plannerData.habitHistory }
     if (!newHistory[today]) newHistory[today] = {}
-    newHistory[today][habitId] = !newHistory[today][habitId]
+    const nowChecked = !newHistory[today][habitId]
+    newHistory[today][habitId] = nowChecked
+    if (nowChecked) {
+      const habit = plannerData.habits.find((h) => h.id === habitId)
+      posthog.capture('habit_checked', { habit_id: habitId, habit_label: habit?.label })
+    }
     syncData({ ...plannerData, habitHistory: newHistory })
   }
 
@@ -115,6 +122,13 @@ export default function TasksPage() {
     if (task) {
       task.completed = !task.completed
       task.completedDate = task.completed ? today : undefined
+      if (task.completed) {
+        posthog.capture('task_completed', {
+          task_id: taskId,
+          task_label: task.label,
+          week: plannerData.weeks[weekIndex]?.week,
+        })
+      }
       syncData({ ...plannerData, weeks: newWeeks })
     }
   }
@@ -154,17 +168,19 @@ export default function TasksPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
-        <main className="flex-grow py-8 sm:py-12 px-4 max-w-4xl w-full mx-auto relative space-y-8">
-          <div className="skeleton h-12 w-full rounded-2xl" />
-          <div className="skeleton h-40 w-full rounded-3xl" />
-          <div className="space-y-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton h-32 w-full rounded-3xl" />
-            ))}
-          </div>
-        </main>
-      </div>
+      <PageLoadingOverlay>
+        <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
+          <main className="flex-grow py-8 sm:py-12 px-4 max-w-4xl w-full mx-auto relative space-y-8">
+            <div className="skeleton h-12 w-full rounded-2xl" />
+            <div className="skeleton h-40 w-full rounded-3xl" />
+            <div className="space-y-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="skeleton h-32 w-full rounded-3xl" />
+              ))}
+            </div>
+          </main>
+        </div>
+      </PageLoadingOverlay>
     )
   }
 
@@ -181,7 +197,7 @@ export default function TasksPage() {
             <p className="text-theme-secondary text-lg leading-relaxed mb-8">
               Please sign in to view and manage your monthly tasks and daily habits.
             </p>
-            <Link href="/sign-in" className="inline-flex items-center gap-2 bg-theme-accent text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:opacity-90 transition-all hover:-translate-y-0.5 active:scale-95">
+            <Link href="/sign-in" className="inline-flex items-center gap-2 bg-theme-accent text-theme-accent-text px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-theme-accent/30 hover:opacity-90 transition-all hover:-translate-y-0.5 active:scale-95">
               <i className="fas fa-sign-in-alt" /> Sign In Now
             </Link>
           </div>

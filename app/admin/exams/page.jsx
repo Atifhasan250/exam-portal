@@ -6,10 +6,15 @@ import Link from 'next/link'
 import { parseCSV, parseJSON, parseTXT } from '@/utils/parseQuestions'
 
 const API = '/api/exams'
+const EXAM_PAGE_SIZE = 50
 
 export default function AdminExams() {
   const [exams, setExams] = useState([])
+  const [examTotal, setExamTotal] = useState(0)
+  const [examOffset, setExamOffset] = useState(0)
+  const [hasMoreExams, setHasMoreExams] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [editExam, setEditExam] = useState(null)
   const [addQuestionsTo, setAddQuestionsTo] = useState(null)
@@ -17,21 +22,49 @@ export default function AdminExams() {
   const router = useRouter()
 
   const fetchExams = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/admin/exams')
+      const response = await fetch(`/api/admin/exams?limit=${EXAM_PAGE_SIZE}&offset=0`)
       if (response.status === 401) {
         router.push('/admin')
         return
       }
       const data = await response.json()
-      setExams(Array.isArray(data) ? data : [])
+      const list = Array.isArray(data) ? data : data.exams || []
+      setExams(list)
+      setExamOffset(list.length)
+      setExamTotal(Array.isArray(data) ? list.length : data.totalCount || list.length)
+      setHasMoreExams(!Array.isArray(data) && Boolean(data.hasMore))
     } catch {
       setExams([])
+      setExamTotal(0)
+      setExamOffset(0)
+      setHasMoreExams(false)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => { fetchExams() }, [])
+
+  const loadMoreExams = async () => {
+    setLoadingMore(true)
+    try {
+      const response = await fetch(`/api/admin/exams?limit=${EXAM_PAGE_SIZE}&offset=${examOffset}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
+      const data = await response.json()
+      const list = data.exams || []
+      setExams((current) => [...current, ...list])
+      setExamOffset((current) => current + list.length)
+      setExamTotal(data.totalCount || examTotal)
+      setHasMoreExams(Boolean(data.hasMore))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const confirmDeleteExam = async () => {
     if (!examToDelete) return
@@ -57,14 +90,14 @@ export default function AdminExams() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-theme-primary mb-1">Manage Exams</h2>
-            <p className="text-theme-secondary text-sm">{exams.length} exam(s) created</p>
+            <p className="text-theme-secondary text-sm">{exams.length}{examTotal ? ` of ${examTotal}` : ''} exam(s) loaded</p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Link href="/admin/dashboard" className="flex-1 sm:flex-none px-4 py-3 text-sm font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-xl hover:text-theme-primary transition-all flex items-center justify-center whitespace-nowrap">
               <i className="fas fa-arrow-left mr-2" />
               <span>Dashboard</span>
             </Link>
-            <button onClick={() => { setShowCreate(true); setEditExam(null) }} className="flex-1 sm:flex-none bg-theme-accent text-white font-bold px-4 sm:px-6 py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg whitespace-nowrap text-sm sm:text-base">
+            <button onClick={() => { setShowCreate(true); setEditExam(null) }} className="flex-1 sm:flex-none bg-theme-accent text-theme-accent-text font-bold px-4 sm:px-6 py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center space-x-2 shadow-lg whitespace-nowrap text-sm sm:text-base">
               <i className="fas fa-plus" /><span>Create Exam</span>
             </button>
           </div>
@@ -124,6 +157,15 @@ export default function AdminExams() {
                 </div>
               </div>
             ))}
+            {hasMoreExams ? (
+              <button
+                onClick={loadMoreExams}
+                disabled={loadingMore}
+                className="w-full bg-theme-surface border border-theme-border rounded-2xl p-5 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+              >
+                {loadingMore ? 'Loading...' : 'Load More Exams'}
+              </button>
+            ) : null}
           </div>
         )}
       </main>
@@ -215,7 +257,7 @@ function CreateExamModal({ exam, onClose, onCreated }) {
         </div>
         <div className="flex space-x-3 mt-6">
           <button onClick={onClose} className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl hover:bg-theme-bg font-semibold transition-all">Cancel</button>
-          <button onClick={save} disabled={saving} className="flex-1 py-3 bg-theme-accent text-white rounded-xl hover:opacity-90 font-semibold transition-all flex items-center justify-center">
+          <button onClick={save} disabled={saving} className="flex-1 py-3 bg-theme-accent text-theme-accent-text rounded-xl hover:opacity-90 font-semibold transition-all flex items-center justify-center">
             {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : exam ? 'Save Changes' : 'Create Exam'}
           </button>
         </div>
@@ -329,7 +371,7 @@ Q2. Which is a JavaScript framework?
         {error ? <div className="mb-4 p-3 bg-theme-error-bg border border-theme-error-border text-theme-error-text rounded-xl text-sm">{error}</div> : null}
         <div className="flex space-x-2 mb-5">
           {tabs.map((item) => (
-            <button key={item.id} onClick={() => { setTab(item.id); setParsed([]); setError('') }} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center space-x-2 ${tab === item.id ? 'bg-theme-accent text-white shadow-md' : 'bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary'}`}>
+            <button key={item.id} onClick={() => { setTab(item.id); setParsed([]); setError('') }} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center space-x-2 ${tab === item.id ? 'bg-theme-accent text-theme-accent-text shadow-md' : 'bg-theme-bg text-theme-secondary border border-theme-border hover:text-theme-primary'}`}>
               <i className={`fas ${item.icon}`} /><span>{item.label}</span>
             </button>
           ))}
@@ -368,17 +410,17 @@ Q2. Which is a JavaScript framework?
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {parsed.map((question, index) => (
                 <div key={index} className="bg-theme-bg border border-theme-border rounded-xl p-3 text-sm">
-                  <p className="font-semibold text-theme-primary mb-1">{index + 1}. {question.question}</p>
+                  <p className="font-semibold text-theme-primary mb-1 whitespace-pre-wrap">{index + 1}. {question.question}</p>
                   <div className="pl-3 space-y-0.5 text-theme-secondary text-xs">
-                    {question.options.map((option, optionIndex) => <p key={optionIndex} className={optionIndex === question.correct ? 'text-theme-success-text font-bold' : ''}>{optionIndex + 1}. {option} {optionIndex === question.correct ? '(correct)' : ''}</p>)}
-                    {question.explanation ? <p className="text-theme-secondary italic mt-1">Explanation: {question.explanation}</p> : null}
+                    {question.options.map((option, optionIndex) => <p key={optionIndex} className={`whitespace-pre-wrap ${optionIndex === question.correct ? 'text-theme-success-text font-bold' : ''}`}>{optionIndex + 1}. {option} {optionIndex === question.correct ? '(correct)' : ''}</p>)}
+                    {question.explanation ? <p className="text-theme-secondary italic mt-1 whitespace-pre-wrap">Explanation: {question.explanation}</p> : null}
                   </div>
                 </div>
               ))}
             </div>
             <div className="flex space-x-3">
               <button onClick={() => setParsed([])} className="flex-1 py-3 border border-theme-border text-theme-primary rounded-xl font-semibold hover:bg-theme-bg transition-all">Back</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-theme-accent text-white rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50">
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-theme-accent text-theme-accent-text rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50">
                 {saving ? 'Saving...' : `Add ${parsed.length} Question(s)`}
               </button>
             </div>

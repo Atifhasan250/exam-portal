@@ -6,6 +6,7 @@ import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
+import { invalidateExamCaches } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 
 export async function PUT(request, { params }) {
@@ -33,13 +34,21 @@ export async function PUT(request, { params }) {
     exam.published = parsed.data.published
     await exam.save()
 
-    logAdminAction(
-      request,
-      adminCheck.admin,
-      parsed.data.published ? 'PUBLISH_EXAM' : 'UNPUBLISH_EXAM',
-      exam._id,
-      { title: exam.title },
-    )
+    const action = parsed.data.published ? 'PUBLISH_EXAM' : 'UNPUBLISH_EXAM'
+    try {
+      await logAdminAction(request, adminCheck.admin, action, exam._id, { title: exam.title })
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]/publish] logAdminAction failed', {
+        error,
+        examId: exam._id,
+        action,
+      })
+    }
+    try {
+      await invalidateExamCaches(exam._id.toString())
+    } catch (error) {
+      logger.error('[PUT /api/exams/[id]/publish] invalidateExamCaches failed', { error, examId: exam._id, action })
+    }
 
     return NextResponse.json(exam)
   } catch (error) {

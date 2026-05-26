@@ -2,7 +2,7 @@
 
 Live site: `https://irz.atifhasan.com`
 
-IT Resource Zone is a comprehensive, production-ready online examination platform designed for IT students and professionals. Built with Next.js 14 App Router, it provides a seamless experience for taking live assessments, practicing past exams, and competing on global and per-exam leaderboards. 
+IT Resource Zone is a comprehensive, production-ready online examination platform designed for IT students and professionals. Built with Next.js 15 App Router, it provides a seamless experience for taking live assessments, practicing past exams, and competing on global and per-exam leaderboards.
 
 The platform features a secure, separated architecture for both student users (powered by Clerk) and administrative management (powered by custom JWT authentication).
 
@@ -30,7 +30,7 @@ The platform features a secure, separated architecture for both student users (p
 ## Prerequisites
 
 - Node.js 18 or newer
-- A MongoDB cluster (e.g., MongoDB Atlas)
+- A MongoDB deployment that supports transactions, such as MongoDB Atlas or a local replica set
 - Clerk Application credentials
 
 ## Installation and Setup
@@ -124,3 +124,14 @@ The application will be available at `http://localhost:3000`.
 
 - The application strictly enforces separation of concerns regarding authentication. Student accounts are managed exclusively via Clerk, whereas administrative access bypasses Clerk in favor of a standalone JWT implementation, ensuring robust administrative isolation.
 - The project has been fully migrated from a legacy React/Express monolith to a unified Next.js App Router structure, leveraging server-side rendering and edge-compatible API routes for maximum performance and security.
+- Local standalone MongoDB instances do not support the transactions used by account deletion, exam deletion, submissions, and resource asset reference counting. Use Atlas or initialize local MongoDB as a replica set for those flows.
+
+## API Route Checklist
+
+Before adding or changing an API route, verify:
+
+- Public read routes live under `/api/*`; new admin-only mutations should prefer `/api/admin/*`.
+- Legacy exam mutations under `/api/exams/*` remain for compatibility. When touching them, keep `requireAdmin()`, `enforceSameOrigin()`, strict ObjectId validation, Zod body validation, and audit logging.
+- Public mutating routes must derive identity/display fields server-side, call `enforceSameOrigin()` or equivalent CSRF protection for cookie-based auth, and apply rate limiting when abuse would affect integrity.
+- Public responses should return DTOs instead of raw Mongo documents.
+- Multi-collection writes should use transactions or a repair script when denormalized counters are involved.

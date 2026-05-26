@@ -11,7 +11,11 @@ import { getPlannerData } from '@/app/tasks/actions'
 
 export default function ProfilePage() {
   const [submissions, setSubmissions] = useState([])
+  const [submissionTotal, setSubmissionTotal] = useState(0)
+  const [submissionOffset, setSubmissionOffset] = useState(0)
+  const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingMoreSubmissions, setLoadingMoreSubmissions] = useState(false)
   const [plannerData, setPlannerData] = useState(null)
   const [tasksLoading, setTasksLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -37,10 +41,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
 
-    fetch(`/api/submissions/user/${encodeURIComponent(user.id)}`)
+    fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=50&offset=0`)
       .then((response) => response.json())
       .then((data) => {
-        setSubmissions(Array.isArray(data) ? data : [])
+        const list = Array.isArray(data) ? data : data.submissions || []
+        setSubmissions(list)
+        setSubmissionTotal(Array.isArray(data) ? list.length : data.totalCount ?? list.length)
+        setSubmissionOffset(Array.isArray(data) ? list.length : data.nextOffset ?? list.length)
+        setHasMoreSubmissions(!Array.isArray(data) && Boolean(data.hasMore))
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -95,6 +103,7 @@ export default function ProfilePage() {
       </div>
     )
   }
+  if (loading || tasksLoading) return <PageSkeleton />
 
   const saveNewName = async () => {
     const trimmed = nameInput.trim()
@@ -159,6 +168,26 @@ export default function ProfilePage() {
     }
   }
 
+  const loadMoreSubmissions = async () => {
+    if (!user || loadingMoreSubmissions) return
+
+    setLoadingMoreSubmissions(true)
+    try {
+      const response = await fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=50&offset=${submissionOffset}`)
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to load more submissions')
+      const list = data.submissions || []
+      setSubmissions((current) => mergeUniqueExamSubmissions(current, list))
+      setSubmissionTotal(data.totalCount ?? submissionTotal)
+      setSubmissionOffset(data.nextOffset ?? submissionOffset + (data.rawFetchedCount ?? list.length))
+      setHasMoreSubmissions(Boolean(data.hasMore))
+    } catch (error) {
+      console.error('Failed to load more submissions', error)
+    } finally {
+      setLoadingMoreSubmissions(false)
+    }
+  }
+
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
 
@@ -170,7 +199,7 @@ export default function ProfilePage() {
           <h2 className="text-3xl font-extrabold text-theme-primary">Your Profile</h2>
         </div>
         <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm">
-          <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-theme-accent shrink-0 overflow-hidden">
+          <div className="w-24 h-24 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent shrink-0 overflow-hidden">
             {user?.imageUrl ? (
               <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
@@ -192,7 +221,9 @@ export default function ProfilePage() {
                 <i className="fas fa-pencil-alt text-xs" />
               </button>
             </div>
-            <p className="text-theme-secondary mt-1">You have attempted {submissions.length} exam{submissions.length === 1 ? '' : 's'} in total.</p>
+            <p className="text-theme-secondary mt-1">
+              {submissions.length}{submissionTotal ? ` of ${submissionTotal}` : ''} exam record{submissionTotal === 1 ? '' : 's'} loaded.
+            </p>
             <button
               onClick={() => setShowLogoutDialog(true)}
               className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 transition-all font-bold text-sm"
@@ -202,7 +233,6 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
-
 
         {/* Tasks History Section */}
         <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Tasks History</h3>
@@ -217,9 +247,9 @@ export default function ProfilePage() {
             <div className="skeleton h-10 w-32 rounded-xl shrink-0 mt-4 sm:mt-0" />
           </div>
         ) : taskSummary ? (
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:border-indigo-500/30">
+          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:border-theme-accent/30">
             <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-theme-accent/10 text-theme-accent flex items-center justify-center shrink-0">
                 <i className="fas fa-check-double text-2xl" />
               </div>
               <div>
@@ -231,7 +261,7 @@ export default function ProfilePage() {
             </div>
             <Link
               href="/tasks/history"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 shadow-md border border-theme-accent transition-all text-center flex items-center justify-center gap-2 shrink-0"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 shadow-md border border-theme-accent transition-all text-center flex items-center justify-center gap-2 shrink-0"
             >
               <i className="fas fa-chart-line" /> View Analytics
             </Link>
@@ -273,6 +303,7 @@ export default function ProfilePage() {
                     <div className="flex items-center space-x-2 mb-1">
                       <h4 className="font-bold text-theme-primary text-lg truncate">{submission.examId?.title || 'Unknown Exam'}</h4>
                       {submission.wasLive ? <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-success-bg text-theme-success-text border border-theme-success-border rounded-md">Live</span> : <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-md">Practice</span>}
+                      {!submission.wasLive && submission.attemptCount > 1 ? <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-md">{submission.attemptCount} attempts</span> : null}
                     </div>
                     <p className="text-xs text-theme-secondary">
                       <i className="fas fa-calendar-alt mr-1.5" />
@@ -296,6 +327,15 @@ export default function ProfilePage() {
                 </div>
               )
             })}
+            {hasMoreSubmissions ? (
+              <button
+                onClick={loadMoreSubmissions}
+                disabled={loadingMoreSubmissions}
+                className="w-full bg-theme-surface border border-theme-border rounded-2xl p-5 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+              >
+                {loadingMoreSubmissions ? 'Loading...' : 'Load More Exam Records'}
+              </button>
+            ) : null}
           </div>
         )}
       </main>
@@ -323,7 +363,7 @@ export default function ProfilePage() {
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
             </div>
 
-            <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-white px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
+            <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-theme-accent-text px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
               {passwordLoading ? 'Updating...' : 'Change Password'}
             </button>
           </form>
@@ -370,7 +410,7 @@ export default function ProfilePage() {
                 placeholder="e.g. John Doe"
                 className="w-full px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent mb-4"
               />
-              <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition-all disabled:opacity-60">
+              <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-theme-accent-text font-bold py-3 rounded-xl hover:opacity-90 transition-all disabled:opacity-60">
                 {savingName ? 'Saving...' : isNewUser ? 'Set My Name →' : 'Save'}
               </button>
               {!isNewUser ? (
@@ -408,7 +448,7 @@ export default function ProfilePage() {
                   setShowLogoutDialog(false)
                   await signOut?.({ redirectUrl: '/' })
                 }}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-white hover:opacity-90 transition-colors shadow-md"
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-colors shadow-md"
               >
                 Logout
               </button>
@@ -428,7 +468,7 @@ export default function ProfilePage() {
             </div>
             <h3 className="text-2xl font-black text-center mb-2">Delete Account?</h3>
             <p className="text-theme-secondary text-center mb-8">
-              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. Your sign-in account will be deleted immediately. Full deletion of saved exam and task records is still being improved.
+              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. Your sign-in account, exam submissions, study planner, resource progress, and live exam attempts will be deleted immediately.
             </p>
             <div className="flex gap-4">
               <button
@@ -452,4 +492,18 @@ export default function ProfilePage() {
       )}
     </div>
   )
+}
+
+function mergeUniqueExamSubmissions(current, next) {
+  const seen = new Set(current.map((submission) => submission.examId?._id).filter(Boolean))
+  const merged = [...current]
+
+  for (const submission of next) {
+    const examId = submission.examId?._id
+    if (!examId || seen.has(examId)) continue
+    seen.add(examId)
+    merged.push(submission)
+  }
+
+  return merged
 }

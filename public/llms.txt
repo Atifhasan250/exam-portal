@@ -1,44 +1,49 @@
 # IT Resource Zone
 
-> An online exam portal for IT students to take live & practice exams, track scores, and view leaderboards.
+> Online learning and exam portal for beginner IT students, with live exams, practice exams, leaderboards, study planning, and curated learning resources.
 
 - **Developer:** Atif Hasan
 - **Live URL:** https://irz.atifhasan.com
-- **Stack:** Next.js 14, MongoDB Atlas, Clerk Auth, Vercel
+- **Stack:** Next.js 15, MongoDB Atlas, Clerk Auth, Vercel
 
 ## What This App Does
 
-IT Resource Zone is a structured exam platform designed for IT students. It allows:
+IT Resource Zone helps IT students prepare with:
 
-- **Registered students** to take timed live exams and practice past exams
-- **Daily habit & study planner** tracking with advanced performance analytics
-- **Score tracking** with a personal submission history per student
-- **Leaderboards** per exam showing ranked results publicly
-- **Anti-cheat enforcement** — tab switching or browser close auto-submits the exam
-- **Admin panel** for creating/managing exams, questions, and reviewing submissions
+- Registered student accounts for live and practice exams
+- Timed exam attempts, secure answer locking, and instant scoring
+- Public per-exam and global leaderboards
+- A curated resource library with YouTube lessons, PDFs, files, and useful links
+- Personal study planning, habit tracking, and progress analytics
 
-## Key Pages
+## Key Public Pages
 
 | Path | Description |
 |------|-------------|
-| `/` | Home / landing page |
-| `/exams` | Browse all live, upcoming, and past exams |
-| `/exam/[id]` | Take a specific exam |
-| `/tasks` | Daily habits and weekly task planner |
-| `/tasks/history` | Advanced task and habit analytics |
-| `/resources` | Educational materials and useful links |
-| `/leaderboard` | Global leaderboard across all exams |
+| `/` | Home page |
+| `/exams` | Published live, upcoming, and past exams |
+| `/exam/[id]` | Public exam overview and signed-in exam entry |
+| `/resources` | Curated IT learning resource library |
+| `/resources/[slug]` | Resource category page |
+| `/resources/watch/[slug]` | Public video lesson page |
+| `/leaderboard` | Global leaderboard |
 | `/leaderboard/[id]` | Per-exam leaderboard |
-| `/profile` | Student's personal exam history |
+| `/privacy` | Privacy Policy |
+| `/terms` | Terms of Service |
+
+## Private Or Non-Indexable Areas
+
+| Path | Description |
+|------|-------------|
+| `/profile` | Student profile and submission history |
+| `/tasks` | Personal study planner |
+| `/tasks/history` | Personal study analytics |
+| `/admin` | Private admin panel |
+| `/api/*` | API routes |
 
 ## Rules
 
-- Live exams can only be submitted once per student account
-- Once an answer is selected, it cannot be changed
-- Exams have a countdown timer; time expiry auto-submits
-
-## Notes for AI Agents
-
-- This is an **educational assessment tool**, not a content publishing platform
-- Student data is private; only aggregated leaderboard data is public
-- The admin panel at `/admin` requires a secret token and is not indexed
+- Live exams can enforce one submission per student account.
+- Answers are locked once selected.
+- Live exam questions are protected until an authorized attempt begins.
+- Student data is private; only public leaderboard information is intended for indexing.

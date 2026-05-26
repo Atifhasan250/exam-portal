@@ -287,6 +287,8 @@ export const LaserFlow = ({
 
   useEffect(() => {
     const mount = mountRef.current;
+    if (!mount) return undefined;
+
     const renderer = new THREE.WebGLRenderer({
       antialias: false,
       alpha: true,
@@ -397,9 +399,9 @@ export const LaserFlow = ({
       resizeRaf = requestAnimationFrame(setSizeNow);
     };
 
-    setSizeNow();
     const ro = new ResizeObserver(scheduleResize);
     ro.observe(mount);
+    scheduleResize();
 
     // IntersectionObserver removed to prevent freezing during page transitions
 
@@ -514,6 +516,7 @@ export const LaserFlow = ({
 
     return () => {
       cancelAnimationFrame(raf);
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
       ro.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       canvas.removeEventListener('pointermove', onMove);
@@ -525,7 +528,10 @@ export const LaserFlow = ({
       geometry.dispose();
       material.dispose();
       renderer.dispose();
+      renderer.forceContextLoss();
       if (mount && mount.contains(canvas)) mount.removeChild(canvas);
+      rendererRef.current = null;
+      uniformsRef.current = null;
     };
   }, [dpr]);
 
@@ -570,7 +576,22 @@ export const LaserFlow = ({
     color
   ]);
 
-  return <div ref={mountRef} className={`laser-flow-container ${className || ''}`} style={style} />;
+  return (
+    <div
+      ref={mountRef}
+      className={`laser-flow-container ${className || ''}`}
+      style={{
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        pointerEvents: 'none',
+        zIndex: 1,
+        ...style
+      }}
+    />
+  );
 };
 
 export default LaserFlow;

@@ -5,6 +5,7 @@ import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { invalidIdResponse, isValidObjectId } from '@/lib/routeParams'
 import { logger } from '@/lib/logger'
 import { validate, reorderQuestionsSchema } from '@/lib/validation'
+import { invalidateExamCaches } from '@/lib/publicCache'
 import Question from '@/lib/models/Question'
 
 export async function PUT(request, { params }) {
@@ -45,6 +46,7 @@ export async function PUT(request, { params }) {
         Question.updateOne({ _id: questionId, examId: id }, { $set: { order: index } })
       )),
     )
+    await invalidateExamCaches(id)
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('[PUT /api/admin/exams/[id]/questions/reorder]', { error })

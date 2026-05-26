@@ -149,7 +149,7 @@
   will-change: transform;
   transform-origin: 50% 100%;
 }
-.sm-panel-item:hover { color: var(--sm-accent, #4F46E5); }
+.sm-panel-item:hover { color: var(--sm-accent, #ea7a53); }
 
 .sm-panel-list[data-numbering] { counter-reset: smItem; }
 .sm-panel-list[data-numbering] .sm-panel-item::after {
@@ -159,7 +159,7 @@
   top: 0.1em; right: 0.2em;
   font-size: 1rem;
   font-weight: 400;
-  color: var(--sm-accent, #4F46E5);
+  color: var(--sm-accent, #ea7a53);
   letter-spacing: 0;
   pointer-events: none;
   user-select: none;
@@ -180,7 +180,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--sm-accent, #4F46E5);
+  color: var(--sm-accent, #ea7a53);
 }
 .sm-socials-list {
   list-style: none;
@@ -198,7 +198,7 @@
   text-decoration: none;
   transition: color 0.25s;
 }
-.sm-socials-link:hover { color: var(--sm-accent, #4F46E5); }
+.sm-socials-link:hover { color: var(--sm-accent, #ea7a53); }
 
 /* ── Mobile: full width ── */
 @media (max-width: 768px) {

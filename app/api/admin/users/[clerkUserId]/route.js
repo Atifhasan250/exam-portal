@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { logger } from '@/lib/logger'
-import { getRankedLiveSubmissions } from '@/lib/leaderboard'
+import { getLiveSubmissionRankMap } from '@/lib/leaderboard'
 import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
 import { clerkClient } from '@clerk/nextjs/server'
@@ -15,12 +15,17 @@ import {
   getTotalActiveDays,
 } from '@/lib/analytics'
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
   try {
     const authCheck = await requireAdmin()
     if (!authCheck.ok) return authCheck.response
 
     const { clerkUserId } = await params
+    const { searchParams } = new URL(request.url)
+    const rawExamLimit = Number(searchParams.get('examLimit'))
+    const rawExamOffset = Number(searchParams.get('examOffset'))
+    const examLimit = Math.min(Math.max(Number.isFinite(rawExamLimit) ? Math.trunc(rawExamLimit) : 50, 1), 100)
+    const examOffset = Math.max(Number.isFinite(rawExamOffset) ? Math.trunc(rawExamOffset) : 0, 0)
 
     await connectDB()
 
@@ -71,22 +76,24 @@ export async function GET(_request, { params }) {
     }
 
     // 3. Fetch Exam History
-    const submissions = await Submission.find({ clerkUserId })
-      .populate('examId', 'title duration')
-      .sort({ submittedAt: -1 })
-      .lean()
+    const [submissions, examTotalCount] = await Promise.all([
+      Submission.find({ clerkUserId })
+        .populate('examId', 'title duration')
+        .sort({ submittedAt: -1 })
+        .skip(examOffset)
+        .limit(examLimit)
+        .lean(),
+      Submission.countDocuments({ clerkUserId }),
+    ])
+
+    const liveExamIds = submissions
+      .filter((sub) => sub.wasLive && sub.examId)
+      .map((sub) => sub.examId._id)
+    const liveRankMap = await getLiveSubmissionRankMap(liveExamIds)
 
     const examHistory = []
-
     for (const sub of submissions) {
       if (!sub.examId) continue // Skip if exam was completely deleted
-
-      let rank = null
-      if (sub.wasLive) {
-        const ranked = await getRankedLiveSubmissions({ examId: sub.examId._id })
-        const rankIndex = ranked.findIndex((item) => item._id.toString() === sub._id.toString())
-        rank = rankIndex >= 0 ? rankIndex + 1 : null
-      }
 
       examHistory.push({
         submissionId: sub._id,
@@ -95,8 +102,10 @@ export async function GET(_request, { params }) {
         score: sub.score,
         totalQuestions: sub.total,
         wasLive: sub.wasLive,
+        attemptCount: sub.attemptCount || 1,
         submittedAt: sub.submittedAt,
-        rank
+        lastAttemptAt: sub.lastAttemptAt || sub.submittedAt,
+        rank: sub.wasLive ? liveRankMap.get(sub._id.toString()) || null : null,
       })
     }
 
@@ -124,7 +133,13 @@ export async function GET(_request, { params }) {
         daysTracked,
         analytics
       },
-      exams: examHistory
+      exams: examHistory,
+      examsPage: {
+        totalCount: examTotalCount,
+        limit: examLimit,
+        offset: examOffset,
+        hasMore: examOffset + submissions.length < examTotalCount,
+      },
     })
   } catch (error) {
     logger.error('[GET /api/admin/users/[clerkUserId]]', { error })

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useTheme } from '@/context/ThemeContext'
 
-const LAST_UPDATED = 'May 10, 2025'
+const LAST_UPDATED = 'May 25, 2026'
 
 const sections = [
   {
@@ -15,11 +15,11 @@ const sections = [
       },
       {
         heading: 'Exam & Performance Data',
-        text: 'We record your exam submissions, scores, time taken, and answers to provide you with results, analytics, and leaderboard rankings. This data is essential to the core functionality of the platform.',
+        text: 'We record your exam submissions, scores, time taken, and answers to provide you with results, analytics, and leaderboard rankings. Your leaderboard name and exam score may be publicly visible on leaderboard pages. This data is essential to the core functionality of the platform.',
       },
       {
         heading: 'Usage Data',
-        text: 'We automatically collect information about how you interact with the platform — including pages visited, features used, and session duration — to improve performance and user experience.',
+        text: 'We automatically collect information about how you interact with the platform, including pages visited, features used, device/browser information, approximate location derived from network data, errors, and session activity. This helps us improve reliability, security, and user experience.',
       },
     ],
   },
@@ -32,7 +32,7 @@ const sections = [
       },
       {
         heading: 'Improvement & Analytics',
-        text: 'We use aggregated, anonymized usage data to understand how the platform is used and to identify areas for improvement. We do not sell or share your personal data with third parties for marketing purposes.',
+        text: 'We use usage and performance analytics to understand how the platform is used and to identify areas for improvement. Analytics may be associated with your account identifier when you are signed in, but we do not sell your personal data or share it with third parties for their own marketing purposes.',
       },
       {
         heading: 'Communications',
@@ -81,6 +81,14 @@ const sections = [
         heading: 'Vercel (Hosting)',
         text: 'Our platform is hosted on Vercel. Vercel may collect standard server-side logs (e.g., IP addresses) as part of providing hosting services.',
       },
+      {
+        heading: 'Vercel Analytics, PostHog, and Sentry',
+        text: 'We use Vercel Analytics and PostHog to measure product usage and Sentry to monitor errors and performance. These services may process technical information such as IP address, browser/device data, page URLs, events, and error details.',
+      },
+      {
+        heading: 'ImageKit and YouTube',
+        text: 'We use ImageKit to host and deliver resource images/files, and some resource pages embed or link to YouTube videos. When you open these resources, those providers may process your request under their own privacy policies.',
+      },
     ],
   },
   {
@@ -123,7 +131,7 @@ const sections = [
     content: [
       {
         heading: 'Get in Touch',
-        text: 'If you have any questions about this Privacy Policy or how we handle your data, please contact us at itresourcezone@gmail.com.com. You can also reach us through our Telegram channel at t.me/Itzonei.',
+        text: 'If you have any questions about this Privacy Policy or how we handle your data, please contact us at itresourcezone@gmail.com. You can also reach us through our Telegram channel at t.me/Itzonei.',
       },
     ],
   },
@@ -176,7 +184,7 @@ export default function PrivacyContent() {
           </div>
 
           <p className="mt-10 text-center text-xs text-theme-secondary">
-            © {new Date().getFullYear()} IT Resource Zone ·{' '}
+            {'\u00A9'} {new Date().getFullYear()} IT Resource Zone {' | '}
             <Link href="/terms" className="hover:text-theme-accent transition-colors">Terms of Service</Link>
           </p>
         </div>

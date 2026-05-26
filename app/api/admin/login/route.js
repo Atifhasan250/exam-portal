@@ -6,6 +6,7 @@ import { setAdminCookie, signAdminToken } from '@/lib/auth'
 import { validate, adminLoginSchema } from '@/lib/validation'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 function timingSafeEqual(a, b) {
   const aBuf = Buffer.from(a)
@@ -59,6 +60,17 @@ export async function POST(request) {
     const validPassword = verifyPassword(password)
     if (!validUsername || !validPassword) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+
+    try {
+      const posthog = getPostHogClient()
+      posthog.capture({
+        distinctId: `admin:${username}`,
+        event: 'admin_login_succeeded',
+        properties: { username },
+      })
+    } catch (analyticsError) {
+      logger.error('[POST /api/admin/login] PostHog capture failed', { error: analyticsError })
     }
 
     const token = signAdminToken({ username })

@@ -7,12 +7,12 @@ import './StaggeredMenu.css'
 
 export const StaggeredMenu = ({
   position = 'right',
-  colors = ['#B497CF', '#5227FF'],
+  colors = ['#f6eecf', '#ea7a53'],
   items = [],
   socialItems = [],
   displaySocials = false,
   displayItemNumbering = true,
-  accentColor = '#5227FF',
+  accentColor = '#ea7a53',
   menuButtonColor = '#1A2040',
   openMenuButtonColor = '#1A2040',
   changeMenuColorOnOpen = false,

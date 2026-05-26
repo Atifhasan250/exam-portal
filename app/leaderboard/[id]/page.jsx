@@ -2,7 +2,7 @@ import { connectDB } from '@/lib/db'
 import Exam from '@/lib/models/Exam'
 import LeaderboardClient from '../LeaderboardClient'
 import { buildPageMetadata } from '@/lib/site'
-import { getLeaderboardData } from '@/lib/leaderboard'
+import { getCachedExamLeaderboardData } from '@/lib/publicCache'
 import { isValidObjectId } from '@/lib/routeParams'
 
 export const revalidate = 60
@@ -46,6 +46,7 @@ export async function generateMetadata({ params }) {
 
 export default async function SingleLeaderboardPage({ params }) {
   const { id } = await params
-  const data = JSON.parse(JSON.stringify(await getLeaderboardData()))
+  if (!isValidObjectId(id)) return <LeaderboardClient initialData={[]} selectedExamId={id} />
+  const data = await getCachedExamLeaderboardData(id)
   return <LeaderboardClient initialData={data} selectedExamId={id} />
 }

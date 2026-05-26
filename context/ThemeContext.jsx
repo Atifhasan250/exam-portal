@@ -6,10 +6,12 @@ const ThemeCtx = createContext(null)
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState('dark')
+  const [themeLoaded, setThemeLoaded] = useState(false)
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('theme') || 'dark'
     setTheme(savedTheme)
+    setThemeLoaded(true)
   }, [])
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function ThemeProvider({ children }) {
   }
 
   return (
-    <ThemeCtx.Provider value={{ theme, toggleTheme }}>
+    <ThemeCtx.Provider value={{ theme, themeLoaded, toggleTheme }}>
       {children}
     </ThemeCtx.Provider>
   )

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import { safeHTML } from '@/utils/sanitize'
 
 export default function AdminExamView({ params }) {
@@ -126,19 +127,23 @@ export default function AdminExamView({ params }) {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-5xl mx-auto px-4 py-8">
-        {[0, 1, 2, 3].map((item) => (
-          <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-5">
-            <div className="skeleton h-5 w-3/4 rounded-lg mb-3" />
-            <div className="space-y-2 ml-5">
-              <div className="skeleton h-4 w-1/2 rounded-lg" />
-              <div className="skeleton h-4 w-2/3 rounded-lg" />
-              <div className="skeleton h-4 w-1/3 rounded-lg" />
-              <div className="skeleton h-4 w-1/2 rounded-lg" />
-            </div>
+      <PageLoadingOverlay>
+        <div className="bg-theme-bg min-h-screen text-theme-primary">
+          <div className="space-y-4 max-w-5xl mx-auto px-4 py-8">
+            {[0, 1, 2, 3].map((item) => (
+              <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-5">
+                <div className="skeleton h-5 w-3/4 rounded-lg mb-3" />
+                <div className="space-y-2 ml-5">
+                  <div className="skeleton h-4 w-1/2 rounded-lg" />
+                  <div className="skeleton h-4 w-2/3 rounded-lg" />
+                  <div className="skeleton h-4 w-1/3 rounded-lg" />
+                  <div className="skeleton h-4 w-1/2 rounded-lg" />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </PageLoadingOverlay>
     )
   }
 
@@ -156,7 +161,7 @@ export default function AdminExamView({ params }) {
             <p className="text-theme-secondary text-sm">{exam?.questions?.length || 0} question(s)</p>
             <button
               onClick={() => setExportModal(true)}
-              className="text-xs bg-theme-accent text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1.5 font-semibold shadow-sm shadow-theme-accent/20"
+              className="text-xs bg-theme-accent text-theme-accent-text px-3 py-1.5 rounded-lg hover:opacity-90 transition-all flex items-center gap-1.5 font-semibold shadow-sm shadow-theme-accent/20"
             >
               <i className="fas fa-file-export" />
               Export
@@ -171,12 +176,12 @@ export default function AdminExamView({ params }) {
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-theme-primary text-sm mb-2">
                   <span className="text-theme-secondary mr-2">{index + 1}.</span>
-                  <span dangerouslySetInnerHTML={{ __html: safeHTML(question.question) }} />
+                  <span className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: safeHTML(question.question) }} />
                 </p>
                 <div className="grid gap-1.5 ml-5">
                   {question.options.map((option, optionIndex) => (
                     <p key={optionIndex} className={`text-sm ${optionIndex === question.correct ? 'text-theme-success-text font-bold' : 'text-theme-secondary'}`}>
-                      {optionIndex + 1}. <span dangerouslySetInnerHTML={{ __html: safeHTML(option) }} /> {optionIndex === question.correct ? '(correct)' : ''}
+                      {optionIndex + 1}. <span className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: safeHTML(option) }} /> {optionIndex === question.correct ? '(correct)' : ''}
                     </p>
                   ))}
                 </div>

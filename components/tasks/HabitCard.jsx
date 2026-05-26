@@ -123,7 +123,7 @@ export default function HabitCard({
         />
         <button
           onClick={handleAdd}
-          className="bg-theme-accent text-white px-6 py-3 sm:py-0 rounded-lg hover:opacity-90 active:scale-95 transition-all shadow-sm font-bold text-sm whitespace-nowrap"
+          className="bg-theme-accent text-theme-accent-text px-6 py-3 sm:py-0 rounded-lg hover:opacity-90 active:scale-95 transition-all shadow-sm font-bold text-sm whitespace-nowrap"
         >
           + Add
         </button>

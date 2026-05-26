@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import { getPlannerData } from '../actions'
 import {
   getLocalDateString,
@@ -198,32 +199,34 @@ export default function HistoryPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
-        <main className="flex-grow py-8 sm:py-12 px-4 md:px-8 max-w-5xl w-full mx-auto relative mb-20 space-y-8">
-          <div className="flex items-center space-x-4">
-            <div className="skeleton w-10 h-10 rounded-full shrink-0" />
-            <div className="skeleton h-10 w-64 rounded-xl" />
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="skeleton h-24 w-full rounded-3xl" />
-            ))}
-          </div>
-
-          <div className="skeleton h-16 w-full rounded-2xl" />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-7 space-y-8">
-              <div className="skeleton h-80 w-full rounded-3xl" />
-              <div className="skeleton h-80 w-full rounded-3xl" />
+      <PageLoadingOverlay>
+        <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
+          <main className="flex-grow py-8 sm:py-12 px-4 md:px-8 max-w-5xl w-full mx-auto relative mb-20 space-y-8">
+            <div className="flex items-center space-x-4">
+              <div className="skeleton w-10 h-10 rounded-full shrink-0" />
+              <div className="skeleton h-10 w-64 rounded-xl" />
             </div>
-            <div className="lg:col-span-5 space-y-8">
-              <div className="skeleton h-96 w-full rounded-3xl" />
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="skeleton h-24 w-full rounded-3xl" />
+              ))}
             </div>
-          </div>
-        </main>
-      </div>
+
+            <div className="skeleton h-16 w-full rounded-2xl" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-7 space-y-8">
+                <div className="skeleton h-80 w-full rounded-3xl" />
+                <div className="skeleton h-80 w-full rounded-3xl" />
+              </div>
+              <div className="lg:col-span-5 space-y-8">
+                <div className="skeleton h-96 w-full rounded-3xl" />
+              </div>
+            </div>
+          </main>
+        </div>
+      </PageLoadingOverlay>
     )
   }
 
@@ -240,7 +243,7 @@ export default function HistoryPage() {
             <p className="text-theme-secondary text-lg leading-relaxed mb-8">
               Please sign in to view and manage your monthly tasks and daily habits history.
             </p>
-            <Link href="/sign-in" className="inline-flex items-center gap-2 bg-theme-accent text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:opacity-90 transition-all hover:-translate-y-0.5 active:scale-95">
+            <Link href="/sign-in" className="inline-flex items-center gap-2 bg-theme-accent text-theme-accent-text px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-theme-accent/30 hover:opacity-90 transition-all hover:-translate-y-0.5 active:scale-95">
               <i className="fas fa-sign-in-alt" /> Sign In Now
             </Link>
           </div>
@@ -267,7 +270,7 @@ export default function HistoryPage() {
                         onClick={() => setFilter(f)}
                         className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold capitalize transition-all duration-300 ${
                           filter === f
-                            ? 'bg-theme-accent text-white shadow-md transform scale-[1.02]'
+                            ? 'bg-theme-accent text-theme-accent-text shadow-md transform scale-[1.02]'
                             : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-bg'
                         }`}
                       >
@@ -295,10 +298,10 @@ export default function HistoryPage() {
                   {[
                     { label: 'Current Streak', value: habitStreak, icon: 'fa-fire', color: 'text-orange-500', bg: 'bg-orange-500/10' },
                     { label: 'Best Streak', value: bestStreak, icon: 'fa-trophy', color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-                    { label: 'Power Days', value: powerDays.length, icon: 'fa-bolt', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                    { label: '7-Day Avg', value: `${sevenDayAvg}%`, icon: 'fa-chart-pie', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                    { label: 'Power Days', value: powerDays.length, icon: 'fa-bolt', color: 'text-theme-accent', bg: 'bg-theme-accent/10' },
+                    { label: '7-Day Avg', value: `${sevenDayAvg}%`, icon: 'fa-chart-pie', color: 'text-theme-accent dark:text-blue-500', bg: 'bg-theme-accent/10 dark:bg-blue-500/10' },
                     { label: 'Consistency', value: consistencyScore, icon: 'fa-bullseye', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                    { label: 'Active Days', value: totalActiveDays, icon: 'fa-calendar-check', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                    { label: 'Active Days', value: totalActiveDays, icon: 'fa-calendar-check', color: 'text-theme-accent dark:text-purple-500', bg: 'bg-theme-accent/10 dark:bg-purple-500/10' },
                   ].map((stat, i) => (
                     <div key={i} className="bg-theme-surface border border-theme-border rounded-3xl p-5 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md transition-all hover:-translate-y-1 relative overflow-hidden group">
                       <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full ${stat.bg} opacity-50 group-hover:scale-150 transition-transform duration-500`} />
@@ -362,7 +365,7 @@ export default function HistoryPage() {
                               <div key={date} className="flex flex-col items-center flex-1 group min-w-0">
                                 <div className="w-full max-w-[28px] sm:max-w-[40px] bg-theme-bg rounded-t-xl rounded-b-md h-40 mb-3 relative overflow-hidden group-hover:bg-theme-border transition-colors">
                                   <div 
-                                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-theme-accent to-indigo-400 rounded-t-xl rounded-b-md transition-all duration-1000 ease-out" 
+                                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-theme-accent to-[#f6eecf] rounded-t-xl rounded-b-md transition-all duration-1000 ease-out" 
                                     style={{ height: `${progress}%` }} 
                                   />
                                 </div>
@@ -397,7 +400,7 @@ export default function HistoryPage() {
                       <div className="bg-theme-surface border border-theme-border rounded-3xl p-6 md:p-8 shadow-sm">
                         <div className="flex items-center justify-between mb-8">
                           <h3 className="text-xl font-bold flex items-center gap-3">
-                            <div className="w-2 h-6 bg-theme-primary rounded-full" />
+                              <div className="w-2 h-6 bg-theme-accent rounded-full" />
                             Monthly Task Completion
                           </h3>
                         </div>
@@ -409,7 +412,7 @@ export default function HistoryPage() {
                               <div key={week.week} className="flex flex-col items-center flex-1 group min-w-0">
                                 <div className="w-full max-w-[40px] sm:max-w-[60px] bg-theme-bg rounded-t-xl rounded-b-md h-40 mb-3 relative overflow-hidden group-hover:bg-theme-border transition-colors">
                                   <div 
-                                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-theme-primary to-blue-400 rounded-t-xl rounded-b-md transition-all duration-1000 ease-out" 
+                                      className="absolute bottom-0 left-0 right-0 bg-theme-accent rounded-t-xl rounded-b-md transition-all duration-1000 ease-out" 
                                     style={{ height: `${progress.percent}%` }} 
                                   />
                                 </div>
@@ -421,8 +424,8 @@ export default function HistoryPage() {
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4 border-t border-theme-border pt-6">
-                          <div className="bg-theme-bg rounded-2xl p-4 text-center flex items-center justify-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-theme-primary/10 flex items-center justify-center text-theme-primary">
+                            <div className="bg-theme-surface rounded-2xl border border-theme-border p-4 text-center flex items-center justify-center gap-4">
+                              <div className="w-12 h-12 rounded-full bg-theme-accent/10 flex items-center justify-center text-theme-accent">
                               <i className="fas fa-check-double text-xl" />
                             </div>
                             <div className="text-left">
@@ -430,8 +433,8 @@ export default function HistoryPage() {
                               <div className="text-xs font-bold text-theme-secondary uppercase">Tasks Done</div>
                             </div>
                           </div>
-                          <div className="bg-theme-bg rounded-2xl p-4 text-center flex items-center justify-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-theme-primary/10 flex items-center justify-center text-theme-primary">
+                            <div className="bg-theme-surface rounded-2xl border border-theme-border p-4 text-center flex items-center justify-center gap-4">
+                              <div className="w-12 h-12 rounded-full bg-theme-accent/10 flex items-center justify-center text-theme-accent">
                               <i className="fas fa-percentage text-xl" />
                             </div>
                             <div className="text-left">
@@ -477,8 +480,8 @@ export default function HistoryPage() {
                           if (day.isCurrentMonth && dayProgress > 0) {
                             if (dayProgress <= 33) heatmapClass = 'bg-theme-accent/20 text-theme-accent font-bold'
                             else if (dayProgress <= 66) heatmapClass = 'bg-theme-accent/40 text-theme-accent font-bold'
-                            else if (dayProgress <= 99) heatmapClass = 'bg-theme-accent/70 text-white font-bold'
-                            else heatmapClass = 'bg-theme-accent text-white font-bold shadow-md'
+                            else if (dayProgress <= 99) heatmapClass = 'bg-theme-accent/70 text-theme-accent-text font-bold'
+                            else heatmapClass = 'bg-theme-accent text-theme-accent-text font-bold shadow-md'
                           }
 
                           return (
@@ -530,7 +533,7 @@ export default function HistoryPage() {
                           {weeks.flatMap(w => w.tasks.filter(t => t.completed && t.completedDate === selectedDate).map(t => ({...t, weekTitle: w.title}))).map((task) => (
                             <div key={task.id} className="flex items-center justify-between bg-theme-bg hover:bg-theme-border/50 transition-colors p-4 rounded-2xl border border-theme-border group">
                               <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-500">
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-theme-accent/20 text-theme-accent dark:bg-blue-500/20 dark:text-blue-500">
                                   <i className="fas fa-check-double text-sm" />
                                 </div>
                                 <div className="flex flex-col">
@@ -538,7 +541,7 @@ export default function HistoryPage() {
                                   <span className="text-[10px] text-theme-secondary font-bold uppercase mt-0.5">{task.weekTitle}</span>
                                 </div>
                               </div>
-                              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md animate-in zoom-in duration-300">
+                              <div className="w-8 h-8 rounded-full bg-theme-accent text-theme-accent-text dark:bg-blue-500 dark:text-white flex items-center justify-center shadow-md animate-in zoom-in duration-300">
                                 <i className="fas fa-check text-sm" />
                               </div>
                             </div>
@@ -561,7 +564,7 @@ export default function HistoryPage() {
                                 </div>
                                 <div>
                                   {isCompleted ? (
-                                    <div className="w-8 h-8 rounded-full bg-theme-accent text-white flex items-center justify-center shadow-md animate-in zoom-in duration-300">
+                                    <div className="w-8 h-8 rounded-full bg-theme-accent text-theme-accent-text flex items-center justify-center shadow-md animate-in zoom-in duration-300">
                                       <i className="fas fa-check text-sm" />
                                     </div>
                                   ) : (

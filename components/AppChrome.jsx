@@ -7,13 +7,15 @@ import BottomNav from './BottomNav'
 import Navbar from './Navbar'
 import ClickSpark from './ClickSpark'
 import { useTheme } from '@/context/ThemeContext'
+import PostHogUserIdentity from './PostHogUserIdentity'
 
-const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up']
+const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up', '/offline']
 
 const IMPORTANT_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/exams', label: 'All Exams' },
-  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/resources', label: 'Resources' },
+  { href: '/tasks', label: 'Tasks' },
   { href: '/sign-in', label: 'Login' },
   { href: '/sign-up', label: 'Register' },
 ]
@@ -43,16 +45,18 @@ const SOCIAL_LINKS = [
 export default function AppChrome({ children }) {
   const pathname = usePathname()
   const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const showMobileNavbar = pathname === '/'
   const year = new Date().getFullYear()
   const { theme } = useTheme()
 
   // Lighter spark for dark bg, deeper for light bg
-  const sparkColor = theme === 'dark' ? '#a5b4fc' : '#4338ca'
+  const sparkColor = theme === 'dark' ? '#a5b4fc' : '#ea7a53'
 
   return (
     <ClickSpark sparkColor={sparkColor} sparkSize={12} sparkRadius={20} sparkCount={8} duration={450}>
+      <PostHogUserIdentity />
       <div className="flex flex-col min-h-screen bg-theme-bg text-theme-primary transition-theme">
-        {!isChromeless && <Navbar />}
+        {!isChromeless && <Navbar className={showMobileNavbar ? '' : 'hidden sm:block'} />}
         <div className="flex-grow">{children}</div>
 
         {!isChromeless && (
@@ -75,7 +79,7 @@ export default function AppChrome({ children }) {
                   </span>
                 </Link>
                 <p className="text-sm text-theme-secondary leading-relaxed max-w-xs">
-                  Instant results, real-time exam scores and detailed analytics — we help students reach their brightest potential.
+                  Instant results, real-time exam scores and detailed analytics - we help students reach their brightest potential.
                 </p>
                 {/* Socials */}
                 <div className="flex items-center space-x-2 pt-1">
@@ -162,7 +166,7 @@ export default function AppChrome({ children }) {
                     <span>
                       Made by{' '}
                       <a
-                        href="https://atifs-portfolio.vercel.app/"
+                        href="https://atifhasan.com/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-semibold text-theme-primary hover:text-theme-accent transition-colors underline underline-offset-2"
@@ -178,7 +182,7 @@ export default function AppChrome({ children }) {
             {/* Bottom bar */}
             <div className="border-t border-theme-border">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-theme-secondary">
-                <span>© {year} IT Resource Zone. All rights reserved.</span>
+                <span>{'\u00A9'} {year} IT Resource Zone. All rights reserved.</span>
                 <div className="flex items-center gap-4">
                   <Link href="/privacy" className="hover:text-theme-accent transition-colors">
                     Privacy Policy

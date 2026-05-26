@@ -4,16 +4,23 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [userOffset, setUserOffset] = useState(0)
+  const [userTotal, setUserTotal] = useState(0)
+  const [hasMoreUsers, setHasMoreUsers] = useState(false)
+  const USER_PAGE_SIZE = 100
 
   // Modal states
   const [selectedUser, setSelectedUser] = useState(null)
   const [userDetails, setUserDetails] = useState(null)
   const [loadingDetails, setLoadingDetails] = useState(false)
+  const [loadingMoreExams, setLoadingMoreExams] = useState(false)
   const [detailsError, setDetailsError] = useState('')
 
   const router = useRouter()
@@ -21,7 +28,7 @@ export default function AdminUsers() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('/api/admin/users')
+        const response = await fetch(`/api/admin/users?limit=${USER_PAGE_SIZE}&offset=0`)
         if (response.status === 401) {
           router.push('/admin')
           return
@@ -30,7 +37,11 @@ export default function AdminUsers() {
           throw new Error('Failed to fetch users')
         }
         const data = await response.json()
-        setUsers(data)
+        const list = Array.isArray(data) ? data : data.users || []
+        setUsers(list)
+        setUserOffset(list.length)
+        setUserTotal(data.totalCount || list.length)
+        setHasMoreUsers(Boolean(data.hasMore))
       } catch (err) {
         setError(err.message)
       } finally {
@@ -40,6 +51,28 @@ export default function AdminUsers() {
     fetchUsers()
   }, [router])
 
+  const loadMoreUsers = async () => {
+    setLoadingMore(true)
+    try {
+      const response = await fetch(`/api/admin/users?limit=${USER_PAGE_SIZE}&offset=${userOffset}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
+      if (!response.ok) throw new Error('Failed to fetch users')
+      const data = await response.json()
+      const list = data.users || []
+      setUsers((current) => [...current, ...list])
+      setUserOffset((current) => current + list.length)
+      setUserTotal(data.totalCount || userTotal)
+      setHasMoreUsers(Boolean(data.hasMore))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   const openUserDetails = async (user) => {
     setSelectedUser(user)
     setUserDetails(null)
@@ -47,7 +80,7 @@ export default function AdminUsers() {
     setLoadingDetails(true)
 
     try {
-      const response = await fetch(`/api/admin/users/${user.id}`)
+      const response = await fetch(`/api/admin/users/${user.id}?examLimit=50&examOffset=0`)
       if (!response.ok) throw new Error('Failed to fetch user details')
       const data = await response.json()
       setUserDetails(data)
@@ -63,6 +96,32 @@ export default function AdminUsers() {
     setUserDetails(null)
   }
 
+  const loadMoreUserExams = async () => {
+    if (!selectedUser || !userDetails?.examsPage?.hasMore) return
+
+    setLoadingMoreExams(true)
+    setDetailsError('')
+    try {
+      const offset = userDetails.exams?.length || 0
+      const response = await fetch(`/api/admin/users/${selectedUser.id}?examLimit=50&examOffset=${offset}`)
+      if (response.status === 401) {
+        router.push('/admin')
+        return
+      }
+      if (!response.ok) throw new Error('Failed to fetch more exam history')
+      const data = await response.json()
+      setUserDetails((current) => ({
+        ...current,
+        exams: [...(current.exams || []), ...(data.exams || [])],
+        examsPage: data.examsPage || current.examsPage,
+      }))
+    } catch (err) {
+      setDetailsError(err.message)
+    } finally {
+      setLoadingMoreExams(false)
+    }
+  }
+
   useEffect(() => {
     if (selectedUser) {
       document.body.style.overflow = 'hidden'
@@ -76,13 +135,41 @@ export default function AdminUsers() {
 
   const fmtDate = (date) => date ? new Date(date).toLocaleString([], { dateStyle: 'medium' }) : '—'
 
+  if (loading) return (
+    <PageLoadingOverlay>
+      <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
+        <main className="max-w-6xl mx-auto px-4 py-8 space-y-8 mt-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="skeleton h-8 w-36 rounded-xl" />
+              <div className="skeleton h-4 w-28 rounded-lg" />
+            </div>
+            <div className="skeleton h-12 w-32 rounded-xl" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {[0, 1, 2, 3, 4, 5].map((item) => (
+              <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-5 flex items-center gap-4">
+                <div className="skeleton w-12 h-12 rounded-full shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="skeleton h-5 w-3/4 rounded-lg" />
+                  <div className="skeleton h-3 w-1/2 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+    </PageLoadingOverlay>
+  )
+
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8 mt-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-theme-primary mb-1">User List</h2>
-            <p className="text-theme-secondary text-sm">{users.length} user(s) registered</p>
+            <p className="text-theme-secondary text-sm">{users.length}{userTotal ? ` of ${userTotal}` : ''} user(s) loaded</p>
           </div>
           <Link href="/admin/dashboard" className="px-4 py-3 text-sm font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-xl hover:text-theme-primary transition-all flex items-center justify-center whitespace-nowrap shadow-sm">
             <i className="fas fa-arrow-left mr-2" />
@@ -138,6 +225,15 @@ export default function AdminUsers() {
                 <i className="fas fa-chevron-right text-theme-border group-hover:text-theme-accent transition-colors shrink-0 text-sm" />
               </div>
             ))}
+            {hasMoreUsers ? (
+              <button
+                onClick={loadMoreUsers}
+                disabled={loadingMore}
+                className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:border-theme-accent/50 transition-all font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+              >
+                {loadingMore ? 'Loading...' : 'Load More Users'}
+              </button>
+            ) : null}
           </div>
         )}
       </main>
@@ -233,10 +329,10 @@ export default function AdminUsers() {
                       {[
                         { label: 'Current Streak', value: userDetails.tasks.analytics.currentStreak, icon: 'fa-fire', color: 'text-orange-500', bg: 'bg-orange-500/10' },
                         { label: 'Best Streak', value: userDetails.tasks.analytics.bestStreak, icon: 'fa-trophy', color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-                        { label: 'Power Days', value: userDetails.tasks.analytics.powerDays, icon: 'fa-bolt', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                        { label: '7-Day Avg', value: `${userDetails.tasks.analytics.sevenDayAvg}%`, icon: 'fa-chart-pie', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                        { label: 'Power Days', value: userDetails.tasks.analytics.powerDays, icon: 'fa-bolt', color: 'text-theme-accent', bg: 'bg-theme-accent/10' },
+                        { label: '7-Day Avg', value: `${userDetails.tasks.analytics.sevenDayAvg}%`, icon: 'fa-chart-pie', color: 'text-theme-accent dark:text-blue-500', bg: 'bg-theme-accent/10 dark:bg-blue-500/10' },
                         { label: 'Consistency', value: userDetails.tasks.analytics.consistency, icon: 'fa-bullseye', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                        { label: 'Active Days', value: userDetails.tasks.analytics.activeDays, icon: 'fa-calendar-check', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                        { label: 'Active Days', value: userDetails.tasks.analytics.activeDays, icon: 'fa-calendar-check', color: 'text-theme-accent dark:text-purple-500', bg: 'bg-theme-accent/10 dark:bg-purple-500/10' },
                       ].map((stat, i) => (
                         <div key={i} className="bg-theme-bg border border-theme-border rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden group">
                           <div className={`absolute -right-3 -top-3 sm:-right-4 sm:-top-4 w-12 h-12 sm:w-16 sm:h-16 rounded-full ${stat.bg} opacity-50 group-hover:scale-150 transition-transform duration-500`} />
@@ -290,6 +386,15 @@ export default function AdminUsers() {
                           </div>
                         </div>
                       ))}
+                      {userDetails.examsPage?.hasMore ? (
+                        <button
+                          onClick={loadMoreUserExams}
+                          disabled={loadingMoreExams}
+                          className="w-full bg-theme-bg border border-theme-border rounded-xl p-4 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                        >
+                          {loadingMoreExams ? 'Loading...' : 'Load More Exams'}
+                        </button>
+                      ) : null}
                     </div>
                   )}
                 </section>
