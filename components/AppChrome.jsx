@@ -9,7 +9,7 @@ import ClickSpark from './ClickSpark'
 import { useTheme } from '@/context/ThemeContext'
 import PostHogUserIdentity from './PostHogUserIdentity'
 
-const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up']
+const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up', '/offline']
 
 const IMPORTANT_LINKS = [
   { href: '/', label: 'Home' },

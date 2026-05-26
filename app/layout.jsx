@@ -5,6 +5,7 @@ import AppChrome from '@/components/AppChrome'
 import { getSiteUrl } from '@/lib/site'
 import { safeJsonLd } from '@/lib/jsonLd'
 import { Analytics } from '@vercel/analytics/react'
+import PwaRuntime from '@/components/PwaRuntime'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,7 +33,7 @@ export const metadata = {
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    apple: '/icons/apple-touch-icon.png',
   },
   openGraph: {
     type: 'website',
@@ -131,6 +132,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`dark ${inter.variable}`}>
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
@@ -147,6 +149,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <AppProviders>
+          <PwaRuntime />
           <AppChrome>{children}</AppChrome>
         </AppProviders>
         <Analytics />
