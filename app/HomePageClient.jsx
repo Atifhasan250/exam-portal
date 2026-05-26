@@ -7,7 +7,7 @@ import LaserFlow from '@/components/LaserFlow'
 
 export default function HomePageClient() {
   const { user } = useUser()
-  const { theme } = useTheme()
+  const { theme, themeLoaded } = useTheme()
   const isDark = theme === 'dark'
 
   return (
@@ -18,28 +18,27 @@ export default function HomePageClient() {
         <div className="relative w-full max-w-6xl mx-auto sm:mt-[80px]">
 
           {/* LaserFlow — 250px above the card top */}
-          <div
-            className={`absolute top-[-250px] w-full h-[500px] pointer-events-none z-0 transition-opacity duration-700 ${isDark ? 'opacity-100' : 'opacity-0'
-              }`}
-          >
-            <LaserFlow
-              color="#6366F1"
-              horizontalBeamOffset={0.15}
-              verticalBeamOffset={0}
-              verticalSizing={1.2}
-              horizontalSizing={0.8}
-              flowSpeed={0.5}
-              wispDensity={1.5}
-              fogIntensity={0.6}
-              dpr={1}
-            />
-          </div>
+          {themeLoaded && isDark ? (
+            <div className="absolute top-[-250px] w-full h-[500px] pointer-events-none z-0">
+              <LaserFlow
+                color="#6366F1"
+                horizontalBeamOffset={0.15}
+                verticalBeamOffset={0}
+                verticalSizing={1.2}
+                horizontalSizing={0.8}
+                flowSpeed={0.5}
+                wispDensity={1.5}
+                fogIntensity={0.6}
+                dpr={1}
+              />
+            </div>
+          ) : null}
 
           {/* Hero card */}
           <div
             className={`relative z-10 w-full rounded-[2rem] border overflow-hidden p-8 sm:p-16 transition-all duration-500 ${isDark
               ? 'border-[#B497CF]/30 bg-[#120F17]/80 backdrop-blur-md shadow-[0_-20px_60px_-15px_rgba(180,151,207,0.25)]'
-              : 'border-theme-border bg-theme-bg shadow-xl'
+              : 'border-theme-border bg-theme-bg shadow-md'
               }`}
           >
             <div
@@ -96,13 +95,15 @@ export default function HomePageClient() {
                   window.scrollTo({ top, behavior: 'smooth' })
                 }
               }}
-              className={`relative w-[30px] h-[52px] rounded-[15px] border-2 transition-colors duration-300 cursor-pointer ${isDark ? 'border-white/25 hover:border-white/50' : 'border-theme-accent/30 hover:border-theme-accent/60'
+              className={`group relative w-[34px] h-[56px] rounded-full border-2 transition-all duration-300 cursor-pointer hover:-translate-y-0.5 ${isDark
+                ? 'border-white/25 bg-white/[0.03] hover:border-white/55 hover:bg-white/[0.06]'
+                : 'border-theme-accent bg-theme-surface shadow-lg hover:border-theme-primary hover:bg-theme-bg'
                 }`}
             >
-              <span className={`scroll-indicator-dot absolute left-1/2 top-[9px] w-[6px] h-[6px] rounded-full ${isDark ? 'bg-white/50' : 'bg-theme-accent/60'
+              <span className={`scroll-indicator-dot absolute left-1/2 top-[10px] w-[6px] h-[6px] rounded-full ${isDark ? 'bg-white/60 group-hover:bg-white/80' : 'bg-theme-accent'
                 }`} />
             </button>
-            <span className={`text-[10px] uppercase tracking-[0.2em] font-medium select-none ${isDark ? 'text-white/30' : 'text-theme-accent/50'
+            <span className={`text-[10px] uppercase tracking-[0.16em] font-extrabold select-none ${isDark ? 'text-white/35' : 'text-theme-primary opacity-75'
               }`}>
               scroll
             </span>
