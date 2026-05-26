@@ -62,12 +62,16 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    const posthog = getPostHogClient()
-    posthog.capture({
-      distinctId: `admin:${username}`,
-      event: 'admin_login_succeeded',
-      properties: { username },
-    })
+    try {
+      const posthog = getPostHogClient()
+      posthog.capture({
+        distinctId: `admin:${username}`,
+        event: 'admin_login_succeeded',
+        properties: { username },
+      })
+    } catch (analyticsError) {
+      logger.error('[POST /api/admin/login] PostHog capture failed', { error: analyticsError })
+    }
 
     const token = signAdminToken({ username })
     await setAdminCookie(token)

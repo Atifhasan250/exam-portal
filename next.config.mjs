@@ -76,10 +76,10 @@ const nextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Enforce HTTPS for 1 year (production only — dev uses HTTP)
-          {
+          ...(process.env.NODE_ENV === 'production' ? [{
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
-          },
+          }] : []),
           // Disable unused browser features
           {
             key: 'Permissions-Policy',

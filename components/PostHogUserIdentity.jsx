@@ -9,10 +9,18 @@ export default function PostHogUserIdentity() {
 
   useEffect(() => {
     if (!isLoaded) return
-    if (user) {
-      posthog.identify(user.id)
-    } else {
-      posthog.reset()
+    try {
+      if (user) {
+        if (typeof posthog?.identify === 'function') {
+          posthog.identify(user.id)
+        }
+      } else {
+        if (typeof posthog?.reset === 'function') {
+          posthog.reset()
+        }
+      }
+    } catch (err) {
+      console.error('[PostHogUserIdentity] PostHog call failed', err)
     }
   }, [isLoaded, user?.id])
 
