@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import { normalizeSearchQuery } from '@/lib/resourceUtils'
 import { getCachedPublicResources } from '@/lib/publicCache'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export async function GET(request) {

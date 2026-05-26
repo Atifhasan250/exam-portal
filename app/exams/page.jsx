@@ -3,6 +3,7 @@ import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { getCachedPublishedExamPage } from '@/lib/publicCache'
 import { safeJsonLd } from '@/lib/jsonLd'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 30
 const EXAM_PAGE_SIZE = 12
 
