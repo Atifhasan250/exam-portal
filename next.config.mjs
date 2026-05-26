@@ -24,6 +24,14 @@ const sentryConnectSrc = [
   sentryDsnHost ? `https://${sentryDsnHost}` : '',
 ].filter(Boolean).join(' ')
 
+// Clerk custom domain (e.g. clerk.irz.atifhasan.com).
+// Vercel injects NEXT_PUBLIC_CLERK_FRONTEND_API_URL automatically when a
+// custom domain is configured in the Clerk dashboard.
+const clerkFrontendApiHost = hostnameFromUrl(process.env.NEXT_PUBLIC_CLERK_FRONTEND_API_URL)
+const clerkCustomDomainSrc = clerkFrontendApiHost
+  ? `https://${clerkFrontendApiHost} wss://${clerkFrontendApiHost}`
+  : ''
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: path.join(process.cwd()),
@@ -67,6 +75,8 @@ const nextConfig = {
       // Clerk production CDN (used when production keys are active)
       'https://*.clerk.com',
       'https://clerk.com',
+      // Clerk custom domain (e.g. clerk.irz.atifhasan.com)
+      clerkFrontendApiHost ? `https://${clerkFrontendApiHost}` : '',
       'https://www.youtube.com',
       'https://s.ytimg.com',
     ].filter(Boolean).join(' ')
@@ -98,14 +108,14 @@ const nextConfig = {
               "default-src 'self'",
               // Clerk loads its JS bundle from the project's Clerk CDN subdomain
               scriptSrc,
-              "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com",
+              `style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com${clerkFrontendApiHost ? ` https://${clerkFrontendApiHost}` : ''}`,
               "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:",
               // Clerk user avatars come from img.clerk.com and Google/social providers
               "img-src 'self' data: blob: https:",
               // Clerk API, WebSocket, and Vercel analytics
-              `connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.clerk.com https://api.clerk.com wss://*.clerk.com https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io ${sentryConnectSrc}`,
+              `connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.clerk.com https://api.clerk.com wss://*.clerk.com ${clerkCustomDomainSrc} https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io ${sentryConnectSrc}`,
               "worker-src 'self' blob:",
-              `frame-src https://*.clerk.accounts.dev https://*.clerk.com https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
+              `frame-src https://*.clerk.accounts.dev https://*.clerk.com${clerkFrontendApiHost ? ` https://${clerkFrontendApiHost}` : ''} https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },
