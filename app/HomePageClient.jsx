@@ -166,7 +166,9 @@ export default function HomePageClient() {
             >
               {/* Hover glow */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
-                style={{ background: 'radial-gradient(ellipse at top left, rgba(234,122,83,0.09), transparent 65%)' }}
+                style={{
+                  background: `radial-gradient(ellipse at top left, ${isDark ? 'rgba(99,102,241,0.12)' : 'rgba(234,122,83,0.09)'}, transparent 65%)`,
+                }}
               />
 
               {/* Badge */}
