@@ -4,6 +4,7 @@ import { publicResourceSlug } from '@/lib/resourceUtils'
 import { getCachedInitialResourcePageData } from '@/lib/publicCache'
 import { safeJsonLd } from '@/lib/jsonLd'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export const metadata = {

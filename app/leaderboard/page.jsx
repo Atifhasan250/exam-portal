@@ -2,6 +2,7 @@ import LeaderboardClient from './LeaderboardClient'
 import { buildPageMetadata } from '@/lib/site'
 import { getCachedLeaderboardData } from '@/lib/publicCache'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 60
 export const metadata = buildPageMetadata({
   title: 'Leaderboard',

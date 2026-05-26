@@ -2,6 +2,8 @@ import HomePageClient from './HomePageClient'
 import HomeRecentExams from './HomeRecentExams'
 import { buildPageMetadata } from '@/lib/site'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = buildPageMetadata({
   title: 'IT Resource Zone',
   description:

@@ -62,7 +62,11 @@ const nextConfig = {
     const scriptSrc = [
       "script-src 'self' 'unsafe-inline'",
       allowUnsafeEval ? "'unsafe-eval'" : '',
+      // Clerk dev environment
       'https://*.clerk.accounts.dev',
+      // Clerk production CDN (used when production keys are active)
+      'https://*.clerk.com',
+      'https://clerk.com',
       'https://www.youtube.com',
       'https://s.ytimg.com',
     ].filter(Boolean).join(' ')
@@ -94,14 +98,14 @@ const nextConfig = {
               "default-src 'self'",
               // Clerk loads its JS bundle from the project's Clerk CDN subdomain
               scriptSrc,
-              "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.clerk.accounts.dev",
+              "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com",
               "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:",
               // Clerk user avatars come from img.clerk.com and Google/social providers
               "img-src 'self' data: blob: https:",
               // Clerk API, WebSocket, and Vercel analytics
-              `connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io ${sentryConnectSrc}`,
+              `connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.dev wss://*.clerk.accounts.dev https://*.clerk.com https://api.clerk.com wss://*.clerk.com https://*.vercel-insights.com https://upload.imagekit.io https://ik.imagekit.io https://*.imagekit.io ${sentryConnectSrc}`,
               "worker-src 'self' blob:",
-              `frame-src https://*.clerk.accounts.dev https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
+              `frame-src https://*.clerk.accounts.dev https://*.clerk.com https://www.youtube.com https://www.youtube-nocookie.com ${imageKitFrameSrc}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },
