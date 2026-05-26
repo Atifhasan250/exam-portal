@@ -28,14 +28,17 @@ export async function generateMetadata({ params }) {
     || excerpt(resource.transcriptText, 155)
     || `Watch ${resource.title} on IT Resource Zone.`
 
-  return buildPageMetadata({
-    title: resource.title,
-    description,
-    path: `/resources/watch/${publicResourceSlug(resource)}`,
-    keywords: ['IT learning video', resource.categoryId?.name, resource.channelTitle].filter(Boolean),
-    image: resource.thumbnailUrl || '/link-preview.jpg',
-    imageAlt: resource.title,
-  })
+  return {
+    ...buildPageMetadata({
+      title: resource.title,
+      description,
+      path: `/resources/watch/${publicResourceSlug(resource)}`,
+      keywords: ['IT learning video', resource.categoryId?.name, resource.channelTitle].filter(Boolean),
+      image: resource.thumbnailUrl || '/link-preview.jpg',
+      imageAlt: resource.title,
+    }),
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function ResourceWatchPage({ params }) {

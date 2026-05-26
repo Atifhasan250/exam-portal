@@ -15,7 +15,7 @@ export default function ResourceCard({ resource, progress, serialNumber, metaMod
     : `/resources/view/${publicResourceSlug(resource)}`
 
   return (
-    <article className="bg-theme-surface border border-theme-border rounded-2xl overflow-hidden shadow-sm hover:border-theme-accent/40 transition-all">
+    <article className="min-w-0 w-full bg-theme-surface border border-theme-border rounded-2xl overflow-hidden shadow-sm hover:border-theme-accent/40 transition-all">
       <Link href={href} className="block w-full text-left">
         {content}
       </Link>
@@ -26,7 +26,7 @@ export default function ResourceCard({ resource, progress, serialNumber, metaMod
 function CardContent({ resource, percent, serialNumber, metaMode }) {
   return (
     <>
-      <div className="relative aspect-video bg-theme-bg overflow-hidden">
+      <div className="relative aspect-video bg-theme-progress-track overflow-hidden">
         {resource.thumbnailUrl ? (
           <img src={resource.thumbnailUrl} alt={`${resource.title} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
@@ -46,11 +46,11 @@ function CardContent({ resource, percent, serialNumber, metaMode }) {
         ) : null}
       </div>
       {percent > 0 ? (
-        <div className="h-1 bg-theme-bg">
+        <div className="h-1 bg-theme-progress-track">
           <div className="h-full bg-theme-accent" style={{ width: `${percent}%` }} />
         </div>
       ) : null}
-      <div className="p-4">
+      <div className="min-w-0 p-4">
         {metaMode === 'category' ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-theme-secondary font-bold mb-2">
             <span>{resource.categoryId?.name || 'Resources'}</span>
@@ -68,9 +68,9 @@ function CardContent({ resource, percent, serialNumber, metaMode }) {
           ) : null}
           </div>
         )}
-        <h3 className="font-extrabold text-theme-primary leading-snug flex items-start gap-1.5">
+        <h3 className="min-w-0 font-extrabold text-theme-primary leading-snug flex items-start gap-1.5">
           {serialNumber ? <span className="text-theme-accent shrink-0">{serialNumber}.</span> : null}
-          <span>{resource.title}</span>
+          <span className="min-w-0 break-words">{resource.title}</span>
         </h3>
       </div>
     </>

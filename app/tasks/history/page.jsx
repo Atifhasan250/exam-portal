@@ -363,7 +363,7 @@ export default function HistoryPage() {
                             const progress = getDailyHabitProgress(date)
                             return (
                               <div key={date} className="flex flex-col items-center flex-1 group min-w-0">
-                                <div className="w-full max-w-[28px] sm:max-w-[40px] bg-theme-bg rounded-t-xl rounded-b-md h-40 mb-3 relative overflow-hidden group-hover:bg-theme-border transition-colors">
+                                <div className="w-full max-w-[28px] sm:max-w-[40px] bg-theme-progress-track rounded-t-xl rounded-b-md h-40 mb-3 relative overflow-hidden group-hover:bg-theme-border transition-colors">
                                   <div 
                                     className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-theme-accent to-[#f6eecf] rounded-t-xl rounded-b-md transition-all duration-1000 ease-out" 
                                     style={{ height: `${progress}%` }} 
@@ -410,7 +410,7 @@ export default function HistoryPage() {
                             const progress = getWeekProgress(index)
                             return (
                               <div key={week.week} className="flex flex-col items-center flex-1 group min-w-0">
-                                <div className="w-full max-w-[40px] sm:max-w-[60px] bg-theme-bg rounded-t-xl rounded-b-md h-40 mb-3 relative overflow-hidden group-hover:bg-theme-border transition-colors">
+                                <div className="w-full max-w-[40px] sm:max-w-[60px] bg-theme-progress-track rounded-t-xl rounded-b-md h-40 mb-3 relative overflow-hidden group-hover:bg-theme-border transition-colors">
                                   <div 
                                       className="absolute bottom-0 left-0 right-0 bg-theme-accent rounded-t-xl rounded-b-md transition-all duration-1000 ease-out" 
                                     style={{ height: `${progress.percent}%` }} 
@@ -480,8 +480,8 @@ export default function HistoryPage() {
                           if (day.isCurrentMonth && dayProgress > 0) {
                             if (dayProgress <= 33) heatmapClass = 'bg-theme-accent/20 text-theme-accent font-bold'
                             else if (dayProgress <= 66) heatmapClass = 'bg-theme-accent/40 text-theme-accent font-bold'
-                            else if (dayProgress <= 99) heatmapClass = 'bg-theme-accent/70 text-theme-accent-text font-bold'
-                            else heatmapClass = 'bg-theme-accent text-theme-accent-text font-bold shadow-md'
+                            else if (dayProgress <= 99) heatmapClass = 'bg-theme-accent/70 text-theme-primary dark:text-theme-accent-text font-bold'
+                            else heatmapClass = 'bg-theme-accent text-theme-primary dark:text-theme-accent-text font-bold shadow-md'
                           }
 
                           return (

@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
 import PageSkeleton from './PageSkeleton'
 import StaggeredMenu from './StaggeredMenu'
+import ThemeToggle from './ThemeToggle'
 
 const MENU_ITEMS = [
   { label: 'Home',        ariaLabel: 'Go to home page',       link: '/' },
@@ -33,27 +33,29 @@ export default function Navbar({ className = '' }) {
   return (
     <div className={`sticky top-2.5 sm:top-2.5 z-[9999] px-4 transition-theme pointer-events-none ${className}`}>
       <header
-        className="max-w-6xl mx-auto backdrop-blur-xl border border-theme-border rounded-2xl shadow-lg h-16 flex items-center justify-between px-4 sm:px-6 pointer-events-auto"
+        className="relative max-w-6xl mx-auto backdrop-blur-xl border border-theme-border rounded-2xl shadow-lg h-16 flex items-center justify-between px-4 sm:px-6 pointer-events-auto"
         style={{ background: 'color-mix(in srgb, var(--color-surface) 70%, transparent)' }}
       >
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-3 cursor-pointer shrink-0">
-          <Image src="/favicon.png" alt="Logo" width={36} height={36} className="object-contain rounded-xl shadow-sm" />
-          <h1 className="text-xl font-bold tracking-tight text-theme-primary truncate max-w-[200px] sm:max-w-none">
-            IT Resource Zone
-          </h1>
+        {/* Left controls */}
+        <div className="flex items-center shrink-0">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
+
+        {/* Center logo */}
+        <Link
+          href="/"
+          aria-label="Go to home page"
+          className="absolute left-1/2 top-1/2 flex h-14 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden cursor-pointer sm:h-16 sm:w-20"
+        >
+          <img
+            src={isDark ? '/favicon.png' : '/favicon1.png'}
+            alt="IT Resource Zone"
+            className="h-16 w-16 shrink-0 object-contain drop-shadow-sm sm:h-20 sm:w-20"
+          />
         </Link>
 
         {/* Right controls */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-theme-bg text-theme-secondary hover:text-theme-primary border border-theme-border transition-all"
-          >
-            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
-          </button>
-
           {/* Desktop: Sign In / Profile button */}
           <div className="hidden sm:flex">
             {!user ? (
@@ -81,8 +83,8 @@ export default function Navbar({ className = '' }) {
             )}
           </div>
 
-          {/* Desktop: StaggeredMenu toggle */}
-          <div className="hidden sm:flex">
+          {/* Menu toggle */}
+          <div className="flex">
             <StaggeredMenu
               position="right"
               items={MENU_ITEMS}
@@ -94,6 +96,7 @@ export default function Navbar({ className = '' }) {
               openMenuButtonColor={menuBtnColor}
               changeMenuColorOnOpen={false}
               closeOnClickAway={true}
+              mobileCompact={true}
             />
           </div>
         </div>

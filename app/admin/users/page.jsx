@@ -292,7 +292,7 @@ export default function AdminUsers() {
                         <span className="text-sm font-bold text-theme-secondary"><i className="fas fa-tasks mr-2 opacity-50" />Weekly Tasks</span>
                         <span className="text-2xl font-black text-theme-primary">{userDetails.tasks.progressPercentage}%</span>
                       </div>
-                      <div className="w-full h-3 bg-theme-surface rounded-full overflow-hidden border border-theme-border mb-3">
+                      <div className="w-full h-3 bg-theme-progress-track rounded-full overflow-hidden border border-theme-border mb-3">
                         <div
                           className="h-full bg-theme-accent transition-all duration-1000"
                           style={{ width: `${userDetails.tasks.progressPercentage}%` }}
@@ -309,7 +309,7 @@ export default function AdminUsers() {
                         <span className="text-sm font-bold text-theme-secondary"><i className="fas fa-calendar-check mr-2 opacity-50" />Daily Habits</span>
                         <span className="text-2xl font-black text-emerald-500">{userDetails.tasks.habitsPercentage}%</span>
                       </div>
-                      <div className="w-full h-3 bg-theme-surface rounded-full overflow-hidden border border-theme-border mb-3">
+                      <div className="w-full h-3 bg-theme-progress-track rounded-full overflow-hidden border border-theme-border mb-3">
                         <div
                           className="h-full bg-emerald-500 transition-all duration-1000"
                           style={{ width: `${userDetails.tasks.habitsPercentage}%` }}

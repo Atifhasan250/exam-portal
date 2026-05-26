@@ -31,7 +31,7 @@ export async function generateMetadata({ params }) {
         path: `/resources/${slug}`,
         keywords: ['IT resources', 'learning category', slug],
       }),
-      robots: { index: false, follow: true },
+      robots: { index: false, follow: false },
     }
   }
 
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }) {
       path: `/resources/${slug}`,
       keywords: ['IT resources', `${category.name} resources`, category.name, slug],
     }),
-    robots: { index: true, follow: true },
+    robots: { index: false, follow: false },
   }
 }
 

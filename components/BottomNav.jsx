@@ -105,7 +105,7 @@ export default function BottomNav() {
                 <Link key={to} href={to} data-active={isActive ? 'true' : 'false'} className="relative z-20 flex flex-col items-center justify-end pb-1 h-[46px] w-[80px] shrink-0">
                   {/* Floating Action Button */}
                   <div
-                    className={`absolute -top-8 w-[56px] h-[56px] rounded-full flex items-center justify-center border transition-all duration-300 ${isActive ? 'bg-theme-accent text-theme-accent-text border-theme-accent' : 'bg-theme-surface text-theme-primary border-theme-border'
+                    className={`absolute left-1/2 -top-8 w-[56px] h-[56px] -translate-x-1/2 rounded-full flex items-center justify-center border transition-all duration-300 ${isActive ? 'bg-theme-accent text-theme-accent-text border-theme-accent' : 'bg-theme-surface text-theme-primary border-theme-border'
                       }`}
                   >
                     <i className={`fas ${icon} text-xl`} />

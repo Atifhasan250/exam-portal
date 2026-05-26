@@ -32,10 +32,10 @@ export default function PageLoadingOverlay({ children, className = '' }) {
     <div
       aria-busy="true"
       aria-label="Loading page"
-      className={`fixed inset-0 z-[99999] overflow-hidden overscroll-none touch-none bg-theme-bg text-theme-primary transition-theme ${className}`}
+      className={`fixed inset-0 z-40 overflow-hidden overscroll-none touch-none bg-theme-bg text-theme-primary transition-theme ${className}`}
       role="status"
     >
-      <div className="h-full w-full overflow-hidden">
+      <div className="h-full w-full overflow-hidden pb-24 sm:pb-0">
         {children}
       </div>
     </div>

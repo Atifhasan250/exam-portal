@@ -207,7 +207,7 @@ export default function CategoryResourcesClient({
         <section className="bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 rounded-xl bg-theme-bg flex items-center justify-center shrink-0" style={{ color: category?.color || 'var(--color-accent)' }}>
+              <div className="w-12 h-12 rounded-xl bg-theme-progress-track flex items-center justify-center shrink-0" style={{ color: category?.color || 'var(--color-accent)' }}>
                 <i className={`fas ${category?.icon || 'fa-book-open'}`} />
               </div>
               <div className="min-w-0">
@@ -244,7 +244,7 @@ export default function CategoryResourcesClient({
           ))}
         </div>
 
-        {loading || loadingResources ? <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-56 rounded-2xl" />)}</section> : null}
+        {loading || loadingResources ? <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-56 rounded-2xl" />)}</section> : null}
 
         {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
           <>
@@ -278,7 +278,7 @@ function ResourceGrid({ resources, allResources, progressByResourceId }) {
   const serialMap = buildVisibleResourceSerialMap(resources, allResources || resources)
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {resources.map((resource) => (
         <ResourceCard
           key={resource._id}

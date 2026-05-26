@@ -624,7 +624,7 @@ export default function AdminResourcesPage() {
                   <div key={category._id} className="border border-theme-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
-                        <span className="w-9 h-9 rounded-xl bg-theme-bg flex items-center justify-center" style={{ color: category.color || 'var(--color-accent)' }}>
+                        <span className="w-9 h-9 rounded-xl bg-theme-progress-track flex items-center justify-center" style={{ color: category.color || 'var(--color-accent)' }}>
                           <i className={`fas ${category.icon || 'fa-book-open'}`} />
                         </span>
                         <div>
@@ -872,10 +872,10 @@ function ResourceRow({ resource, index, total, onMove, onEdit, onDelete }) {
   return (
     <div className="border border-theme-border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0 overflow-hidden">
       <div className="flex gap-3 min-w-0 flex-1">
-        {resource.thumbnailUrl ? <img src={resource.thumbnailUrl} alt="" className="w-24 h-14 rounded-lg object-cover bg-theme-bg shrink-0" /> : <div className="w-14 h-14 rounded-xl bg-theme-bg flex items-center justify-center shrink-0"><i className="fas fa-file-lines text-theme-secondary" /></div>}
+        {resource.thumbnailUrl ? <img src={resource.thumbnailUrl} alt="" className="w-24 h-14 rounded-lg object-cover bg-theme-progress-track shrink-0" /> : <div className="w-14 h-14 rounded-xl bg-theme-progress-track flex items-center justify-center shrink-0"><i className="fas fa-file-lines text-theme-secondary" /></div>}
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2 mb-1">
-            <span className="px-2 py-1 rounded-lg bg-theme-bg text-xs font-bold text-theme-secondary">{typeLabels[resource.type] || resource.type}</span>
+            <span className="px-2 py-1 rounded-lg bg-theme-progress-track text-xs font-bold text-theme-secondary">{typeLabels[resource.type] || resource.type}</span>
             <StatusPill active={resource.published} activeLabel="Published" inactiveLabel="Draft" />
             {resource.featured ? <span className="px-2 py-1 rounded-lg bg-theme-success-bg text-xs font-bold text-theme-success-text">Featured</span> : null}
             {hasTranscript ? <span className="px-2 py-1 rounded-lg bg-theme-accent/10 text-xs font-bold text-theme-accent">Transcript</span> : null}
