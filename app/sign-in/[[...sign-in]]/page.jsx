@@ -11,6 +11,7 @@ const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 export default function SignInPage() {
   const { theme, toggleTheme } = useTheme()
+  const logoSrc = theme === 'dark' ? '/favicon.png' : '/favicon1.png'
 
   if (!clerkPublishableKey) {
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: Clerk sign-in cannot render without a publishable key.')
@@ -40,7 +41,7 @@ export default function SignInPage() {
         <div className="hidden lg:block">
           <div className="max-w-md">
             <Link href="/" className="inline-flex items-center gap-3 mb-8">
-              <Image src="/favicon.png" alt="Logo" width={56} height={56} className="object-contain" />
+              <Image src={logoSrc} alt="Logo" width={56} height={56} className="object-contain" />
               <p className="text-4xl font-black text-theme-primary leading-tight">IT Resource Zone</p>
             </Link>
             <p className="text-base text-theme-secondary leading-8">
@@ -60,7 +61,7 @@ export default function SignInPage() {
             <div className="flex items-center justify-between gap-4 mb-6 lg:mb-7">
               <div className="min-w-0">
                 <Link href="/" className="lg:hidden inline-flex items-center gap-3 mb-4">
-                  <Image src="/favicon.png" alt="Logo" width={48} height={48} className="object-contain" />
+                  <Image src={logoSrc} alt="Logo" width={48} height={48} className="object-contain" />
                   <span className="text-lg font-extrabold text-theme-primary truncate">IT Resource Zone</span>
                 </Link>
                 <h1 className="text-2xl sm:text-3xl font-black text-theme-primary">Welcome Back</h1>

@@ -9,6 +9,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 export default function SignUpPage() {
   const { theme, toggleTheme } = useTheme()
+  const logoSrc = theme === 'dark' ? '/favicon.png' : '/favicon1.png'
 
   return (
     <div className="bg-theme-bg min-h-[100dvh] flex flex-col px-4 pt-24 pb-8 sm:p-12 transition-theme relative overflow-y-auto overflow-x-hidden">
@@ -34,7 +35,7 @@ export default function SignUpPage() {
         <div className="hidden lg:block">
           <div className="max-w-md">
             <Link href="/" className="inline-flex items-center gap-3 mb-8">
-              <Image src="/favicon.png" alt="Logo" width={56} height={56} className="object-contain" />
+              <Image src={logoSrc} alt="Logo" width={56} height={56} className="object-contain" />
               <p className="text-4xl font-black text-theme-primary leading-tight">IT Resource Zone</p>
             </Link>
             <p className="text-base text-theme-secondary leading-8">
@@ -54,7 +55,7 @@ export default function SignUpPage() {
             <div className="flex items-center justify-between gap-4 mb-6 lg:mb-7">
               <div className="min-w-0">
                 <Link href="/" className="lg:hidden inline-flex items-center gap-3 mb-4">
-                  <Image src="/favicon.png" alt="Logo" width={48} height={48} className="object-contain" />
+                  <Image src={logoSrc} alt="Logo" width={48} height={48} className="object-contain" />
                   <span className="text-lg font-extrabold text-theme-primary">IT Resource Zone</span>
                 </Link>
                 <h1 className="text-2xl sm:text-3xl font-black text-theme-primary">Create Account</h1>

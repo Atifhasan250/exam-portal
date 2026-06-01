@@ -13,12 +13,15 @@ export default function ExamHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [appendError, setAppendError] = useState('')
   const [hasMore, setHasMore] = useState(false)
   const [offset, setOffset] = useState(0)
 
   const fetchHistory = useCallback(async (currentOffset, append = false) => {
     if (!user) return
     try {
+      if (append) setAppendError('')
+      else setError('')
       const res = await fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=20&offset=${currentOffset}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load history')
@@ -27,7 +30,8 @@ export default function ExamHistoryPage() {
       setHasMore(data.hasMore)
       setOffset(data.nextOffset)
     } catch (err) {
-      setError(err.message)
+      if (append) setAppendError(err.message)
+      else setError(err.message)
     }
   }, [user])
 
@@ -65,7 +69,7 @@ export default function ExamHistoryPage() {
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-24 page-enter">
       <main className="max-w-3xl mx-auto px-4 mt-8 space-y-6">
         <div className="flex items-center space-x-3">
-          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
+          <button onClick={() => router.back()} aria-label="Go back" title="Go back" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
             <i className="fas fa-arrow-left" />
           </button>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-theme-primary truncate">Exam History</h1>
@@ -128,6 +132,7 @@ export default function ExamHistoryPage() {
 
         {hasMore && (
           <div className="text-center pt-4">
+            {appendError ? <p className="text-sm text-theme-error-text mb-3">{appendError}</p> : null}
             <button 
               onClick={handleLoadMore}
               disabled={loadingMore}

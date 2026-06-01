@@ -4,8 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useTheme } from '@/context/ThemeContext'
 
 export default function AdminLoginPage() {
+  const { theme } = useTheme()
+  const logoSrc = theme === 'dark' ? '/favicon.png' : '/favicon1.png'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -41,7 +44,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md bg-theme-surface border border-theme-border rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-center mb-8">
           <Link href="/" className="flex items-center space-x-3">
-            <Image src="/favicon.png" alt="Logo" width={40} height={40} className="rounded-xl object-contain" />
+            <Image src={logoSrc} alt="Logo" width={40} height={40} className="rounded-xl object-contain" />
             <div>
               <p className="text-sm text-theme-secondary">IT Resource Zone</p>
               <h1 className="text-xl font-extrabold text-theme-primary">Admin Login</h1>

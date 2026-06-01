@@ -182,15 +182,15 @@ export default function ProfilePage() {
       return
     }
 
-    frameDocument.open()
-    frameDocument.write(report)
-    frameDocument.close()
-
     frame.onload = () => {
       frameWindow.focus()
       frameWindow.print()
       setTimeout(() => frame.remove(), 1000)
     }
+
+    frameDocument.open()
+    frameDocument.write(report)
+    frameDocument.close()
   }
 
   return (
