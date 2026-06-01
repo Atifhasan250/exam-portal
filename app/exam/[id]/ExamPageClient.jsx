@@ -51,6 +51,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
   const lastSubmitOptionsRef = useRef({ reason: 'manual-submit' })
   const [toast, setToast] = useState({ show: false, text: '' })
   const [lastSelected, setLastSelected] = useState({})
+  const [showQuestionMap, setShowQuestionMap] = useState(false)
   const timerRef = useRef(null)
   const attemptIdRef = useRef(null)
   const practiceAttemptIdRef = useRef(null)
@@ -333,6 +334,15 @@ export default function ExamPageClient({ params, initialExam = null }) {
     setLastSelected((previous) => ({ ...previous, [questionIndex]: optionIndex }))
   }
 
+  const goToQuestion = (questionIndex) => {
+    setShowQuestionMap(false)
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`exam-question-${questionIndex + 1}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   if (loading || !isLoaded) return <PageSkeleton />
   if (error && !result && screen !== 'submit-recovery') return <ErrorScreen message={error} onBack={() => router.push('/')} />
 
@@ -348,6 +358,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
   const questionCount = exam?.questionCount ?? exam?.questions?.length ?? 0
   const questionsReady = exam?.requiresAttempt || Array.isArray(exam?.questions)
   const beginDisabled = submitting || (!isLoaded || !user) || !questionsReady
+  const answeredCount = Object.keys(answers).length
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
@@ -359,11 +370,54 @@ export default function ExamPageClient({ params, initialExam = null }) {
             </Link>
           </div>
         ) : (
-          <div className="flex items-center justify-between mb-6 bg-theme-surface border border-theme-border rounded-2xl px-5 py-3 shadow-sm">
-            <span className="font-semibold text-theme-secondary text-sm truncate">{exam?.title}</span>
-            <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-theme-accent/10 dark:bg-indigo-500/10 text-theme-accent border-theme-accent/20 dark:border-indigo-500/20'}`}>
-              {mins}:{secs}
+          <div className="sticky top-3 z-40 mb-6">
+            <div className="flex items-center justify-between gap-3 bg-theme-surface/95 backdrop-blur border border-theme-border rounded-2xl px-4 sm:px-5 py-3 shadow-lg">
+              <span className="font-semibold text-theme-secondary text-sm truncate">{exam?.title}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  aria-label="Open question navigator"
+                  aria-expanded={showQuestionMap}
+                  onClick={() => setShowQuestionMap((value) => !value)}
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-theme-accent bg-theme-accent text-theme-accent-text shadow-[0_8px_18px_rgba(0,0,0,0.2)] transition-all hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-theme-accent focus:ring-offset-2 focus:ring-offset-theme-surface"
+                >
+                  <span className="grid grid-cols-2 gap-0.5">
+                    {[0, 1, 2, 3].map((item) => (
+                      <span
+                        key={item}
+                        className={`h-1.5 w-1.5 rounded-[2px] border ${item < Math.min(4, answeredCount) ? 'border-theme-accent-text bg-theme-accent-text' : 'border-theme-accent-text/55 bg-theme-accent-text/20'}`}
+                      />
+                    ))}
+                  </span>
+                </button>
+                <div className={`font-mono text-base font-bold px-3 py-1 rounded-full border ${pulse ? 'timer-danger bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-theme-accent/10 dark:bg-indigo-500/10 text-theme-accent border-theme-accent/20 dark:border-indigo-500/20'}`}>
+                  {mins}:{secs}
+                </div>
+              </div>
             </div>
+            {showQuestionMap ? (
+              <div className="absolute right-0 top-full mt-2 w-full sm:w-[300px] rounded-2xl border border-theme-border bg-theme-surface/98 backdrop-blur p-3 shadow-2xl">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-sm font-black text-theme-primary">Questions</p>
+                  <p className="text-xs font-bold text-theme-secondary">{answeredCount}/{exam.questions.length}</p>
+                </div>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {exam.questions.map((_, questionIndex) => {
+                    const answered = answers[questionIndex] !== undefined
+                    return (
+                      <button
+                        key={questionIndex}
+                        type="button"
+                        onClick={() => goToQuestion(questionIndex)}
+                        className={`h-9 w-9 rounded-lg border text-xs font-black transition-all hover:-translate-y-0.5 ${answered ? 'border-theme-accent bg-theme-accent text-theme-accent-text shadow-md shadow-theme-accent/20' : 'border-theme-border bg-theme-bg text-theme-secondary hover:border-theme-accent hover:text-theme-primary'}`}
+                      >
+                        {questionIndex + 1}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -413,7 +467,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
             {exam.questions.map((question, questionIndex) => {
               const hasAnswered = answers[questionIndex] !== undefined
               return (
-                <div key={questionIndex} className="bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-6 shadow-sm">
+                <div id={`exam-question-${questionIndex + 1}`} key={questionIndex} className="scroll-mt-24 bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-6 shadow-sm">
                   <div className="flex items-start space-x-3 sm:space-x-4 mb-4 sm:mb-5">
                     <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-theme-bg flex items-center justify-center font-bold text-theme-secondary text-xs sm:text-sm">{questionIndex + 1}</span>
                     <div className="flex-1 min-w-0">
