@@ -13,8 +13,9 @@ export async function POST(request) {
     max: 30,
     message: 'Too many logout attempts.',
   })
-  if (limited) return limited
 
   await clearAdminCookie()
+  if (limited) return limited
+
   return NextResponse.json({ success: true })
 }
