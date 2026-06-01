@@ -26,6 +26,7 @@ function serializeNotification(notification) {
     sent: notification.sent,
     failed: notification.failed,
     lastError: notification.lastError,
+    failureDetails: notification.failureDetails || [],
     createdAt: notification.createdAt,
   }
 }
@@ -91,7 +92,7 @@ export async function POST(request) {
         ...result,
         status: 'sent',
         sentAt: new Date(),
-        lastError: '',
+        lastError: result.failed ? result.lastError : '',
       })
       await notification.save()
     }

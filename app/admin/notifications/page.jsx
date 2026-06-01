@@ -34,6 +34,24 @@ function formatDate(value) {
   return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function formatFailureDetails(notification) {
+  const details = Array.isArray(notification.failureDetails) ? notification.failureDetails : []
+  if (details.length > 0) {
+    return details.map((detail, index) => {
+      const parts = [
+        detail.clerkUserId ? `User: ${detail.clerkUserId}` : '',
+        detail.endpointHost ? `Push service: ${detail.endpointHost}` : '',
+        detail.deactivated ? 'Subscription deactivated' : '',
+        detail.reason || 'No provider reason was returned.',
+      ].filter(Boolean)
+
+      return `${index + 1}. ${parts.join(' | ')}`
+    }).join('\n')
+  }
+
+  return notification.lastError || 'No detailed failure reason was stored for this notification.'
+}
+
 export default function AdminNotificationsPage() {
   const [form, setForm] = useState(createDefaultForm)
   const [notifications, setNotifications] = useState([])
@@ -42,6 +60,7 @@ export default function AdminNotificationsPage() {
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [failureToast, setFailureToast] = useState(null)
   const router = useRouter()
 
   const canSubmit = useMemo(() => (
@@ -118,6 +137,12 @@ export default function AdminNotificationsPage() {
       setMessage(notification.status === 'sent'
         ? `Sent ${notification.sent} of ${notification.attempted} subscriptions.`
         : 'Notification scheduled.')
+      if (notification.failed) {
+        setFailureToast({
+          title: notification.title,
+          details: formatFailureDetails(notification),
+        })
+      }
     } catch (sendError) {
       setError(sendError.message || 'Failed to send notification')
     } finally {
@@ -153,6 +178,28 @@ export default function AdminNotificationsPage() {
         {error ? (
           <div className="bg-theme-error-bg border border-theme-error-border text-theme-error-text rounded-2xl p-4 text-sm font-semibold">
             {error}
+          </div>
+        ) : null}
+
+        {failureToast ? (
+          <div className="fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-md bg-theme-surface border border-theme-error-border rounded-2xl shadow-2xl p-4 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold text-theme-primary">Notification failed for some users</p>
+                <p className="mt-1 text-theme-secondary font-semibold">{failureToast.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFailureToast(null)}
+                className="shrink-0 h-8 w-8 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-accent transition-all"
+                aria-label="Close failure reason"
+              >
+                <i className="fas fa-times" />
+              </button>
+            </div>
+            <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-theme-bg border border-theme-border p-3 text-theme-error-text font-semibold leading-relaxed">
+              {failureToast.details}
+            </pre>
           </div>
         ) : null}
 
@@ -271,7 +318,18 @@ export default function AdminNotificationsPage() {
                       <td className="py-4 pr-4 text-theme-secondary whitespace-nowrap">{formatDate(notification.sentAt)}</td>
                       <td className="py-4 pr-4 text-theme-secondary whitespace-nowrap">
                         {notification.sent}/{notification.attempted}
-                        {notification.failed ? ` failed ${notification.failed}` : ''}
+                        {notification.failed ? (
+                          <button
+                            type="button"
+                            onClick={() => setFailureToast({
+                              title: notification.title,
+                              details: formatFailureDetails(notification),
+                            })}
+                            className="ml-2 rounded-lg border border-theme-error-border px-2 py-1 text-xs font-bold text-theme-error-text hover:bg-theme-error-bg transition-all"
+                          >
+                            failed {notification.failed}
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ))}

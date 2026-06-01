@@ -36,7 +36,7 @@ export async function GET(request) {
           ...result,
           status: 'sent',
           sentAt: new Date(),
-          lastError: '',
+          lastError: result.failed ? result.lastError : '',
         })
         await notification.save()
         sent += 1
