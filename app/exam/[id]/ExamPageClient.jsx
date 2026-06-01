@@ -44,12 +44,16 @@ export default function ExamPageClient({ params, initialExam = null }) {
   const [result, setResult] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [submitState, setSubmitState] = useState('idle')
+  const [submitError, setSubmitError] = useState('')
   const submittingRef = useRef(false) // ref guard prevents race condition double-submit
   const startingRef = useRef(false)
+  const lastSubmitOptionsRef = useRef({ reason: 'manual-submit' })
   const [toast, setToast] = useState({ show: false, text: '' })
   const [lastSelected, setLastSelected] = useState({})
   const timerRef = useRef(null)
   const attemptIdRef = useRef(null)
+  const practiceAttemptIdRef = useRef(null)
   const pendingAnswerRef = useRef(new Set())
   const { user, isLoaded } = useUser()
 
@@ -97,7 +101,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
 
     const handleBeforeUnload = () => {
       recordAttemptEvent('beforeunload', true)
-      submitExam({ reason: 'beforeunload', beacon: true })
+      submitExamBeacon({ reason: 'beforeunload' })
     }
 
     const handleBackNavigation = () => {
@@ -146,6 +150,8 @@ export default function ExamPageClient({ params, initialExam = null }) {
     if (startingRef.current) return
     startingRef.current = true
     setSubmitting(true)
+    setSubmitState('idle')
+    setSubmitError('')
     try {
       if (exam.requiresAttempt) {
         const response = await fetch(`/api/exams/${id}/attempts/start`, { method: 'POST' })
@@ -171,6 +177,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
           setError(data.error || 'Failed to start practice attempt')
           return
         }
+        practiceAttemptIdRef.current = data.practiceAttemptId || null
       }
     } catch {
       setError('Failed to start attempt')
@@ -216,12 +223,35 @@ export default function ExamPageClient({ params, initialExam = null }) {
     }).catch(() => {})
   }
 
-  const submitExam = async ({ reason = 'manual-submit', beacon = false, redirectTo = '' } = {}) => {
+  const buildSubmitPayload = () => JSON.stringify({
+    answers: answersRef.current,
+    attemptId: attemptIdRef.current || undefined,
+    practiceAttemptId: practiceAttemptIdRef.current || undefined,
+  })
+
+  const submitExamBeacon = ({ reason = 'beforeunload' } = {}) => {
+    if (!user || !navigator.sendBeacon) return
+    const payload = buildSubmitPayload()
+    navigator.sendBeacon(
+      `/api/exams/${id}/submit`,
+      new Blob([payload], { type: 'application/json' }),
+    )
+    posthog.capture('exam_auto_submitted', {
+      exam_id: id,
+      reason,
+      transport: 'beacon',
+    })
+  }
+
+  const submitExam = async ({ reason = 'manual-submit', redirectTo = '' } = {}) => {
     // useRef guard prevents race condition: timer expiry + tab-switch firing
     // simultaneously can both pass the state check before React re-renders
     if (submittingRef.current) return
     if (!user) return
     submittingRef.current = true
+    lastSubmitOptionsRef.current = { reason, redirectTo }
+    setSubmitState('submitting')
+    setSubmitError('')
 
     if (reason === 'manual-submit') {
       posthog.capture('exam_submitted', {
@@ -234,24 +264,12 @@ export default function ExamPageClient({ params, initialExam = null }) {
         reason,
       })
     }
-    recordAttemptEvent(reason, beacon)
-    const payload = JSON.stringify({
-      answers: answersRef.current,
-      attemptId: attemptIdRef.current || undefined,
-    })
-
-    if (beacon && navigator.sendBeacon) {
-      navigator.sendBeacon(
-        `/api/exams/${id}/submit`,
-        new Blob([payload], { type: 'application/json' }),
-      )
-      return
-    }
+    recordAttemptEvent(reason, false)
+    const payload = buildSubmitPayload()
 
     setSubmitting(true)
     if (timerRef.current) clearInterval(timerRef.current)
     setModalOpen(false)
-    setScreen('result')
 
     try {
       const response = await fetch(`/api/exams/${id}/submit`, {
@@ -260,18 +278,25 @@ export default function ExamPageClient({ params, initialExam = null }) {
         keepalive: true,
         body: payload,
       })
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
       if (!response.ok) {
         setResult(null)
-        setError(data.error || 'Failed to submit exam')
+        setSubmitState('failed')
+        setSubmitError(data.error || 'Failed to submit exam')
+        setScreen('submit-recovery')
         return
       }
       sessionStorage.removeItem('exams_cache')
       sessionStorage.removeItem('leaderboard_cache')
       setResult({ ...data, answers: answersRef.current })
+      setSubmitState('success')
+      setScreen('result')
       if (redirectTo) router.replace(redirectTo)
     } catch {
       setResult(null)
+      setSubmitState('unknown')
+      setSubmitError('Network error while submitting. Your answers are still available on this device.')
+      setScreen('submit-recovery')
     } finally {
       submittingRef.current = false
       setSubmitting(false)
@@ -309,7 +334,7 @@ export default function ExamPageClient({ params, initialExam = null }) {
   }
 
   if (loading || !isLoaded) return <PageSkeleton />
-  if (error && !result) return <ErrorScreen message={error} onBack={() => router.push('/')} />
+  if (error && !result && screen !== 'submit-recovery') return <ErrorScreen message={error} onBack={() => router.push('/')} />
 
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0')
   const secs = String(timeLeft % 60).padStart(2, '0')
@@ -422,8 +447,8 @@ export default function ExamPageClient({ params, initialExam = null }) {
               )
             })}
             <div className="flex justify-center pt-4 pb-10">
-              <button onClick={() => setModalOpen(true)} className="bg-theme-accent hover:opacity-90 text-theme-accent-text font-bold py-4 px-14 rounded-xl shadow-lg transition-all">
-                Submit Exam
+              <button onClick={() => setModalOpen(true)} disabled={submitting} className="bg-theme-accent hover:opacity-90 text-theme-accent-text font-bold py-4 px-14 rounded-xl shadow-lg transition-all disabled:opacity-60">
+                {submitting ? 'Submitting...' : 'Submit Exam'}
               </button>
             </div>
           </div>
@@ -432,8 +457,23 @@ export default function ExamPageClient({ params, initialExam = null }) {
         {screen === 'result' && result ? (
           <ResultScreen result={result} studentName={studentName} examId={id} onBack={() => router.push('/exams')} />
         ) : null}
-        {screen === 'result' && !result ? (
-          <div className="text-center py-20 text-theme-secondary">Calculating results...</div>
+        {screen === 'submit-recovery' ? (
+          <SubmitRecoveryScreen
+            state={submitState}
+            message={submitError}
+            onRetry={() => submitExam(lastSubmitOptionsRef.current || { reason: 'manual-submit' })}
+            onProfile={() => router.push('/profile')}
+            onExams={() => router.push('/exams')}
+          />
+        ) : null}
+        {screen === 'exam' && submitState === 'submitting' ? (
+          <div className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center shadow-2xl max-w-sm w-full">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full border-4 border-theme-border border-t-theme-accent animate-spin" />
+              <p className="font-black text-theme-primary">Submitting exam...</p>
+              <p className="text-sm text-theme-secondary mt-1">Keep this tab open until the result appears.</p>
+            </div>
+          </div>
         ) : null}
       </main>
 
@@ -544,6 +584,37 @@ function ResultScreen({ result, studentName, examId, onBack }) {
       <button onClick={onBack} className="text-theme-secondary hover:text-theme-primary flex items-center justify-center mx-auto space-x-2 transition-colors text-sm pb-6">
         <i className="fas fa-arrow-left" /><span>Back to Exams</span>
       </button>
+    </div>
+  )
+}
+
+function SubmitRecoveryScreen({ state, message, onRetry, onProfile, onExams }) {
+  const isUnknown = state === 'unknown'
+  return (
+    <div className="max-w-xl mx-auto bg-theme-surface border border-theme-border rounded-2xl p-8 shadow-sm text-center">
+      <div className="w-16 h-16 mx-auto rounded-full bg-theme-error-bg text-theme-error-text flex items-center justify-center mb-5">
+        <i className={`fas ${isUnknown ? 'fa-wifi' : 'fa-triangle-exclamation'} text-3xl`} />
+      </div>
+      <h2 className="text-2xl font-black text-theme-primary mb-2">
+        {isUnknown ? 'Submission status unknown' : 'Submission failed'}
+      </h2>
+      <p className="text-theme-secondary mb-6">
+        {message || 'Your result could not be confirmed. Your answers are still saved in this tab for retry.'}
+      </p>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <button onClick={onRetry} className="px-4 py-3 rounded-xl bg-theme-accent text-theme-accent-text font-bold inline-flex items-center justify-center gap-2">
+          <i className="fas fa-rotate-right" />
+          Retry
+        </button>
+        <button onClick={onProfile} className="px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary font-bold inline-flex items-center justify-center gap-2">
+          <i className="fas fa-clock-rotate-left" />
+          Profile History
+        </button>
+        <button onClick={onExams} className="px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary font-bold inline-flex items-center justify-center gap-2">
+          <i className="fas fa-layer-group" />
+          Back to Exams
+        </button>
+      </div>
     </div>
   )
 }

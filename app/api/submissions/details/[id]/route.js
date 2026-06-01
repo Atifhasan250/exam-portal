@@ -49,7 +49,11 @@ export async function GET(_request, { params }) {
               title: submission.examId.title,
               duration: submission.examId.duration,
             }
-          : null,
+          : {
+              _id: submission.examId || null,
+              title: submission.examTitleSnapshot || 'Deleted exam',
+              duration: null,
+            },
         score: submission.score,
         total: submission.total,
         wrong: submission.wrong,

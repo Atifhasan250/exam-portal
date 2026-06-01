@@ -58,10 +58,21 @@ export async function POST(request, { params }) {
       0,
     )
 
-    await PracticeAttempt.create({
+    await PracticeAttempt.updateMany(
+      {
+        examId: exam._id,
+        clerkUserId: userId,
+        status: 'started',
+        startedAt: { $lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+      },
+      { $set: { status: 'abandoned', abandonedAt: now } },
+    )
+
+    const practiceAttempt = await PracticeAttempt.create({
       examId: exam._id,
       clerkUserId: userId,
       startedAt: now,
+      status: 'started',
     })
 
     const recordedPracticeStartCount = await PracticeAttempt.countDocuments({
@@ -78,7 +89,11 @@ export async function POST(request, { params }) {
       },
     )
 
-    return NextResponse.json({ ok: true, attemptCount }, { status: 201 })
+    return NextResponse.json({
+      ok: true,
+      attemptCount,
+      practiceAttemptId: practiceAttempt._id.toString(),
+    }, { status: 201 })
   } catch (error) {
     logger.error('[POST /api/exams/[id]/practice-attempts/start]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
