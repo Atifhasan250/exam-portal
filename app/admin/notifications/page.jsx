@@ -4,12 +4,29 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const DEFAULT_FORM = {
-  title: '',
-  body: '',
-  url: '/tasks',
-  sendNow: true,
-  scheduledAt: '',
+const NOTIFICATION_PATHS = [
+  { label: 'Tasks', value: '/tasks' },
+  { label: 'Exams', value: '/exams' },
+  { label: 'Profile', value: '/profile' },
+  { label: 'Leaderboard', value: '/leaderboard' },
+  { label: 'Dashboard', value: '/dashboard' },
+  { label: 'Resources', value: '/resources' },
+]
+
+function getDefaultScheduledAt() {
+  const scheduledDate = new Date(Date.now() + 10 * 60 * 1000)
+  const timezoneOffset = scheduledDate.getTimezoneOffset() * 60 * 1000
+  return new Date(scheduledDate.getTime() - timezoneOffset).toISOString().slice(0, 16)
+}
+
+function createDefaultForm() {
+  return {
+    title: '',
+    body: '',
+    url: '/tasks',
+    sendNow: true,
+    scheduledAt: getDefaultScheduledAt(),
+  }
 }
 
 function formatDate(value) {
@@ -18,7 +35,7 @@ function formatDate(value) {
 }
 
 export default function AdminNotificationsPage() {
-  const [form, setForm] = useState(DEFAULT_FORM)
+  const [form, setForm] = useState(createDefaultForm)
   const [notifications, setNotifications] = useState([])
   const [pushConfigured, setPushConfigured] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -61,6 +78,14 @@ export default function AdminNotificationsPage() {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
+  const updateSendNow = (sendNow) => {
+    setForm((current) => ({
+      ...current,
+      sendNow,
+      scheduledAt: sendNow ? current.scheduledAt : getDefaultScheduledAt(),
+    }))
+  }
+
   const sendNotification = async (event) => {
     event.preventDefault()
     setSending(true)
@@ -89,7 +114,7 @@ export default function AdminNotificationsPage() {
 
       const notification = data.notification
       setNotifications((current) => [notification, ...current].slice(0, 30))
-      setForm(DEFAULT_FORM)
+      setForm(createDefaultForm())
       setMessage(notification.status === 'sent'
         ? `Sent ${notification.sent} of ${notification.attempted} subscriptions.`
         : 'Notification scheduled.')
@@ -147,15 +172,18 @@ export default function AdminNotificationsPage() {
             </div>
             <div>
               <label className="block text-sm font-bold text-theme-secondary mb-2">Open Path</label>
-              <input
-                type="text"
+              <select
                 value={form.url}
                 onChange={(event) => updateField('url', event.target.value)}
-                maxLength={300}
                 className="w-full px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent"
-                placeholder="/exams"
                 required
-              />
+              >
+                {NOTIFICATION_PATHS.map((path) => (
+                  <option key={path.value} value={path.value}>
+                    {path.label} ({path.value})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -176,14 +204,14 @@ export default function AdminNotificationsPage() {
             <div className="flex rounded-xl bg-theme-bg border border-theme-border p-1">
               <button
                 type="button"
-                onClick={() => updateField('sendNow', true)}
+                onClick={() => updateSendNow(true)}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${form.sendNow ? 'bg-theme-accent text-theme-accent-text shadow-sm' : 'text-theme-secondary hover:text-theme-primary'}`}
               >
                 Send Now
               </button>
               <button
                 type="button"
-                onClick={() => updateField('sendNow', false)}
+                onClick={() => updateSendNow(false)}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${!form.sendNow ? 'bg-theme-accent text-theme-accent-text shadow-sm' : 'text-theme-secondary hover:text-theme-primary'}`}
               >
                 Schedule

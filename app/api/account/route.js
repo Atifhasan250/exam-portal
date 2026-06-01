@@ -11,7 +11,6 @@ import ResourceProgress from '@/lib/models/ResourceProgress'
 import ExamAttempt from '@/lib/models/ExamAttempt'
 import PracticeAttempt from '@/lib/models/PracticeAttempt'
 import PushSubscription from '@/lib/models/PushSubscription'
-import ReminderPreference from '@/lib/models/ReminderPreference'
 
 export async function DELETE(request) {
   const originCheck = enforceSameOrigin(request)
@@ -44,7 +43,6 @@ export async function DELETE(request) {
         await ExamAttempt.deleteMany({ clerkUserId: userId }).session(session)
         await PracticeAttempt.deleteMany({ clerkUserId: userId }).session(session)
         await PushSubscription.deleteMany({ clerkUserId: userId }).session(session)
-        await ReminderPreference.deleteOne({ clerkUserId: userId }).session(session)
       })
     } finally {
       await session.endSession()
