@@ -3,7 +3,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { connectDB } from '@/lib/db'
 import PlannerData from '@/lib/models/PlannerData'
-import { plannerDataSchema } from '@/lib/validation'
+import { normalizeHabitHistory, plannerDataSchema } from '@/lib/validation'
 
 const defaultHabits = [
   { id: 'habit_1', label: '5 Waqt salah' },
@@ -83,6 +83,9 @@ export async function updatePlannerData(data) {
   const safeData = Object.fromEntries(
     Object.entries(data).filter(([key]) => ALLOWED_FIELDS.includes(key))
   )
+  if (safeData.habitHistory) {
+    safeData.habitHistory = normalizeHabitHistory(safeData.habitHistory)
+  }
   const parsed = plannerDataSchema.safeParse(safeData)
   if (!parsed.success) {
     throw new Error('Invalid planner data')

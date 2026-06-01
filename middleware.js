@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 const ADMIN_COOKIE_NAME = 'irz_admin_token'
 
 const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
   '/profile(.*)',
   '/profile/submission(.*)',
 ])

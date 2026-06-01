@@ -93,12 +93,10 @@ export async function GET(request, { params }) {
 
     const examHistory = []
     for (const sub of submissions) {
-      if (!sub.examId) continue // Skip if exam was completely deleted
-
       examHistory.push({
         submissionId: sub._id,
-        examId: sub.examId._id,
-        examTitle: sub.examId.title,
+        examId: sub.examId?._id || sub.examId || null,
+        examTitle: sub.examId?.title || sub.examTitleSnapshot || 'Deleted exam',
         score: sub.score,
         totalQuestions: sub.total,
         wasLive: sub.wasLive,

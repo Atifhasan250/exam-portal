@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { validate, updateExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
@@ -14,7 +15,6 @@ import {
 } from '@/lib/publicCache'
 import Exam from '@/lib/models/Exam'
 import Question from '@/lib/models/Question'
-import Submission from '@/lib/models/Submission'
 import ExamAttempt from '@/lib/models/ExamAttempt'
 import PracticeAttempt from '@/lib/models/PracticeAttempt'
 
@@ -41,6 +41,12 @@ export async function PUT(request, { params }) {
 
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
+
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-exam-update',
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
 
   try {
     const { id } = await params
@@ -91,6 +97,13 @@ export async function DELETE(request, { params }) {
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
 
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-exam-delete',
+    max: 10,
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
+
   try {
     const { id } = await params
     if (!isValidObjectId(id)) return invalidIdResponse('exam id')
@@ -103,7 +116,6 @@ export async function DELETE(request, { params }) {
       await session.withTransaction(async () => {
         await Exam.findByIdAndDelete(id).session(session)
         await Question.deleteMany({ examId: id }).session(session)
-        await Submission.deleteMany({ examId: id }).session(session)
         await ExamAttempt.deleteMany({ examId: id }).session(session)
         await PracticeAttempt.deleteMany({ examId: id }).session(session)
       })

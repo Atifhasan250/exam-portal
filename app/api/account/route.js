@@ -4,6 +4,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { connectDB } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { userMutationRateLimit } from '@/lib/rateLimit'
 import PlannerData from '@/lib/models/PlannerData'
 import Submission from '@/lib/models/Submission'
 import ResourceProgress from '@/lib/models/ResourceProgress'
@@ -21,6 +22,16 @@ export async function DELETE(request) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const limited = await userMutationRateLimit(request, {
+      name: 'account-delete',
+      windowMs: 15 * 60 * 1000,
+      max: 3,
+      keyParts: [userId],
+      message: 'Too many account deletion attempts. Try again later.',
+      requirePersistent: true,
+    })
+    if (limited) return limited
 
     await connectDB()
 

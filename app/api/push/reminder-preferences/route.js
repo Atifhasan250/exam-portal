@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { userMutationRateLimit } from '@/lib/rateLimit'
 import { validate, reminderPreferenceSchema } from '@/lib/validation'
 import ReminderPreference from '@/lib/models/ReminderPreference'
 
@@ -38,6 +39,13 @@ export async function PUT(request) {
 
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limited = await userMutationRateLimit(request, {
+    name: 'reminder-preference-update',
+    max: 20,
+    keyParts: [userId],
+  })
+  if (limited) return limited
 
   try {
     const raw = await request.json()

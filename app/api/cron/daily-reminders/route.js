@@ -1,24 +1,15 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { logger } from '@/lib/logger'
+import { isAuthorizedCronRequest } from '@/lib/requestSecurity'
 import { getWebPushClient, hasPushEnv } from '@/lib/push'
 import PushSubscription from '@/lib/models/PushSubscription'
 import ReminderPreference from '@/lib/models/ReminderPreference'
 
 export const runtime = 'nodejs'
 
-function isAuthorized(request) {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return false
-
-  const authHeader = request.headers.get('authorization') || ''
-  if (authHeader === `Bearer ${secret}`) return true
-
-  return request.headers.get('x-cron-secret') === secret
-}
-
 export async function GET(request) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
