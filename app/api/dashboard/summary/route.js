@@ -27,6 +27,7 @@ export async function GET() {
 
   try {
     await connectDB()
+    const now = new Date()
     const [submissions, planner, resourceProgress, nextExam] = await Promise.all([
       Submission.find({ clerkUserId: userId })
         .populate('examId', 'title liveStart liveEnd')
@@ -39,7 +40,7 @@ export async function GET() {
         .sort({ lastAccessedAt: -1 })
         .limit(20)
         .lean(),
-      Exam.findOne({ published: true }, { title: 1, liveStart: 1, liveEnd: 1, updatedAt: 1 })
+      Exam.findOne({ published: true, liveStart: { $gt: now } }, { title: 1, liveStart: 1, liveEnd: 1, updatedAt: 1 })
         .sort({ liveStart: 1, updatedAt: -1 })
         .lean(),
     ])
