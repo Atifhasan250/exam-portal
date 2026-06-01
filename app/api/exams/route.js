@@ -24,6 +24,7 @@ export async function GET(request) {
         status,
         limit: searchParams.get('limit'),
         offset: searchParams.get('offset'),
+        q: searchParams.get('q'),
       })
 
       return NextResponse.json(page, {
