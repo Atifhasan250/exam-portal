@@ -12,9 +12,9 @@ const MENU_ITEMS = [
   { label: 'Home',        ariaLabel: 'Go to home page',       link: '/' },
   { label: 'Exams',       ariaLabel: 'Browse all exams',       link: '/exams' },
   { label: 'Dashboard',   ariaLabel: 'View your dashboard',    link: '/dashboard' },
-  { label: 'Leaderboard', ariaLabel: 'View leaderboard',       link: '/leaderboard' },
   { label: 'Tasks',       ariaLabel: 'View tasks',             link: '/tasks' },
   { label: 'Resources',   ariaLabel: 'View resources',         link: '/resources' },
+  { label: 'Leaderboard', ariaLabel: 'View leaderboard',       link: '/leaderboard' },
   { label: 'Profile',     ariaLabel: 'View your profile',      link: '/profile' },
 ]
 

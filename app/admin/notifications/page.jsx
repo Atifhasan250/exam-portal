@@ -110,6 +110,7 @@ export default function AdminNotificationsPage() {
     setSending(true)
     setMessage('')
     setError('')
+    setFailureToast(null)
 
     try {
       const response = await fetch('/api/admin/notifications', {
