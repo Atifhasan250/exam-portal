@@ -12,8 +12,8 @@ export default function BottomNav() {
   const pillRef = useRef(null)
 
   const navItems = [
-    { to: '/', icon: 'fa-house', label: 'Home', exact: true },
     { to: '/exams', icon: 'fa-layer-group', label: 'Exams' },
+    { to: '/dashboard', icon: 'fa-chart-line', label: 'Dashboard' },
     { to: '/tasks', icon: 'fa-list-check', label: 'Tasks' },
     { to: '/resources', icon: 'fa-book-open', label: 'Resources' },
     { to: '/profile', icon: 'fa-user', label: 'Profile' },

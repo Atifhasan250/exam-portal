@@ -1,7 +1,6 @@
 'use client'
 
 import { use, useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import QuestionReviewCard from '@/components/QuestionReviewCard'
@@ -46,7 +45,7 @@ export default function SubmissionDetails({ params }) {
       <div className="min-h-screen bg-theme-bg flex flex-col items-center justify-center space-y-4 text-theme-primary px-6 text-center">
         <i className="fas fa-exclamation-triangle text-4xl text-theme-error-text" />
         <p className="font-bold text-xl">{error}</p>
-        <button onClick={() => router.push('/profile')} className="text-theme-accent underline text-sm">← Back to Profile</button>
+        <button onClick={() => router.back()} className="text-theme-accent underline text-sm">← Go Back</button>
       </div>
     )
   }
@@ -72,9 +71,9 @@ export default function SubmissionDetails({ params }) {
       <main className="max-w-4xl mx-auto px-4 mt-8 space-y-6">
         {/* Header */}
         <div className="flex items-center space-x-3">
-          <Link href="/profile" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
+          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
             <i className="fas fa-arrow-left" />
-          </Link>
+          </button>
           <h2 className="text-2xl font-extrabold text-theme-primary truncate">{submission.examId?.title || 'Exam Details'}</h2>
         </div>
 

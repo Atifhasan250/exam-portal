@@ -14,6 +14,7 @@ const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up', '/offline']
 const IMPORTANT_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/exams', label: 'All Exams' },
+  { href: '/dashboard', label: 'Dashboard' },
   { href: '/resources', label: 'Resources' },
   { href: '/tasks', label: 'Tasks' },
   { href: '/sign-in', label: 'Login' },
@@ -23,6 +24,7 @@ const IMPORTANT_LINKS = [
 const RESOURCE_LINKS = [
   { href: '/exams', label: 'Mock Exams' },
   { href: '/leaderboard', label: "Toppers' Board" },
+  { href: '/dashboard', label: 'Learning Dashboard' },
   { href: '/profile', label: 'My Profile' },
   { href: '/resources', label: 'Tutorials & Resources' },
 ]

@@ -1,90 +1,74 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClerk, useUser } from '@clerk/nextjs'
 import PageSkeleton from '@/components/PageSkeleton'
 import AuthCallout from '@/components/AuthCallout'
 import ProfilePwaPanel from '@/components/ProfilePwaPanel'
-import { getPlannerData } from '@/app/tasks/actions'
+import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/context/ThemeContext'
+
+const QUICK_LINKS = [
+  { href: '/exams/history', label: 'Exam History', icon: 'fa-layer-group' },
+  { href: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
+  { href: '/exams', label: 'Exams', icon: 'fa-pen-to-square' },
+  { href: '/tasks', label: 'Task Planner', icon: 'fa-list-check' },
+  { href: '/resources', label: 'Resources', icon: 'fa-book-open' },
+  { href: '/leaderboard', label: 'Leaderboard', icon: 'fa-trophy' },
+]
 
 export default function ProfilePage() {
-  const [submissions, setSubmissions] = useState([])
-  const [submissionTotal, setSubmissionTotal] = useState(0)
-  const [submissionOffset, setSubmissionOffset] = useState(0)
-  const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false)
+  const router = useRouter()
+  const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
+  const { theme, toggleTheme } = useTheme()
+  const [summary, setSummary] = useState(null)
+  const [recentSubmissions, setRecentSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [loadingMoreSubmissions, setLoadingMoreSubmissions] = useState(false)
-  const [plannerData, setPlannerData] = useState(null)
-  const [tasksLoading, setTasksLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [savingName, setSavingName] = useState(false)
   const [nameError, setNameError] = useState('')
-
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
-
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
 
-  const router = useRouter()
-  const { user, isLoaded } = useUser()
-  const { signOut } = useClerk()
-
   useEffect(() => {
-    if (!user) return
-
-    fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=50&offset=0`)
-      .then((response) => response.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.submissions || []
-        setSubmissions(list)
-        setSubmissionTotal(Array.isArray(data) ? list.length : data.totalCount ?? list.length)
-        setSubmissionOffset(Array.isArray(data) ? list.length : data.nextOffset ?? list.length)
-        setHasMoreSubmissions(!Array.isArray(data) && Boolean(data.hasMore))
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-
-    getPlannerData()
-      .then(data => {
-        setPlannerData(data)
-        setTasksLoading(false)
-      })
-      .catch(() => setTasksLoading(false))
-  }, [user])
-
-  const taskSummary = useMemo(() => {
-    if (!plannerData) return null
-
-    let totalCompletedTasks = 0
-    let totalTasks = 0
-    plannerData.weeks?.forEach(w => {
-      w.tasks?.forEach(t => {
-        totalTasks++
-        if (t.completed) totalCompletedTasks++
-      })
-    })
-
-    let totalHabitsCompleted = 0
-    if (plannerData.habitHistory) {
-      Object.values(plannerData.habitHistory).forEach(day => {
-        totalHabitsCompleted += Object.values(day).filter(Boolean).length
-      })
+    if (!isLoaded) return
+    if (!user) {
+      setLoading(false)
+      return
     }
 
-    return { totalCompletedTasks, totalTasks, totalHabitsCompleted }
-  }, [plannerData])
+    let active = true
+    Promise.allSettled([
+      fetch('/api/dashboard/summary').then((response) => response.ok ? response.json() : null),
+      fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=5&offset=0`).then((response) => response.ok ? response.json() : null),
+    ]).then(([summaryResult, submissionsResult]) => {
+      if (!active) return
+      if (summaryResult.status === 'fulfilled') setSummary(summaryResult.value)
+      if (submissionsResult.status === 'fulfilled') {
+        const data = submissionsResult.value
+        setRecentSubmissions(Array.isArray(data) ? data : data?.submissions || [])
+      }
+      setLoading(false)
+    })
 
-  // Auto-open name modal for new users who have no name set
+    return () => {
+      active = false
+    }
+  }, [isLoaded, user])
+
   useEffect(() => {
     if (!user || !isLoaded) return
     const hasName = user.fullName || user.firstName
@@ -92,24 +76,34 @@ export default function ProfilePage() {
       setNameInput('')
       setShowEditModal(true)
     }
-  }, [user?.id, isLoaded])
+  }, [user, isLoaded])
 
-  if (!isLoaded) return <PageSkeleton />
+  const joinedDate = useMemo(() => {
+    const createdAt = user?.createdAt ? new Date(user.createdAt) : null
+    return createdAt && Number.isFinite(createdAt.getTime())
+      ? createdAt.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+      : 'Recently'
+  }, [user?.createdAt])
+
+  if (!isLoaded || loading) return <PageSkeleton />
+
   if (!user) {
     return (
       <div className="bg-theme-bg min-h-screen py-20 px-4">
-        <div className="max-w-4xl mx-auto px-4 mt-10">
-          <AuthCallout title="Login first to see your profile" description="Your exam history is linked to your authenticated IT Resource Zone account." />
+        <div className="max-w-4xl mx-auto mt-10">
+          <AuthCallout title="Login first to see your profile" description="Your account settings and learning activity are linked to your authenticated IT Resource Zone account." />
         </div>
       </div>
     )
   }
-  if (loading || tasksLoading) return <PageSkeleton />
+
+  const metrics = summary?.metrics || {}
+  const email = user.primaryEmailAddress?.emailAddress || 'No primary email'
+  const displayName = user.fullName || user.firstName || 'Student'
 
   const saveNewName = async () => {
     const trimmed = nameInput.trim()
-    if (!trimmed || !user) return
-
+    if (!trimmed) return
     const parts = trimmed.split(/\s+/)
     const firstName = parts.shift() || ''
     const lastName = parts.join(' ')
@@ -126,8 +120,8 @@ export default function ProfilePage() {
     }
   }
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault()
+  const handleChangePassword = async (event) => {
+    event.preventDefault()
     if (newPassword !== confirmPassword) {
       setPasswordError('New passwords do not match')
       return
@@ -136,377 +130,483 @@ export default function ProfilePage() {
     setPasswordError('')
     setPasswordSuccess('')
     try {
-      await user.updatePassword({
-        currentPassword: oldPassword,
-        newPassword: newPassword,
-      })
-      setPasswordSuccess('Password updated successfully!')
+      await user.updatePassword({ currentPassword: oldPassword, newPassword })
+      setPasswordSuccess('Password updated successfully.')
       setOldPassword('')
       setNewPassword('')
       setConfirmPassword('')
     } catch (error) {
-      setPasswordError(error?.errors?.[0]?.message || 'Failed to update password. If you signed in with Google, you cannot set a password here.')
+      setPasswordError(error?.errors?.[0]?.message || 'Failed to update password. Social sign-in accounts may not have a password here.')
     } finally {
       setPasswordLoading(false)
     }
   }
 
   const handleDeleteAccount = async () => {
-    if (!user) return
     setDeletingAccount(true)
     try {
-      const response = await fetch('/api/account', {
-        method: 'DELETE',
-      })
+      const response = await fetch('/api/account', { method: 'DELETE' })
       const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete account')
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to delete account')
       router.push('/')
-    } catch (err) {
-      console.error('Failed to delete account', err)
+    } catch (error) {
+      console.error('Failed to delete account', error)
       setDeletingAccount(false)
     }
   }
 
-  const loadMoreSubmissions = async () => {
-    if (!user || loadingMoreSubmissions) return
+  const exportProfileData = () => {
+    const report = buildProfileReportHtml({
+      name: displayName,
+      email,
+      joinedDate,
+      metrics,
+      summary,
+      recentSubmissions,
+    })
+    const frame = document.createElement('iframe')
+    frame.setAttribute('title', 'IT Resource Zone PDF export')
+    frame.style.position = 'fixed'
+    frame.style.right = '0'
+    frame.style.bottom = '0'
+    frame.style.width = '0'
+    frame.style.height = '0'
+    frame.style.border = '0'
+    frame.style.opacity = '0'
 
-    setLoadingMoreSubmissions(true)
-    try {
-      const response = await fetch(`/api/submissions/user/${encodeURIComponent(user.id)}?limit=50&offset=${submissionOffset}`)
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to load more submissions')
-      const list = data.submissions || []
-      setSubmissions((current) => mergeUniqueExamSubmissions(current, list))
-      setSubmissionTotal(data.totalCount ?? submissionTotal)
-      setSubmissionOffset(data.nextOffset ?? submissionOffset + (data.rawFetchedCount ?? list.length))
-      setHasMoreSubmissions(Boolean(data.hasMore))
-    } catch (error) {
-      console.error('Failed to load more submissions', error)
-    } finally {
-      setLoadingMoreSubmissions(false)
+    document.body.appendChild(frame)
+    const frameWindow = frame.contentWindow
+    const frameDocument = frame.contentDocument || frameWindow?.document
+    if (!frameWindow || !frameDocument) {
+      frame.remove()
+      return
+    }
+
+    frameDocument.open()
+    frameDocument.write(report)
+    frameDocument.close()
+
+    frame.onload = () => {
+      frameWindow.focus()
+      frameWindow.print()
+      setTimeout(() => frame.remove(), 1000)
     }
   }
 
   return (
-    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-20 page-enter">
-
-      <main className="max-w-4xl mx-auto px-4 mt-8">
-        <div className="flex items-center space-x-3 mb-6">
-          <Link href="/" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all">
-            <i className="fas fa-arrow-left" />
-          </Link>
-          <h2 className="text-3xl font-extrabold text-theme-primary">Your Profile</h2>
-        </div>
-        <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm">
-          <div className="w-24 h-24 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center text-theme-accent shrink-0 overflow-hidden">
-            {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <i className="fas fa-user text-4xl" />
-            )}
+    <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-24 page-enter">
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <section className="relative bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8">
+          <div className="absolute right-4 top-4 z-10 sm:hidden">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-center sm:justify-start gap-3">
-              <h2 className="text-3xl font-extrabold text-theme-primary truncate">{user?.fullName || user?.firstName || 'Student'}</h2>
-              <button
-                onClick={() => {
-                  setNameInput(user?.fullName || user?.firstName || '')
-                  setShowEditModal(true)
-                  setNameError('')
-                }}
-                className="w-8 h-8 rounded-full bg-theme-bg border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shrink-0"
-                title="Edit name"
-              >
-                <i className="fas fa-pencil-alt text-xs" />
-              </button>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5 text-center sm:text-left">
+            <div className="w-24 h-24 mx-auto sm:mx-0 rounded-full bg-theme-accent/10 border border-theme-accent/20 overflow-hidden flex items-center justify-center shrink-0">
+              {user.imageUrl ? (
+                <Image src={user.imageUrl} alt={displayName} width={96} height={96} className="w-full h-full object-cover" />
+              ) : (
+                <i className="fas fa-user text-4xl text-theme-accent" />
+              )}
             </div>
-            <p className="text-theme-secondary mt-1">
-              {submissions.length}{submissionTotal ? ` of ${submissionTotal}` : ''} exam record{submissionTotal === 1 ? '' : 's'} loaded.
-            </p>
-            <button
-              onClick={() => setShowLogoutDialog(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:opacity-80 transition-all font-bold text-sm"
-            >
-              <i className="fas fa-sign-out-alt mr-2" />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                <h1 className="text-3xl font-black truncate">{displayName}</h1>
+                <button
+                  onClick={() => {
+                    setNameInput(user.fullName || user.firstName || '')
+                    setNameError('')
+                    setShowEditModal(true)
+                  }}
+                  className="w-9 h-9 rounded-xl bg-theme-bg border border-theme-border text-theme-secondary hover:text-theme-primary"
+                  title="Edit name"
+                >
+                  <i className="fas fa-pencil-alt text-xs" />
+                </button>
+              </div>
+              <p className="text-theme-secondary mt-1 break-all sm:break-normal">
+                {email}
+                <span className="hidden sm:inline"> | </span>
+                <span className="block sm:inline break-normal">Joined {joinedDate}</span>
+              </p>
+            </div>
+            <button onClick={() => setShowLogoutDialog(true)} className="px-4 py-3 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border font-bold text-sm inline-flex items-center justify-center gap-2">
+              <i className="fas fa-sign-out-alt" />
               Logout
             </button>
           </div>
-        </div>
+        </section>
 
-        <ProfilePwaPanel />
 
-        {/* Tasks History Section */}
-        <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Tasks History</h3>
 
-        {tasksLoading ? (
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center gap-6">
-            <div className="skeleton w-16 h-16 rounded-2xl shrink-0" />
-            <div className="flex-1 space-y-3 w-full">
-              <div className="skeleton h-5 w-1/3 rounded-lg" />
-              <div className="skeleton h-4 w-2/3 rounded-lg" />
-            </div>
-            <div className="skeleton h-10 w-32 rounded-xl shrink-0 mt-4 sm:mt-0" />
-          </div>
-        ) : taskSummary ? (
-          <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 mb-10 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 transition-all hover:border-theme-accent/30">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-theme-accent/10 text-theme-accent flex items-center justify-center shrink-0">
-                <i className="fas fa-check-double text-2xl" />
-              </div>
-              <div>
-                <h4 className="font-bold text-theme-primary text-lg">Productivity Summary</h4>
-                <p className="text-theme-secondary text-sm mt-1">
-                  <span className="font-bold text-theme-primary">{taskSummary.totalCompletedTasks}/{taskSummary.totalTasks}</span> weekly tasks completed and <span className="font-bold text-theme-primary">{taskSummary.totalHabitsCompleted}</span> daily habits checked off.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/tasks/history"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 shadow-md border border-theme-accent transition-all text-center flex items-center justify-center gap-2 shrink-0"
-            >
-              <i className="fas fa-chart-line" /> View Analytics
-            </Link>
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-theme-surface border border-theme-border rounded-2xl mb-10 shadow-sm">
-            <i className="fas fa-tasks text-4xl text-theme-secondary opacity-40 mb-3" />
-            <p className="text-theme-secondary font-medium">No task data available.</p>
-          </div>
-        )}
-
-        {/* Exam History Section */}
-        <h3 className="text-xl font-bold text-theme-primary mb-4 border-b border-theme-border pb-2">Exam History</h3>
-
-        {loading ? (
-          <div className="space-y-4">
-            {[0, 1, 2].map((item) => (
-              <div key={item} className="bg-theme-surface border border-theme-border rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-2 flex-1">
-                  <div className="skeleton h-5 w-2/3 rounded-lg" />
-                  <div className="skeleton h-4 w-1/2 rounded-lg" />
-                </div>
-                <div className="skeleton h-10 w-20 rounded-xl" />
-              </div>
+        <section className="bg-theme-surface border border-theme-border rounded-2xl p-5">
+          <h2 className="text-lg font-black mb-4">Quick Navigation</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {QUICK_LINKS.map((item) => (
+              <Link key={item.href} href={item.href} className="min-h-[82px] bg-theme-bg border border-theme-border rounded-xl px-3 py-3 font-bold text-sm hover:border-theme-accent transition-colors flex flex-col sm:flex-row items-center justify-center gap-2 text-center leading-tight">
+                <i className={`fas ${item.icon} text-theme-accent text-xl shrink-0`} />
+                <span className="min-w-0">{item.label}</span>
+              </Link>
             ))}
           </div>
-        ) : submissions.length === 0 ? (
-          <div className="text-center py-16 bg-theme-surface border border-theme-border rounded-2xl shadow-sm">
-            <i className="fas fa-inbox text-5xl text-theme-secondary opacity-40 mb-3" />
-            <p className="text-theme-secondary font-medium">No exams taken yet.</p>
+        </section>
+
+        <section className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <ProfilePwaPanel />
+
+            <section className="bg-theme-surface border border-theme-border rounded-2xl p-6">
+              <h2 className="text-lg font-black mb-4">Data</h2>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button onClick={exportProfileData} className="px-4 py-3 rounded-xl bg-theme-bg border border-theme-border font-bold text-sm inline-flex items-center justify-center gap-2">
+                  <i className="fas fa-file-pdf" />
+                  Export My Data
+                </button>
+                <button onClick={() => setShowDeleteDialog(true)} className="px-4 py-3 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border font-bold text-sm inline-flex items-center justify-center gap-2">
+                  <i className="fas fa-user-times" />
+                  Delete account
+                </button>
+              </div>
+            </section>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {submissions.map((submission) => {
-              const percentage = (submission.score / submission.total) * 100
-              return (
-                <div key={submission._id} onClick={() => router.push(`/profile/submission/${submission._id}`)} className="group bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all cursor-pointer hover:border-theme-accent hover:shadow-md">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-bold text-theme-primary text-lg truncate">{submission.examId?.title || 'Unknown Exam'}</h4>
-                      {submission.wasLive ? <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-success-bg text-theme-success-text border border-theme-success-border rounded-md">Live</span> : <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-md">Practice</span>}
-                      {!submission.wasLive && submission.attemptCount > 1 ? <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold bg-theme-bg text-theme-secondary border border-theme-border rounded-md">{submission.attemptCount} attempts</span> : null}
-                    </div>
-                    <p className="text-xs text-theme-secondary">
-                      <i className="fas fa-calendar-alt mr-1.5" />
-                      {new Date(submission.submittedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                    <p className="text-[10px] text-theme-secondary mt-2 font-bold sm:hidden"><i className="fas fa-hand-pointer mr-1" />Tap to view details</p>
-                  </div>
-                  <div className="flex items-center gap-6 w-full sm:w-auto pl-2 sm:pl-4 border-l-0 sm:border-l border-theme-border mt-3 sm:mt-0 pr-2">
-                    <div className="text-center flex-1 sm:flex-none">
-                      <p className="text-[10px] uppercase font-bold text-theme-secondary mb-0.5">Score</p>
-                      <p className={`font-black text-xl ${percentage >= 70 ? 'text-theme-success-text' : percentage >= 40 ? 'text-yellow-500' : 'text-theme-error-text'}`}>{submission.score}<span className="text-sm text-theme-secondary font-medium">/{submission.total}</span></p>
-                    </div>
-                    <div className="text-center flex-1 sm:flex-none">
-                      <p className="text-[10px] uppercase font-bold text-theme-secondary mb-0.5">Percent</p>
-                      <p className="font-bold text-theme-primary">{percentage.toFixed(0)}%</p>
-                    </div>
-                    <div className="hidden sm:flex text-theme-secondary opacity-50 group-hover:opacity-100 group-hover:text-theme-accent transition-all ml-2">
-                      <i className="fas fa-chevron-right" />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-            {hasMoreSubmissions ? (
-              <button
-                onClick={loadMoreSubmissions}
-                disabled={loadingMoreSubmissions}
-                className="w-full bg-theme-surface border border-theme-border rounded-2xl p-5 text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-              >
-                {loadingMoreSubmissions ? 'Loading...' : 'Load More Exam Records'}
+
+          <section className="bg-theme-surface border border-theme-border rounded-2xl p-6">
+            <h2 className="text-lg font-black mb-4">Security</h2>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              {passwordError ? <div className="p-3 bg-theme-error-bg text-theme-error-text text-sm rounded-xl">{passwordError}</div> : null}
+              {passwordSuccess ? <div className="p-3 bg-theme-success-bg text-theme-success-text text-sm rounded-xl">{passwordSuccess}</div> : null}
+              <PasswordInput label="Current Password" value={oldPassword} onChange={setOldPassword} />
+              <PasswordInput label="New Password" value={newPassword} onChange={setNewPassword} />
+              <PasswordInput label="Confirm New Password" value={confirmPassword} onChange={setConfirmPassword} />
+              <button type="submit" disabled={passwordLoading} className="w-full sm:w-auto px-5 py-3 bg-theme-accent text-theme-accent-text rounded-xl font-bold disabled:opacity-60">
+                {passwordLoading ? 'Updating...' : 'Change Password'}
               </button>
-            ) : null}
-          </div>
-        )}
+            </form>
+          </section>
+        </section>
       </main>
 
-      <div className="max-w-4xl mx-auto px-4 mb-8 mt-12">
-        {/* Security / Password section */}
-        <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 shadow-sm">
-          <h3 className="text-xl font-bold text-theme-primary mb-6"><i className="fas fa-lock mr-2 text-theme-secondary" /> Security</h3>
-          <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
-            {passwordError && <div className="p-3 bg-theme-error-bg text-theme-error-text text-sm rounded-xl">{passwordError}</div>}
-            {passwordSuccess && <div className="p-3 bg-theme-success-bg text-theme-success-text text-sm rounded-xl">{passwordSuccess}</div>}
+      {showEditModal ? createPortal(
+        <Modal onClose={() => setShowEditModal(false)} closeDisabled={!user.fullName && !user.firstName}>
+          <h2 className="text-xl font-black mb-2">{user.fullName || user.firstName ? 'Edit Name' : "Welcome! What's your name?"}</h2>
+          <p className="text-theme-secondary text-sm mb-5">Your name appears on leaderboards and exam results.</p>
+          {nameError ? <div className="mb-4 p-3 bg-theme-error-bg text-theme-error-text rounded-xl text-sm">{nameError}</div> : null}
+          <input
+            autoFocus
+            type="text"
+            value={nameInput}
+            onChange={(event) => setNameInput(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && saveNewName()}
+            placeholder="e.g. John Doe"
+            className="input-field mb-4"
+          />
+          <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-theme-accent-text font-bold py-3 rounded-xl disabled:opacity-60">
+            {savingName ? 'Saving...' : 'Save'}
+          </button>
+        </Modal>,
+        document.body,
+      ) : null}
 
-            <div>
-              <label className="block text-sm font-bold text-theme-secondary mb-1.5">Current Password</label>
-              <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
-            </div>
+      {showLogoutDialog ? createPortal(
+        <ConfirmModal
+          icon="fa-sign-out-alt"
+          title="Logout?"
+          text="Are you sure you want to log out of your account?"
+          confirmLabel="Logout"
+          onCancel={() => setShowLogoutDialog(false)}
+          onConfirm={async () => {
+            setShowLogoutDialog(false)
+            await signOut?.({ redirectUrl: '/' })
+          }}
+        />,
+        document.body,
+      ) : null}
 
-            <div>
-              <label className="block text-sm font-bold text-theme-secondary mb-1.5">New Password</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-theme-secondary mb-1.5">Confirm New Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent" />
-            </div>
-
-            <button type="submit" disabled={passwordLoading} className="mt-2 bg-theme-accent text-theme-accent-text px-6 py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-60 transition-all text-sm w-full sm:w-auto">
-              {passwordLoading ? 'Updating...' : 'Change Password'}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <button
-          onClick={() => setShowDeleteDialog(true)}
-          className="bg-theme-error-bg text-theme-error-text border border-theme-error-border hover:bg-red-500/10 transition-colors px-6 py-3 rounded-xl font-bold shadow-sm inline-flex items-center gap-2"
-        >
-          <i className="fas fa-user-times" /> Delete Account
-        </button>
-      </div>
-
-      {showEditModal ? (() => {
-        const isNewUser = !user?.fullName && !user?.firstName
-
-        if (typeof document === 'undefined') return null
-        return createPortal(
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 modal-backdrop">
-            <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel">
-              {isNewUser ? (
-                <>
-                  <div className="w-14 h-14 rounded-full bg-theme-accent/10 border border-theme-accent/20 flex items-center justify-center mb-4">
-                    <i className="fas fa-hand-wave text-2xl text-theme-accent" />
-                  </div>
-                  <h3 className="text-xl font-bold text-theme-primary mb-2">Welcome! What's your name?</h3>
-                  <p className="text-theme-secondary text-sm mb-5">Your name will appear on leaderboards and exam results.</p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-xl font-bold text-theme-primary mb-2">Edit Name</h3>
-                  <p className="text-theme-secondary text-sm mb-5">Update the name shown across your IT Resource Zone profile.</p>
-                </>
-              )}
-              {nameError ? <div className="mb-4 p-3 bg-theme-error-bg border border-theme-error-border text-theme-error-text rounded-xl text-sm">{nameError}</div> : null}
-              <input
-                autoFocus
-                type="text"
-                value={nameInput}
-                onChange={(event) => setNameInput(event.target.value)}
-                onKeyDown={(event) => event.key === 'Enter' && saveNewName()}
-                placeholder="e.g. John Doe"
-                className="w-full px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent mb-4"
-              />
-              <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-theme-accent-text font-bold py-3 rounded-xl hover:opacity-90 transition-all disabled:opacity-60">
-                {savingName ? 'Saving...' : isNewUser ? 'Set My Name →' : 'Save'}
-              </button>
-              {!isNewUser ? (
-                <button onClick={() => setShowEditModal(false)} className="mt-3 w-full bg-theme-bg text-theme-primary border border-theme-border font-bold py-3 rounded-xl hover:opacity-80 transition-all">
-                  Cancel
-                </button>
-              ) : null}
-            </div>
-          </div>,
-          document.body
-        )
-      })() : null}
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutDialog && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={() => setShowLogoutDialog(false)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-3xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
-            <div className="w-16 h-16 rounded-full bg-theme-bg text-theme-secondary flex items-center justify-center mx-auto mb-6">
-              <i className="fas fa-sign-out-alt text-3xl" />
-            </div>
-            <h3 className="text-2xl font-black text-center mb-2">Logout?</h3>
-            <p className="text-theme-secondary text-center mb-8">
-              Are you sure you want to log out of your account?
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowLogoutDialog(false)}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-bg text-theme-secondary hover:text-theme-primary transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  setShowLogoutDialog(false)
-                  await signOut?.({ redirectUrl: '/' })
-                }}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-colors shadow-md"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteDialog && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={() => !deletingAccount && setShowDeleteDialog(false)} />
-          <div className="relative bg-theme-surface border border-theme-border rounded-3xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
-            <div className="w-16 h-16 rounded-full bg-theme-error-bg text-theme-error-text flex items-center justify-center mx-auto mb-6">
-              <i className="fas fa-user-times text-3xl" />
-            </div>
-            <h3 className="text-2xl font-black text-center mb-2">Delete Account?</h3>
-            <p className="text-theme-secondary text-center mb-8">
-              This action is <span className="font-bold text-theme-error-text">permanent</span> and cannot be undone. Your sign-in account, exam submissions, study planner, resource progress, and live exam attempts will be deleted immediately.
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowDeleteDialog(false)}
-                disabled={deletingAccount}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-bg text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deletingAccount}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-md disabled:opacity-50"
-              >
-                {deletingAccount ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {showDeleteDialog ? createPortal(
+        <ConfirmModal
+          danger
+          icon="fa-user-times"
+          title="Delete Account?"
+          text="This action is permanent. Your sign-in account, submissions, planner data, resource progress, attempts, and reminders will be deleted."
+          confirmLabel={deletingAccount ? 'Deleting...' : 'Delete'}
+          disabled={deletingAccount}
+          onCancel={() => !deletingAccount && setShowDeleteDialog(false)}
+          onConfirm={handleDeleteAccount}
+        />,
+        document.body,
+      ) : null}
     </div>
   )
 }
 
-function mergeUniqueExamSubmissions(current, next) {
-  const seen = new Set(current.map((submission) => submission.examId?._id).filter(Boolean))
-  const merged = [...current]
+function buildProfileReportHtml({ name, email, joinedDate, metrics, summary, recentSubmissions }) {
+  const exportedAt = new Date().toLocaleString()
+  const totalExams = (metrics.liveCompleted || 0) + (metrics.practiceCompleted || 0)
+  const resources = summary?.resources || []
+  const recommendation = summary?.recommendation || 'Keep studying consistently and review your recent exam results.'
 
-  for (const submission of next) {
-    const examId = submission.examId?._id
-    if (!examId || seen.has(examId)) continue
-    seen.add(examId)
-    merged.push(submission)
-  }
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>IT Resource Zone Learning Report</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: #081126;
+      background: #fff9e3;
+    }
+    .page {
+      background: #fff8e7;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 18px;
+      padding: 28px;
+    }
+    .brand {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      border-bottom: 2px solid rgba(234,122,83,0.25);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 30px; line-height: 1.1; font-weight: 900; }
+    h2 { font-size: 18px; margin-bottom: 12px; font-weight: 900; }
+    .muted { color: rgba(8,17,38,0.62); }
+    .pill {
+      background: #ea7a53;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .card {
+      background: #fff9e3;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 14px;
+      padding: 16px;
+      break-inside: avoid;
+    }
+    .metric {
+      font-size: 26px;
+      font-weight: 900;
+      color: #ea7a53;
+      margin-bottom: 4px;
+    }
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 800;
+      color: rgba(8,17,38,0.62);
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th {
+      text-align: left;
+      color: rgba(8,17,38,0.62);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    td {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      vertical-align: top;
+    }
+    .score { color: #ea7a53; font-weight: 900; text-align: right; }
+    .progress {
+      height: 8px;
+      background: #eadfbd;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .bar { height: 100%; background: #ea7a53; border-radius: 99px; }
+    .note {
+      background: rgba(234,122,83,0.1);
+      border: 1px solid rgba(234,122,83,0.25);
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      font-size: 11px;
+      color: rgba(8,17,38,0.55);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    @media print {
+      body { background: #fff; }
+      .page { border-color: rgba(0,0,0,0.14); }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="brand">
+      <div>
+        <h1>${escapeReportHtml(name)}'s Learning Report</h1>
+        <p class="muted">${escapeReportHtml(email)}</p>
+        <p class="muted">Joined ${escapeReportHtml(joinedDate)}</p>
+      </div>
+      <div class="pill">IT Resource Zone</div>
+    </section>
 
-  return merged
+    <section class="grid">
+      ${metricCard('Avg Score', `${metrics.averageScore || 0}%`)}
+      ${metricCard('Best Score', `${metrics.bestScore || 0}%`)}
+      ${metricCard('Exams', totalExams)}
+      ${metricCard('Streak', `${metrics.currentStreak || 0}d`)}
+    </section>
+
+    <section class="two-col">
+      <div class="card">
+        <h2>Recent Exam Results</h2>
+        ${examTable(recentSubmissions)}
+      </div>
+      <div class="card">
+        <h2>Resource Progress</h2>
+        ${resourceList(resources)}
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Learning Summary</h2>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 0;">
+        ${metricCard('Live Exams', metrics.liveCompleted || 0)}
+        ${metricCard('Practice Exams', metrics.practiceCompleted || 0)}
+        ${metricCard('Resources', `${metrics.resourcesCompleted || 0}/${metrics.resourcesStarted || 0}`)}
+      </div>
+    </section>
+
+    <section class="note" style="margin-top: 14px;">
+      <strong>Recommendation:</strong> ${escapeReportHtml(recommendation)}
+    </section>
+
+    <footer class="footer">
+      <span>Exported ${escapeReportHtml(exportedAt)}</span>
+      <span>Generated from your IT Resource Zone profile</span>
+    </footer>
+  </main>
+</body>
+</html>`
+}
+
+function metricCard(label, value) {
+  return `<div class="card"><div class="metric">${escapeReportHtml(String(value))}</div><div class="label">${escapeReportHtml(label)}</div></div>`
+}
+
+function examTable(submissions) {
+  if (!submissions.length) return '<p class="muted">No exam results yet.</p>'
+
+  const rows = submissions.map((submission) => {
+    const total = Number(submission.total) || 0
+    const score = Number(submission.score) || 0
+    const percent = total ? Math.round((score / total) * 100) : 0
+    const title = submission.examId?.title || 'Deleted exam'
+    const type = submission.wasLive ? 'Live' : 'Practice'
+    const date = submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : ''
+
+    return `<tr><td><strong>${escapeReportHtml(title)}</strong><br><span class="muted">${type} - ${escapeReportHtml(date)}</span></td><td class="score">${percent}%</td></tr>`
+  }).join('')
+
+  return `<table><thead><tr><th>Exam</th><th style="text-align:right;">Score</th></tr></thead><tbody>${rows}</tbody></table>`
+}
+
+function resourceList(resources) {
+  if (!resources.length) return '<p class="muted">No resources started yet.</p>'
+
+  return resources.map((resource) => `
+    <div style="margin-bottom: 14px;">
+      <strong>${escapeReportHtml(resource.title)}</strong>
+      <div class="progress"><div class="bar" style="width: ${Math.max(0, Math.min(100, resource.percent || 0))}%"></div></div>
+      <p class="muted" style="font-size: 11px; margin-top: 5px;">${resource.percent || 0}% complete</p>
+    </div>
+  `).join('')
+}
+
+function escapeReportHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function PasswordInput({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <span className="block text-sm font-bold text-theme-secondary mb-1.5">{label}</span>
+      <input type="password" value={value} onChange={(event) => onChange(event.target.value)} required className="input-field" />
+    </label>
+  )
+}
+
+function Modal({ children, onClose, closeDisabled = false }) {
+  return (
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={() => !closeDisabled && onClose()} />
+      <div className="relative bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
+        {children}
+        {!closeDisabled ? (
+          <button onClick={onClose} className="mt-3 w-full bg-theme-bg border border-theme-border font-bold py-3 rounded-xl">
+            Cancel
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function ConfirmModal({ icon, title, text, confirmLabel, onCancel, onConfirm, danger = false, disabled = false }) {
+  return (
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={onCancel} />
+      <div className="relative bg-theme-surfaceElevated border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
+        <div className={`w-16 h-16 rounded-full border ${danger ? 'bg-theme-error-bg text-theme-error-text border-theme-error-border' : 'bg-theme-bg text-theme-primary border-theme-border'} flex items-center justify-center mx-auto mb-6 shadow-sm`}>
+          <i className={`fas ${icon} text-3xl`} />
+        </div>
+        <h3 className="text-2xl font-black text-center mb-2">{title}</h3>
+        <p className="text-theme-secondary text-center mb-8">{text}</p>
+        <div className="flex gap-4">
+          <button onClick={onCancel} disabled={disabled} className="flex-1 px-4 py-3 rounded-xl font-bold bg-theme-bg border border-theme-border text-theme-primary shadow-sm disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={disabled} className={`flex-1 px-4 py-3 rounded-xl font-bold shadow-md disabled:opacity-50 ${danger ? 'bg-red-600 text-white' : 'bg-theme-accent text-theme-accent-text'}`}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
