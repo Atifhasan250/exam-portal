@@ -4,7 +4,7 @@ import { buildPageMetadata } from '@/lib/site'
 export const metadata = buildPageMetadata({
   title: 'Terms of Service',
   description:
-    'Read the IT Resource Zone Terms of Service, including exam rules, account responsibilities, academic integrity policies, and platform usage limits.',
+    'Read the IT Resource Zone Terms of Service for exam rules, account responsibilities, resource usage, notifications, academic integrity, and platform limits.',
   path: '/terms',
 })
 

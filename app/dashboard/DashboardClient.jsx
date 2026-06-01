@@ -6,12 +6,12 @@ import { useUser } from '@clerk/nextjs'
 import PageSkeleton from '@/components/PageSkeleton'
 import AuthCallout from '@/components/AuthCallout'
 
-const intensityClasses = [
-  'bg-theme-progress-track',
-  'bg-theme-accent/20',
-  'bg-theme-accent/40',
-  'bg-theme-accent/70',
-  'bg-theme-accent',
+const intensityBackgrounds = [
+  'var(--color-progress-track)',
+  'color-mix(in srgb, var(--color-accent) 48%, var(--color-progress-track))',
+  'color-mix(in srgb, var(--color-accent) 64%, var(--color-progress-track))',
+  'color-mix(in srgb, var(--color-accent) 82%, var(--color-progress-track))',
+  'var(--color-accent)',
 ]
 
 export default function DashboardClient() {
@@ -117,7 +117,10 @@ export default function DashboardClient() {
                   if (!day) return <div key={`empty-${index}`} className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                   return (
                     <div key={day.date} className="relative group">
-                      <span className={`block w-4 h-4 sm:w-[18px] sm:h-[18px] rounded-[3px] sm:rounded-sm ${intensityClasses[day.intensity] || intensityClasses[0]}`} />
+                      <span
+                        className="block w-4 h-4 sm:w-[18px] sm:h-[18px] rounded-[3px] sm:rounded-sm"
+                        style={{ backgroundColor: intensityBackgrounds[day.intensity] || intensityBackgrounds[0] }}
+                      />
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[100] pointer-events-none flex flex-col items-center">
                         <div className="bg-theme-primary text-theme-bg text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-xl">
                           <p className="font-black text-[13px] mb-1">{day.date}</p>

@@ -11,14 +11,19 @@ const LaserFlow = dynamic(() => import('@/components/LaserFlow'), { ssr: false }
 export default function HomePageClient() {
   const { user } = useUser()
   const { theme, themeLoaded } = useTheme()
-  const [canRenderLaser, setCanRenderLaser] = useState(false)
+  const [laserProfile, setLaserProfile] = useState('off')
   const isDark = theme === 'dark'
 
   useEffect(() => {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     const pointerQuery = window.matchMedia('(pointer: coarse)')
     const update = () => {
-      setCanRenderLaser(!motionQuery.matches && !pointerQuery.matches && window.innerWidth >= 900)
+      if (motionQuery.matches) {
+        setLaserProfile('off')
+        return
+      }
+
+      setLaserProfile(!pointerQuery.matches && window.innerWidth >= 900 ? 'desktop' : 'mobile')
     }
     update()
     motionQuery.addEventListener('change', update)
@@ -39,7 +44,7 @@ export default function HomePageClient() {
         <div className="relative w-full max-w-6xl mx-auto sm:mt-[80px]">
 
           {/* LaserFlow — 250px above the card top */}
-          {themeLoaded && isDark && canRenderLaser ? (
+          {themeLoaded && isDark && laserProfile !== 'off' ? (
             <div className="absolute top-[-250px] w-full h-[500px] pointer-events-none z-0">
               <LaserFlow
                 color="#6366F1"
@@ -50,7 +55,7 @@ export default function HomePageClient() {
                 flowSpeed={0.5}
                 wispDensity={1.5}
                 fogIntensity={0.6}
-                dpr={1}
+                dpr={laserProfile === 'desktop' ? 1 : 0.75}
               />
             </div>
           ) : null}
@@ -79,9 +84,9 @@ export default function HomePageClient() {
               <div className="space-y-4">
                 <h1 className="text-5xl font-extrabold text-theme-primary">IT Resource Zone</h1>
                 <p className="text-lg text-theme-secondary max-w-2xl mx-auto">
-                  A focused community for beginner IT students to take live tests, practice past
-                  exams, track study habits, measure monthly progress, and grow with curated
-                  learning resources.
+                  A focused IT learning portal for live exams, practice attempts, instant score
+                  review, private progress tracking, study planning, habit building, admin announcements,
+                  and curated resources.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -142,8 +147,8 @@ export default function HomePageClient() {
             Built for serious IT learners
           </h2>
           <p className="text-theme-secondary max-w-xl mx-auto leading-relaxed">
-            One platform that combines exam practice, habit building, progress tracking, and
-            curated learning resources — so you can focus on learning, not juggling tools.
+            One platform for public exam discovery, signed-in attempts, private dashboards,
+            resource progress, planner analytics, and leaderboard motivation.
           </p>
         </div>
 
@@ -154,29 +159,29 @@ export default function HomePageClient() {
               icon: 'fa-graduation-cap',
               badge: 'Core Feature',
               title: 'Live & Practice Exams',
-              desc: 'Sit timed exams exactly like the real thing, or revisit past papers for unlimited practice. Get instant results with a full per-question answer review.',
-              stat: '20+ Exams Available',
+              desc: 'Join scheduled live exams or revisit past exams in practice mode. Attempts are timed, answers lock after selection, and results include score history and review.',
+              stat: 'Timed Attempts',
             },
             {
               icon: 'fa-fire',
               badge: 'Build Consistency',
-              title: 'Daily Habit Tracker',
-              desc: 'Log your study activity every day, build streaks, and turn preparation into a habit. Visualise your consistency with a weekly history heatmap.',
-              stat: 'Track Streaks Daily',
+              title: 'Planner, Habits & Notices',
+              desc: 'Plan weekly tasks, track daily habits, review streaks and consistency, and use optional browser notifications for admin announcements.',
+              stat: 'Private Progress',
             },
             {
               icon: 'fa-trophy',
               badge: 'Stay Motivated',
-              title: 'Live Leaderboard',
-              desc: 'Every exam has its own real-time leaderboard. See exactly where you rank among all students and use it as fuel to improve your next score.',
-              stat: 'Updates After Every Exam',
+              title: 'Public Leaderboards',
+              desc: 'Compare scores on global and per-exam leaderboards. Rankings help you understand your performance without exposing your private dashboard or history.',
+              stat: 'Global & Per-Exam',
             },
             {
               icon: 'fa-book-open',
-              badge: 'Coming Soon',
-              title: 'Free & Premium Resources',
-              desc: 'Access curated YouTube playlists, study notes, and tutorials hand-picked for IT students. Premium content and structured courses are on their way.',
-              stat: 'Free Tier Available Now',
+              badge: 'Resource Library',
+              title: 'Curated Learning Resources',
+              desc: 'Open signed-in resources including YouTube lessons, PDFs, images, files, and useful links. Your account tracks what you start and complete.',
+              stat: 'Progress Tracking',
             },
           ].map((item) => (
             <article
@@ -215,10 +220,10 @@ export default function HomePageClient() {
         {/* Stats bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 rounded-2xl overflow-hidden border border-theme-border mb-14">
           {[
-            { value: '100+', label: 'Exam Attempts' },
-            { value: '20+', label: 'Practice Exams' },
-            { value: '50+', label: 'Active Students' },
-            { value: '100%', label: 'Free Resources' },
+            { value: 'Live', label: 'Timed Exams' },
+            { value: 'Past', label: 'Practice Mode' },
+            { value: 'Private', label: 'Student Data' },
+            { value: 'Public', label: 'Leaderboards' },
           ].map((stat, i) => (
             <div
               key={stat.label}
@@ -240,8 +245,8 @@ export default function HomePageClient() {
               </div>
               <h3 className="text-xl font-bold text-theme-primary mb-3">Weekly Study Planner</h3>
               <p className="text-theme-secondary text-sm leading-relaxed">
-                Structure your preparation week-by-week. Add tasks, set deadlines, attach resource links,
-                and mark tasks complete as you go — all saved to your personal account.
+                Structure your preparation week-by-week. Add tasks, complete habits, review your history,
+                and keep everything synced to your signed-in student account.
               </p>
             </div>
             <Link href="/tasks" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-theme-accent hover:gap-3 transition-all duration-200">
@@ -256,8 +261,8 @@ export default function HomePageClient() {
               </div>
               <h3 className="text-xl font-bold text-theme-primary mb-3">Track Your Growth</h3>
               <p className="text-theme-secondary text-sm leading-relaxed">
-                Your profile page gives you a complete overview — exam history, scores, leaderboard positions,
-                and habit streaks. Everything in one place to measure real progress over time.
+                Your dashboard and profile show exam history, score trends, resource progress, account settings,
+                and a printable learning report for your own records.
               </p>
             </div>
             <Link href="/profile" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-theme-accent hover:gap-3 transition-all duration-200">
@@ -272,8 +277,8 @@ export default function HomePageClient() {
               </div>
               <h3 className="text-xl font-bold text-theme-primary mb-3">Learning Resources</h3>
               <p className="text-theme-secondary text-sm leading-relaxed">
-                Curated YouTube playlists, study notes, and tutorials picked for beginner IT
-                students. A growing library of free and upcoming premium content — all in one place.
+                Curated YouTube lessons, PDFs, images, files, and useful links picked for beginner IT
+                students. Open resources from your account and track completion as you study.
               </p>
             </div>
             <Link href="/resources" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-theme-accent hover:gap-3 transition-all duration-200">
@@ -297,14 +302,14 @@ export default function HomePageClient() {
           )}
           <div className="relative z-10">
             <span className="inline-block text-xs uppercase tracking-[0.2em] font-bold text-theme-accent bg-theme-accent/10 px-4 py-1.5 rounded-full mb-5">
-              Get Started — It's Free
+              Get Started
             </span>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-theme-primary mb-4">
               Ready to start your IT journey?
             </h3>
             <p className="text-theme-secondary max-w-lg mx-auto mb-8 leading-relaxed">
-              Browse practice exams, explore free learning resources, build daily study habits,
-              and track your rank on the leaderboard — all completely free.
+              Browse exams, create an account for attempts and progress tracking, explore curated
+              resources, build daily study habits, and compare scores on public leaderboards.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {!user ? (

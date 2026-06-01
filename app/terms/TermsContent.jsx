@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useTheme } from '@/context/ThemeContext'
 
-const LAST_UPDATED = 'May 10, 2025'
+const LAST_UPDATED = 'June 1, 2026'
 
 const sections = [
   {
@@ -24,7 +24,7 @@ const sections = [
       },
       {
         heading: 'Account Responsibility',
-        text: 'You are responsible for maintaining the confidentiality of your account credentials. You must not share your account with others or allow unauthorized access. You are solely responsible for all activity that occurs under your account.',
+        text: 'You are responsible for maintaining the confidentiality of your account credentials and devices. You must not share your account, push subscription, or admin access with others or allow unauthorized access. You are responsible for activity under your account.',
       },
       {
         heading: 'Accurate Information',
@@ -37,7 +37,7 @@ const sections = [
     content: [
       {
         heading: 'Honest Participation',
-        text: 'You agree to complete all exams honestly and independently. Sharing exam questions, answers, or using unauthorized aids during a live exam session is strictly prohibited and may result in immediate account suspension.',
+        text: 'You agree to complete live exams honestly and independently. Sharing protected questions or answers, using unauthorized aids, or attempting to bypass attempt controls during a live session is prohibited and may result in score removal or account suspension.',
       },
       {
         heading: 'No Cheating',
@@ -45,7 +45,7 @@ const sections = [
       },
       {
         heading: 'Score Integrity',
-        text: 'Leaderboard rankings and scores reflect only genuine exam performance. We reserve the right to investigate suspicious activity and remove fraudulent scores at our sole discretion.',
+        text: 'Leaderboard rankings and scores are intended to reflect genuine exam performance. We may investigate suspicious activity, remove invalid submissions, and restrict accounts when platform integrity is affected.',
       },
     ],
   },
@@ -54,11 +54,11 @@ const sections = [
     content: [
       {
         heading: 'Platform Content',
-        text: 'All exam questions, content, graphics, logos, and design elements on IT Resource Zone are the intellectual property of IT Resource Zone or its licensors. You may not copy, reproduce, distribute, or create derivative works from our content without express written permission.',
+        text: 'Exam questions, explanations, platform copy, graphics, logos, UI design, and original materials on IT Resource Zone are owned by IT Resource Zone or its licensors. You may not copy, reproduce, redistribute, scrape, or create derivative works from protected platform content without permission.',
       },
       {
-        heading: 'User Content',
-        text: 'By using our platform, you do not gain ownership of any content made available on the platform. All rights are reserved by their respective owners.',
+        heading: 'Third-Party Resources',
+        text: "The resource library may link to or embed YouTube videos, PDFs, images, files, or external websites. Those materials remain subject to their owners' rights, licenses, and terms. Access through IT Resource Zone does not transfer ownership or grant extra rights.",
       },
     ],
   },
@@ -67,7 +67,7 @@ const sections = [
     content: [
       {
         heading: 'You Must Not',
-        text: 'Use the platform for any unlawful purpose; attempt to gain unauthorized access to any part of the platform; upload or transmit malicious code, viruses, or harmful content; scrape or harvest data from the platform using automated means; or interfere with the security or proper functioning of the platform.',
+        text: 'Use the platform for unlawful purposes; attempt unauthorized access; attack, overload, reverse engineer, or bypass security controls; upload or transmit malicious code; scrape private or protected data; automate abusive requests; manipulate scores; or interfere with exams, notifications, resources, APIs, or admin tools.',
       },
       {
         heading: 'Consequences',
@@ -84,7 +84,7 @@ const sections = [
       },
       {
         heading: 'Educational Purpose',
-        text: 'The exams and resources on this platform are provided for educational and practice purposes only. We make no guarantee that the content reflects current real-world exam syllabi or official certifications.',
+        text: 'The exams, planner, analytics, notifications, and resources are provided for educational and practice purposes only. We do not guarantee that content matches any current official certification, school syllabus, job requirement, or external examination standard.',
       },
     ],
   },
@@ -102,7 +102,7 @@ const sections = [
     content: [
       {
         heading: 'Account Termination',
-        text: 'We reserve the right to suspend or terminate your account at any time for violation of these Terms of Service, without prior notice. You may also delete your account at any time by contacting itresourcezone@gmail.com.',
+        text: 'We reserve the right to suspend or terminate access, remove submissions, or restrict features for violations of these Terms of Service or integrity concerns. You may delete your account from the Profile page where available or by contacting itresourcezone@gmail.com.',
       },
       {
         heading: 'Effect of Termination',
@@ -152,7 +152,7 @@ export default function TermsContent() {
               </div>
               <p className="text-theme-secondary text-sm">Last updated: {LAST_UPDATED}</p>
               <p className="mt-4 text-theme-secondary leading-relaxed">
-                Please read these Terms of Service carefully before using <span className="font-semibold text-theme-primary">IT Resource Zone</span>. These terms govern your access to and use of the platform, including all exams, leaderboards, and related features.
+                Please read these Terms of Service carefully before using <span className="font-semibold text-theme-primary">IT Resource Zone</span>. These terms govern your access to and use of the platform, including exams, leaderboards, resources, planner tools, notifications, account features, and admin-protected areas.
               </p>
             </div>
           </div>

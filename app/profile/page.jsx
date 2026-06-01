@@ -326,7 +326,7 @@ export default function ProfilePage() {
           danger
           icon="fa-user-times"
           title="Delete Account?"
-          text="This action is permanent. Your sign-in account, submissions, planner data, resource progress, attempts, and reminders will be deleted."
+          text="This action is permanent. Your sign-in account, submissions, planner data, resource progress, attempts, and notifications will be deleted."
           confirmLabel={deletingAccount ? 'Deleting...' : 'Delete'}
           disabled={deletingAccount}
           onCancel={() => !deletingAccount && setShowDeleteDialog(false)}

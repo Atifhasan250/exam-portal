@@ -22,8 +22,8 @@ export const metadata = {
     template: '%s | IT Resource Zone',
   },
   description:
-    'IT Resource Zone is a free online platform for IT exams, study planning, daily habits tracking, and learning resources. Test your knowledge, build consistency, and climb the leaderboard.',
-  keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'IT Resource Zone'],
+    'IT Resource Zone is a free IT learning portal for live and practice exams, instant results, leaderboards, study planning, habit tracking, private dashboards, and curated learning resources.',
+  keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'student dashboard', 'IT Resource Zone'],
   authors: [{ name: 'Atif Hasan', url: 'https://atifhasan.com/' }],
   creator: 'Atif Hasan',
   // Canonical URL tells search engines the authoritative address for this site
@@ -44,23 +44,23 @@ export const metadata = {
     locale: 'en_US',
     url: siteUrl,
     siteName: 'IT Resource Zone',
-    title: 'IT Resource Zone - Free Online IT Exams and Rankings',
+    title: 'IT Resource Zone - IT Exams, Study Planner, and Resources',
     description:
-      'Test your IT knowledge, track daily study habits, and access curated IT resources. Compete with peers and climb the leaderboard.',
+      'Take live and practice IT exams, review instant results, track study habits, save resource progress, and compare rankings on IT Resource Zone.',
     images: [
       {
         url: '/link-preview.jpg',
         width: 1200,
         height: 630,
-        alt: 'IT Resource Zone - Online IT Exams Platform',
+        alt: 'IT Resource Zone - IT learning and exam portal',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'IT Resource Zone - Free Online IT Exams and Rankings',
+    title: 'IT Resource Zone - IT Exams, Study Planner, and Resources',
     description:
-      'Test your IT knowledge, track daily study habits, and access curated IT resources. Compete with peers and climb the leaderboard.',
+      'Take live and practice IT exams, review instant results, track study habits, save resource progress, and compare rankings on IT Resource Zone.',
     images: ['/link-preview.jpg'],
   },
   robots: {
@@ -92,7 +92,7 @@ const websiteSchema = {
   name: 'IT Resource Zone',
   url: siteUrl,
   description:
-    'Free online platform for IT exams, study planning, daily habits tracking, and learning resources.',
+    'Free IT learning portal with live and practice exams, leaderboards, private progress dashboards, study planning, habit tracking, admin notifications, and curated resources.',
   author: {
     '@type': 'Person',
     name: 'Atif Hasan',
@@ -106,7 +106,7 @@ const webAppSchema = {
   name: 'IT Resource Zone',
   url: siteUrl,
   description:
-    'Take timed IT exams, track daily study habits, build weekly plans, and compete on the leaderboard. Free for all beginner IT students.',
+    'Take timed IT exams, practice past exams, track daily study habits, build weekly plans, save resource progress, receive admin announcements, and compete on leaderboards.',
   applicationCategory: 'EducationApplication',
   operatingSystem: 'Web',
   inLanguage: ['en-BD', 'bn-BD'],
@@ -125,9 +125,11 @@ const webAppSchema = {
     'Live timed IT exams',
     'Instant exam results and score tracking',
     'Leaderboard with rankings',
+    'Private student dashboard and profile export',
     'Weekly study planner',
     'Daily habit tracker',
-    'Free learning resources',
+    'Curated videos, PDFs, images, links, and files',
+    'Optional admin notifications',
   ],
 }
 

@@ -1,26 +1,28 @@
 # IT Resource Zone
 
-> Online learning and exam portal for beginner IT students, with live exams, practice exams, leaderboards, study planning, and curated learning resources.
+> Free IT learning and exam portal for beginner students, with live exams, practice exams, leaderboards, private progress dashboards, study planning, habit tracking, admin notifications, and curated resources.
 
 - **Developer:** Atif Hasan
 - **Live URL:** https://irz.atifhasan.com
-- **Stack:** Next.js 15, MongoDB Atlas, Clerk Auth, Vercel
+- **Stack:** Next.js 15, React 19, MongoDB Atlas, Clerk Auth, Vercel, ImageKit, PostHog, Sentry
 
 ## What This App Does
 
-IT Resource Zone helps IT students prepare with:
+IT Resource Zone helps students prepare and stay consistent with:
 
-- Registered student accounts for live and practice exams
-- Timed exam attempts, secure answer locking, and instant scoring
-- Public per-exam and global leaderboards
-- A signed-in resource library with YouTube lessons, PDFs, files, and useful links
-- Personal study planning, habit tracking, and progress analytics
+- Public listings for live, upcoming, and past IT exams
+- Signed-in live and practice exam attempts with answer locking, instant scoring, review, and submission history
+- Public global and per-exam leaderboards
+- Private student dashboard, profile settings, learning report export, and account deletion
+- Personal weekly task planning, daily habit tracking, analytics, and optional browser notifications
+- Signed-in resource library with YouTube lessons, PDFs, images, files, and useful links
+- Private admin tools for exams, questions, users, resources, categories, assets, and notifications
 
-## Key Public Pages
+## Public Pages
 
 | Path | Description |
 |------|-------------|
-| `/` | Home page |
+| `/` | Home page for the student portal |
 | `/exams` | Published live, upcoming, and past exams |
 | `/exam/[id]` | Public exam overview and signed-in exam entry |
 | `/leaderboard` | Global leaderboard |
@@ -32,19 +34,24 @@ IT Resource Zone helps IT students prepare with:
 
 | Path | Description |
 |------|-------------|
-| `/profile` | Student profile and submission history |
-| `/tasks` | Personal study planner |
-| `/tasks/history` | Personal study analytics |
+| `/dashboard` | Signed-in learning dashboard and recommendations |
+| `/profile` | Student profile, settings, data export, and account deletion |
+| `/profile/submission/[id]` | Private submission review |
+| `/exams/history` | Private exam history |
+| `/tasks` | Personal weekly planner and habit tracker |
+| `/tasks/history` | Personal planner and habit analytics |
 | `/resources` | Signed-in learning resource library |
 | `/resources/[slug]` | Signed-in resource category page |
 | `/resources/watch/[slug]` | Signed-in video lesson page |
-| `/resources/view/[slug]` | Signed-in resource viewer |
+| `/resources/view/[slug]` | Signed-in resource/file viewer |
+| `/sign-in`, `/sign-up` | Authentication screens |
 | `/admin` | Private admin panel |
 | `/api/*` | API routes |
 
-## Rules
+## Rules And Indexing Notes
 
 - Live exams can enforce one submission per student account.
 - Answers are locked once selected.
 - Live exam questions are protected until an authorized attempt begins.
-- Student data is private; only public leaderboard information is intended for indexing.
+- Student profile, dashboard, task, resource, auth, admin, and API routes are private or intentionally non-indexable.
+- Public indexing should focus on the home page, exams, exam overview pages, leaderboards, privacy policy, and terms.

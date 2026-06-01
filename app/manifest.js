@@ -7,7 +7,7 @@ export default function manifest() {
     name: 'IT Resource Zone',
     short_name: 'IRZ',
     description:
-      'Free online IT exams, study planning, habit tracking, leaderboards, and curated learning resources.',
+      'Free IT exams, instant results, leaderboards, study planning, habit tracking, admin notifications, private dashboards, and curated learning resources.',
     id: '/',
     start_url: '/',
     scope: '/',
