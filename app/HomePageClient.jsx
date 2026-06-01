@@ -1,14 +1,35 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
-import LaserFlow from '@/components/LaserFlow'
+
+const LaserFlow = dynamic(() => import('@/components/LaserFlow'), { ssr: false })
 
 export default function HomePageClient() {
   const { user } = useUser()
   const { theme, themeLoaded } = useTheme()
+  const [canRenderLaser, setCanRenderLaser] = useState(false)
   const isDark = theme === 'dark'
+
+  useEffect(() => {
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const pointerQuery = window.matchMedia('(pointer: coarse)')
+    const update = () => {
+      setCanRenderLaser(!motionQuery.matches && !pointerQuery.matches && window.innerWidth >= 900)
+    }
+    update()
+    motionQuery.addEventListener('change', update)
+    pointerQuery.addEventListener('change', update)
+    window.addEventListener('resize', update)
+    return () => {
+      motionQuery.removeEventListener('change', update)
+      pointerQuery.removeEventListener('change', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
 
   return (
     <div className="bg-theme-bg text-theme-primary transition-theme flex flex-col page-enter">
@@ -18,7 +39,7 @@ export default function HomePageClient() {
         <div className="relative w-full max-w-6xl mx-auto sm:mt-[80px]">
 
           {/* LaserFlow — 250px above the card top */}
-          {themeLoaded && isDark ? (
+          {themeLoaded && isDark && canRenderLaser ? (
             <div className="absolute top-[-250px] w-full h-[500px] pointer-events-none z-0">
               <LaserFlow
                 color="#6366F1"
@@ -64,22 +85,20 @@ export default function HomePageClient() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Link
-                    href="/exams"
-                    className="w-full sm:w-auto px-8 py-4 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-theme-accent/30 active:scale-95 shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
-                  >
+                <Link
+                  href="/exams"
+                  className="w-full sm:w-auto px-8 py-4 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-theme-accent/30 active:scale-95 shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
+                >
                   <i className="fas fa-rocket" />
                   <span>Browse Exams</span>
                 </Link>
-                {!user ? (
-                  <Link
-                    href="/sign-up"
-                    className="w-full sm:w-auto px-8 py-4 bg-theme-bg text-theme-primary border border-theme-border font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:border-theme-primary/40 hover:bg-theme-surface active:scale-95 shadow-sm transition-all duration-300 flex items-center justify-center space-x-2"
-                  >
-                    <i className="fas fa-user-plus" />
-                    <span>Create Account</span>
-                  </Link>
-                ) : null}
+                <Link
+                  href="/resources"
+                  className="w-full sm:w-auto px-8 py-4 bg-theme-bg text-theme-primary border border-theme-border font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:border-theme-primary/40 hover:bg-theme-surface active:scale-95 shadow-sm transition-all duration-300 flex items-center justify-center space-x-2"
+                >
+                  <i className="fas fa-book-open" />
+                  <span>See Resources</span>
+                </Link>
               </div>
             </div>
           </div>
@@ -288,19 +307,21 @@ export default function HomePageClient() {
               and track your rank on the leaderboard — all completely free.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              {!user ? (
                 <Link
-                  href="/exams"
+                  href="/sign-up"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:opacity-90 hover:-translate-y-1 shadow-lg shadow-theme-accent/20 transition-all duration-300"
                 >
-                <i className="fas fa-rocket" />
-                Browse All Exams
-              </Link>
+                  <i className="fas fa-user-plus" />
+                  Create Account
+                </Link>
+              ) : null}
               <Link
-                href="/resources"
+                href="/exams"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 border border-theme-border text-theme-primary font-bold rounded-xl hover:border-theme-accent/50 hover:bg-theme-surface hover:-translate-y-1 hover:shadow-lg hover:shadow-theme-accent/10 active:scale-95 transition-all duration-300"
               >
-                <i className="fas fa-book-open" />
-                Explore Resources
+                <i className="fas fa-rocket" />
+                Browse All Exams
               </Link>
             </div>
           </div>

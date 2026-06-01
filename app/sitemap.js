@@ -4,7 +4,7 @@ import Exam from '@/lib/models/Exam'
 
 export default async function sitemap() {
   const baseUrl = getSiteUrl()
-  const staticLastModified = new Date('2026-05-23T00:00:00.000Z')
+  const staticLastModified = new Date()
 
   const staticRoutes = [
     { url: `${baseUrl}/`, lastModified: staticLastModified, changeFrequency: 'weekly', priority: 1 },

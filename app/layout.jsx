@@ -29,6 +29,10 @@ export const metadata = {
   // Canonical URL tells search engines the authoritative address for this site
   alternates: {
     canonical: siteUrl,
+    languages: {
+      'en-BD': siteUrl,
+      'bn-BD': siteUrl,
+    },
   },
   icons: {
     icon: '/favicon.png',
@@ -105,7 +109,7 @@ const webAppSchema = {
     'Take timed IT exams, track daily study habits, build weekly plans, and compete on the leaderboard. Free for all beginner IT students.',
   applicationCategory: 'EducationApplication',
   operatingSystem: 'Web',
-  inLanguage: 'en',
+  inLanguage: ['en-BD', 'bn-BD'],
   isAccessibleForFree: true,
   offers: {
     '@type': 'Offer',
@@ -129,11 +133,18 @@ const webAppSchema = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`dark ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en-BD" className={`dark ${inter.variable}`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link
+          rel="preload"
+          as="style"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        />
+        <link
+          id="font-awesome-css"
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />

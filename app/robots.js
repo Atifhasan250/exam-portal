@@ -7,6 +7,8 @@ export default function robots() {
     '/admin/',
     '/api/',
     '/api/admin/',
+    '/dashboard',
+    '/dashboard/',
     '/profile',
     '/profile/',
     '/resources',

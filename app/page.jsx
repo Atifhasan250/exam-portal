@@ -1,5 +1,4 @@
 import HomePageClient from './HomePageClient'
-import HomeRecentExams from './HomeRecentExams'
 import { buildPageMetadata } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +20,6 @@ export default function HomePage() {
   return (
     <>
       <HomePageClient />
-      <HomeRecentExams />
     </>
   )
 }
