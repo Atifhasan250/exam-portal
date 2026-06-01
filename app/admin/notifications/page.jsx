@@ -182,7 +182,7 @@ export default function AdminNotificationsPage() {
         ) : null}
 
         {failureToast ? (
-          <div className="fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-md bg-theme-surface border border-theme-error-border rounded-2xl shadow-2xl p-4 text-sm">
+          <div className="fixed bottom-4 right-4 z-50 w-[calc(100%-2rem)] max-w-md bg-theme-surface border border-theme-error-border rounded-2xl shadow-2xl p-4 text-sm sm:bottom-6 sm:right-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-bold text-theme-primary">Notification failed for some users</p>
@@ -197,7 +197,7 @@ export default function AdminNotificationsPage() {
                 <i className="fas fa-times" />
               </button>
             </div>
-            <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-theme-bg border border-theme-border p-3 text-theme-error-text font-semibold leading-relaxed">
+            <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-theme-bg border border-theme-border p-3 text-theme-error-text font-semibold leading-relaxed">
               {failureToast.details}
             </pre>
           </div>
