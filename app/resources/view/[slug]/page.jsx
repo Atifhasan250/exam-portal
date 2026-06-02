@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
-import { getResourceThumbnailUrl, publicResourceSlug } from '@/lib/resourceUtils'
+import { getResourceThumbnailUrl, publicResourceSlug, serialize } from '@/lib/resourceUtils'
 import { getCachedCategorySiblingResources, getCachedResourcePageBySlug } from '@/lib/publicCache'
 import { safeJsonLd } from '@/lib/jsonLd'
 import ResourceOpenButton from '@/components/resources/ResourceOpenButton'
+import ResourceQuizButton from '@/components/resources/ResourceQuizButton'
+import ResourceAiAssistant from '@/components/resources/ResourceAiAssistant'
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
@@ -46,6 +48,10 @@ export default async function ResourceViewPage({ params }) {
   const resourceUrl = resource.url || resource.imagekitUrl
   const resourceSchema = buildResourceSchema(resource)
   const breadcrumbSchema = buildBreadcrumbSchema(resource)
+  const aiResource = serialize(resource)
+  aiResource.slug = publicResourceSlug(resource)
+  delete aiResource.quizQuestions
+  delete aiResource.transcriptText
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary page-enter">
@@ -74,28 +80,38 @@ export default async function ResourceViewPage({ params }) {
             <ResourceNavigation previousResource={previousResource} nextResource={nextResource} />
           </div>
 
-          <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5 space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">{labelForType(resource.type)}</p>
-              <h2 className="text-lg font-extrabold leading-snug">{resource.title}</h2>
-              {resource.categoryId?.name ? <p className="text-sm text-theme-secondary">{resource.categoryId.name}</p> : null}
-            </div>
-            <Detail label="Level" value={levelLabel(resource.level)} />
-            <Detail label="Language" value={languageLabel(resource.language)} />
-            <Detail label="Type" value={labelForType(resource.type)} />
-            <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
-            {resource.description ? (
-              <p className="border-t border-theme-border pt-3 text-sm leading-relaxed text-theme-secondary whitespace-pre-line">{resource.description}</p>
-            ) : null}
-            {resourceUrl ? (
-              <div className="pt-2">
-                <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Resource Link</p>
-                <a href={resourceUrl} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
-                  {resourceUrl}
-                </a>
+          <div className="space-y-6">
+            <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5 space-y-4">
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">{labelForType(resource.type)}</p>
+                <h2 className="text-lg font-extrabold leading-snug">{resource.title}</h2>
+                {resource.categoryId?.name ? <p className="text-sm text-theme-secondary">{resource.categoryId.name}</p> : null}
               </div>
-            ) : null}
-          </aside>
+              <Detail label="Level" value={levelLabel(resource.level)} />
+              <Detail label="Language" value={languageLabel(resource.language)} />
+              <Detail label="Type" value={labelForType(resource.type)} />
+              <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
+              <ResourceQuizButton
+                resourceSlug={publicResourceSlug(resource)}
+                quizQuestionCount={Array.isArray(resource.quizQuestions) ? resource.quizQuestions.length : 0}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-theme-accent bg-theme-accent/10 px-4 text-sm font-bold text-theme-accent transition-all hover:bg-theme-accent hover:text-theme-accent-text disabled:cursor-not-allowed disabled:border-theme-border disabled:bg-theme-bg disabled:text-theme-secondary disabled:hover:bg-theme-bg"
+              />
+              {resource.description ? (
+                <p className="border-t border-theme-border pt-3 text-sm leading-relaxed text-theme-secondary whitespace-pre-line">{resource.description}</p>
+              ) : null}
+              {resourceUrl ? (
+                <div className="pt-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Resource Link</p>
+                  <a href={resourceUrl} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
+                    {resourceUrl}
+                  </a>
+                </div>
+              ) : null}
+            </aside>
+            <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5">
+              <ResourceAiAssistant resource={aiResource} compact />
+            </aside>
+          </div>
         </section>
       </main>
     </div>

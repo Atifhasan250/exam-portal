@@ -10,7 +10,7 @@ import { useTheme } from '@/context/ThemeContext'
 import PostHogUserIdentity from './PostHogUserIdentity'
 
 const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up', '/offline']
-const NO_TOP_NAV_PREFIXES = ['/exam/']
+const NO_TOP_NAV_PREFIXES = ['/exam/', '/quiz/']
 
 const IMPORTANT_LINKS = [
   { href: '/', label: 'Home' },

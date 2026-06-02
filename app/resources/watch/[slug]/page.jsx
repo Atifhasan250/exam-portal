@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { connectDB } from '@/lib/db'
 import ResourceProgress from '@/lib/models/ResourceProgress'
 import ResourceVideoPlayer from '@/components/resources/ResourceVideoPlayer'
+import ResourceWatchTabs from '@/components/resources/ResourceWatchTabs'
 import { buildPageMetadata, getSiteUrl } from '@/lib/site'
 import { safeJsonLd } from '@/lib/jsonLd'
 import { publicResourceSlug, serialize } from '@/lib/resourceUtils'
@@ -47,6 +48,9 @@ export default async function ResourceWatchPage({ params }) {
   if (!resource || resource.type !== 'youtube') notFound()
   const { previousResource, nextResource } = await getSiblingResources(resource)
   const playerResource = serialize(resource)
+  playerResource.slug = publicResourceSlug(resource)
+  playerResource.quizQuestionCount = Array.isArray(resource.quizQuestions) ? resource.quizQuestions.length : 0
+  delete playerResource.quizQuestions
   delete playerResource.transcriptText
   const videoSchema = buildVideoSchema(resource)
   const breadcrumbSchema = buildBreadcrumbSchema(resource)
@@ -78,7 +82,7 @@ export default async function ResourceWatchPage({ params }) {
           <h1 className="text-xl sm:text-2xl font-extrabold text-theme-primary">{resource.categoryId?.name || 'Resources'}</h1>
         </div>
 
-        <section className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <section className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-6 items-start">
           <div className="space-y-5 min-w-0">
             <ResourceVideoPlayer
               resource={playerResource}
@@ -88,23 +92,7 @@ export default async function ResourceWatchPage({ params }) {
             />
           </div>
 
-          <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5 space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">Video</p>
-              <h2 className="text-lg font-extrabold leading-snug">{resource.title}</h2>
-              {resource.channelTitle ? <p className="text-sm text-theme-secondary">{resource.channelTitle}</p> : null}
-            </div>
-            <Detail label="Level" value={levelLabel(resource.level)} />
-            <Detail label="Language" value={languageLabel(resource.language)} />
-            <Detail label="Duration" value={formatDuration(resource.durationSeconds)} />
-            <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
-            <div className="pt-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Video Link</p>
-              <a href={resource.url} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
-                {resource.url}
-              </a>
-            </div>
-          </aside>
+          <ResourceWatchTabs resource={playerResource} />
         </section>
       </main>
     </div>
@@ -113,39 +101,6 @@ export default async function ResourceWatchPage({ params }) {
 
 const getResourceBySlug = getCachedResourceBySlug
 const getSiblingResources = getCachedCategorySiblingResources
-
-function Detail({ label, value }) {
-  if (!value) return null
-
-  return (
-    <div className="flex items-center justify-between gap-4 border-t border-theme-border pt-3">
-      <span className="text-sm text-theme-secondary">{label}</span>
-      <span className="text-sm font-bold text-theme-primary text-right">{value}</span>
-    </div>
-  )
-}
-
-function levelLabel(level) {
-  if (level === 'intermediate') return 'Intermediate'
-  if (level === 'advanced') return 'Advanced'
-  return 'Beginner'
-}
-
-function languageLabel(language) {
-  if (language === 'bn') return 'Bangla'
-  if (language === 'en') return 'English'
-  if (language === 'hi') return 'Hindi'
-  if (language === 'mixed') return 'Mixed'
-  return 'Other'
-}
-
-function formatDuration(seconds = 0) {
-  const total = Number(seconds) || 0
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  if (hours) return `${hours}h ${minutes}m`
-  return minutes ? `${minutes}m` : ''
-}
 
 function excerpt(value, maxLength = 160) {
   const text = String(value || '').replace(/\s+/g, ' ').trim()
