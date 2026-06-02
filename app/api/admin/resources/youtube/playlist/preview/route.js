@@ -5,7 +5,7 @@ import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { rateLimit } from '@/lib/rateLimit'
 import { validate, youtubePlaylistPreviewSchema } from '@/lib/validation'
 import { extractYouTubePlaylistId } from '@/lib/resourceUtils'
-import { previewYouTubePlaylist } from '@/lib/youtube'
+import { fetchYouTubePlaylistPage } from '@/lib/youtube'
 
 export async function POST(request) {
   const originCheck = enforceSameOrigin(request)
@@ -17,7 +17,7 @@ export async function POST(request) {
   const limited = await rateLimit(request, {
     name: 'youtube-playlist-preview',
     windowMs: 60 * 1000,
-    max: 10,
+    max: 60,
     message: 'Too many playlist preview requests.',
   })
   if (limited) return limited
@@ -28,8 +28,11 @@ export async function POST(request) {
     if (!parsed.success) return parsed.response
 
     const playlistId = extractYouTubePlaylistId(parsed.data.url)
-    const videos = await previewYouTubePlaylist(parsed.data.url, parsed.data.limit)
-    return NextResponse.json({ playlistId, videos })
+    const page = await fetchYouTubePlaylistPage(parsed.data.url, {
+      limit: parsed.data.limit,
+      pageToken: parsed.data.pageToken,
+    })
+    return NextResponse.json({ playlistId, ...page })
   } catch (error) {
     logger.error('[POST /api/admin/resources/youtube/playlist/preview]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })

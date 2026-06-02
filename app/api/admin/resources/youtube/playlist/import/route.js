@@ -22,7 +22,7 @@ export async function POST(request) {
   const limited = await rateLimit(request, {
     name: 'youtube-playlist-import',
     windowMs: 5 * 60 * 1000,
-    max: 10,
+    max: 60,
     message: 'Too many playlist imports.',
   })
   if (limited) return limited

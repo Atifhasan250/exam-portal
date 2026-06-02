@@ -48,26 +48,16 @@ export async function GET(request) {
     }
 
     const resources = await Resource.find(query)
-      .select('-transcriptText')
+      .select('-transcriptText -quizQuestions')
       .populate('categoryId', 'name slug icon color')
       .sort({ categoryId: 1, order: 1, createdAt: -1 })
       .skip(offset)
       .limit(limit)
       .lean()
-    const [totalCount, transcriptStats] = await Promise.all([
-      Resource.countDocuments(query),
-      getTranscriptStats(resources.map((resource) => resource._id)),
-    ])
+    const totalCount = await Resource.countDocuments(query)
 
     return NextResponse.json({
-      resources: serialize(resources.map((resource) => {
-        const transcriptLength = transcriptStats.get(resource._id.toString()) || 0
-        return {
-          ...resource,
-          hasTranscript: transcriptLength > 0,
-          transcriptLength,
-        }
-      })),
+      resources: serialize(resources),
       totalCount,
       limit,
       offset,
@@ -77,25 +67,6 @@ export async function GET(request) {
     logger.error('[GET /api/admin/resources]', { error })
     return NextResponse.json({ error: logger.safeErrorMessage(error) }, { status: 500 })
   }
-}
-
-async function getTranscriptStats(resourceIds) {
-  if (!resourceIds.length) return new Map()
-
-  const stats = await Resource.aggregate([
-    { $match: { _id: { $in: resourceIds } } },
-    {
-      $project: {
-        transcriptLength: {
-          $strLenCP: {
-            $trim: { input: { $ifNull: ['$transcriptText', ''] } },
-          },
-        },
-      },
-    },
-  ])
-
-  return new Map(stats.map((item) => [item._id.toString(), item.transcriptLength || 0]))
 }
 
 export async function POST(request) {
