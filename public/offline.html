@@ -3,19 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#050816">
+    <meta name="theme-color" content="#070A14">
     <title>Offline | IT Resource Zone</title>
     <style>
       :root {
         color-scheme: dark;
-        --bg: #050816;
-        --surface: #10172a;
-        --surface-soft: #0b1020;
-        --border: rgba(148, 163, 184, 0.24);
-        --primary: #f8fafc;
-        --secondary: #a7b2c5;
-        --accent: #38bdf8;
-        --accent-text: #03111f;
+        --bg: #070A14;
+        --surface: #0F1524;
+        --surface-elevated: #11192b;
+        --progress-track: #050816;
+        --primary: #E8EAF6;
+        --secondary: #7080A0;
+        --accent: #6366F1;
+        --accent-text: #FFFFFF;
+        --border: #1E2A48;
       }
 
       * {
@@ -45,7 +46,7 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 16px;
-        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
       }
 
       .icon-wrap {
@@ -54,7 +55,7 @@
         margin: 0 auto 24px;
         display: grid;
         place-items: center;
-        background: var(--surface-soft);
+        background: var(--progress-track);
         border: 1px solid var(--border);
         border-radius: 16px;
       }
@@ -72,7 +73,7 @@
         padding: 6px 12px;
         border: 1px solid var(--border);
         border-radius: 999px;
-        background: var(--surface-soft);
+        background: var(--progress-track);
         color: var(--accent);
         font-size: 11px;
         font-weight: 800;
@@ -119,12 +120,12 @@
         border: 1px solid var(--accent);
         background: var(--accent);
         color: var(--accent-text);
-        box-shadow: 0 12px 30px rgba(56, 189, 248, 0.22);
+        box-shadow: 0 12px 30px rgba(99, 102, 241, 0.3);
       }
 
       a {
         border: 1px solid var(--border);
-        background: var(--surface-soft);
+        background: var(--progress-track);
         color: var(--primary);
       }
 
@@ -153,7 +154,7 @@
       <div class="status">Offline</div>
 
       <h1>Connection needed</h1>
-      <p>Exams, login, tasks, and progress sync need internet. Reconnect, then retry from the app.</p>
+      <p>Live exams, sign-in, resources, notifications, and progress sync need internet. Reconnect, then retry from the app.</p>
 
       <div class="actions">
         <button type="button" onclick="window.location.reload()">Retry</button>

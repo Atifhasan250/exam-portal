@@ -2,21 +2,21 @@
 
 Live site: `https://irz.atifhasan.com`
 
-IT Resource Zone is a comprehensive, production-ready online examination platform designed for IT students and professionals. Built with Next.js 15 App Router, it provides a seamless experience for taking live assessments, practicing past exams, and competing on global and per-exam leaderboards.
+IT Resource Zone is a production Next.js 15 learning portal for beginner IT students. It combines public exam discovery and leaderboards with signed-in exam attempts, private dashboards, study planning, habit tracking, admin notifications, resource progress, and admin content management.
 
 The platform features a secure, separated architecture for both student users (powered by Clerk) and administrative management (powered by custom JWT authentication).
 
 ## Key Features
 
-- **Live & Practice Exams:** Support for scheduled, time-limited live examinations alongside accessible practice modes for past exams.
-- **Advanced Anti-Cheat Systems:** Built-in safeguards including automated exam submission upon detecting tab switching or browser closure during live assessments.
-- **Dynamic Leaderboards:** Real-time global and per-exam ranking systems based on performance metrics and submission times.
-- **Student Profiles:** Individualized dashboards tracking historical submissions, scores, and exam progress.
-- **Daily Habits & Task Planner:** Personal productivity tracking with advanced analytics, streaks, and consistency scoring.
-- **Resource Hub:** Curated directory of learning materials.
-- **Admin Management Dashboard:** Secure interface for creating exams, managing questions, adjusting schedules, and reviewing user submissions.
+- **Live & Practice Exams:** Scheduled live assessments and practice access for past exams with timed attempts, answer locking, instant scoring, and review.
+- **Exam Integrity Controls:** Attempt tracking, one-submission live exam support, protected live questions, answer locking, and suspicious-event handling for live sessions.
+- **Dynamic Leaderboards:** Public global and per-exam rankings based on score, timing, and published submissions.
+- **Student Profiles & Dashboard:** Private dashboard summaries, recommendations, submission history, account settings, learning report export, password tools, and account deletion.
+- **Daily Habits & Study Planner:** Weekly task planning, daily habit tracking, history views, streaks, and consistency scoring.
+- **Resource Hub:** Signed-in library for curated YouTube lessons, PDFs, images, files, and useful links with progress tracking.
+- **Admin Management Dashboard:** Secure admin tools for exams, questions, users, notifications, resource categories, resources, playlist imports, uploaded assets, and audit logging.
 - **Dark/Light Mode:** First-class support for both light and dark themes with persistent user preferences.
-- **SEO Optimized:** Implements modern AI crawler compatibility via Markdown content negotiation (`llms.txt`) and dynamic XML sitemaps.
+- **SEO/PWA Optimized:** Canonical metadata, dynamic sitemap, crawler controls, `llms.txt`, markdown responses for AI crawlers, manifest icons, service worker, and offline fallback.
 
 ## Technology Stack
 
@@ -26,6 +26,10 @@ The platform features a secure, separated architecture for both student users (p
 - **Authentication (Students):** Clerk
 - **Authentication (Admin):** JWT with httpOnly cookies
 - **Styling:** Tailwind CSS with custom design tokens
+- **Resources/Media:** ImageKit and YouTube integrations
+- **Analytics/Monitoring:** Vercel Analytics, PostHog, and Sentry
+- **Rate Limiting/Caching:** Upstash Redis where configured
+- **Notifications:** Web Push
 
 ## Prerequisites
 
@@ -75,6 +79,17 @@ NEXT_PUBLIC_BING_SITE_VERIFICATION=your_bing_verification_code
 # Persistent rate limiting for admin login
 UPSTASH_REDIS_REST_URL=your_upstash_rest_url
 UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
+
+# Optional integrations
+NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=your_posthog_project_token
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+SENTRY_AUTH_TOKEN=your_sentry_auth_token
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+VAPID_CONTACT_EMAIL=itresourcezone@gmail.com
+NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
+IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
+NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=your_imagekit_url_endpoint
 ```
 
 Generate a production admin password hash with:
@@ -89,7 +104,8 @@ node -e "const crypto=require('crypto'); const password=process.argv[1]; const s
 - Submit `https://irz.atifhasan.com/sitemap.xml` in Google Search Console.
 - Use URL Inspection for `https://irz.atifhasan.com/` after major deploys and request indexing.
 - Keep `robots.txt`, `sitemap.xml`, canonical URLs, OpenGraph URLs, and JSON-LD URLs on the custom domain.
-- Keep `/resources` noindexed until it contains real useful resource links and copy.
+- Keep signed-in areas noindexed/disallowed: `/dashboard`, `/profile`, `/exams/history`, `/tasks`, `/resources`, `/sign-in`, `/sign-up`, `/admin`, and `/api/*`.
+- Keep public indexing focused on `/`, `/exams`, `/exam/[id]`, `/leaderboard`, `/leaderboard/[id]`, `/privacy`, and `/terms`.
 
 ## Running the Application
 
@@ -101,30 +117,48 @@ npm run dev
 
 The application will be available at `http://localhost:3000`.
 
+## Cron Jobs On Vercel Hobby
+
+Vercel Hobby supports one scheduled cron run per day, so `vercel.json` only schedules the daily admin notification delivery route. Automatic live-exam notification cron jobs are intentionally not used on this plan; send exam announcements from the admin notification dashboard instead.
+
 ## Application Structure
 
-### Public / Student Routes
-- `/` - Landing page
+### Public Routes
+- `/` - Home page
 - `/exams` - Consolidated view of live, upcoming, and past exams
-- `/exam/[id]` - Secure exam execution environment
-- `/tasks` - Daily habits and weekly study planner
-- `/tasks/history` - Advanced task analytics and historical data
-- `/resources` - Educational materials and references
+- `/exam/[id]` - Public exam overview and signed-in exam entry
 - `/leaderboard` - Global aggregated leaderboard
 - `/leaderboard/[id]` - Exam-specific leaderboard
-- `/profile` - Authenticated user profile and historical data
+- `/privacy` - Privacy Policy
+- `/terms` - Terms of Service
+
+### Signed-In Student Routes
+- `/dashboard` - Learning summary, progress, recommendations, and resource progress
+- `/profile` - Account settings, submission summaries, PWA panel, report export, and account deletion
+- `/profile/submission/[id]` - Private submission review
+- `/exams/history` - Authenticated exam history
+- `/tasks` - Daily habits and weekly study planner
+- `/tasks/history` - Task and habit analytics
+- `/resources` - Curated resource library
+- `/resources/[slug]` - Resource category page
+- `/resources/watch/[slug]` - YouTube lesson player
+- `/resources/view/[slug]` - PDF, image, file, or external link viewer
 
 ### Administrative Routes
 - `/admin` - Secure administrator authentication gateway
 - `/admin/dashboard` - Centralized dashboard hub
 - `/admin/exams` - Comprehensive exam and question management
+- `/admin/resources` - Resource, category, asset, and YouTube import management
+- `/admin/notifications` - Admin notification center
 - `/admin/users` - Detailed user list with individual progress tracking
 
 ## Notes on Architecture
 
-- The application strictly enforces separation of concerns regarding authentication. Student accounts are managed exclusively via Clerk, whereas administrative access bypasses Clerk in favor of a standalone JWT implementation, ensuring robust administrative isolation.
-- The project has been fully migrated from a legacy React/Express monolith to a unified Next.js App Router structure, leveraging server-side rendering and edge-compatible API routes for maximum performance and security.
+- Student accounts are managed through Clerk. Administrative access is separate and uses JWT/httpOnly cookies with dedicated route protection.
+- Public discovery routes are indexable. Student dashboards, profile data, planner data, resources, auth pages, admin tools, and APIs are private or intentionally non-indexable.
+- The project uses a unified Next.js App Router structure with server components, API routes, middleware protection, dynamic metadata, and cached public data helpers.
 - Local standalone MongoDB instances do not support the transactions used by account deletion, exam deletion, submissions, and resource asset reference counting. Use Atlas or initialize local MongoDB as a replica set for those flows.
+- `npm run build` is intentionally skipped in this workspace's verification flow. Use linting and targeted runtime checks instead.
 
 ## API Route Checklist
 

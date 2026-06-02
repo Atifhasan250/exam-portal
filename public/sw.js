@@ -74,10 +74,10 @@ self.addEventListener('push', (event) => {
 
   const title = payload.title || 'IT Resource Zone'
   const options = {
-    body: payload.body || 'You have a study reminder.',
+    body: payload.body || 'You have a new app notification.',
     icon: payload.icon || '/icons/notification-192.png',
     badge: payload.badge || '/icons/badge-96.png',
-    tag: payload.tag || 'irz-reminder',
+    tag: payload.tag || 'irz-notification',
     renotify: false,
     data: {
       url: payload.url || '/tasks',

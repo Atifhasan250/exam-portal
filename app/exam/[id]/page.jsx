@@ -33,6 +33,8 @@ export async function generateMetadata({ params }) {
       description: `Join ${exam.title} on IT Resource Zone. Timed exam access with instant scoring, practice review, and student-focused assessment flow.`,
       path: `/exam/${id}`,
       keywords: ['online exam', 'IT exam', exam.title],
+      image: `/exam/${id}/opengraph-image`,
+      imageAlt: `${exam.title} exam preview`,
     })
   } catch {
     return buildPageMetadata({

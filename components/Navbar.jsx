@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
 import PageSkeleton from './PageSkeleton'
@@ -10,9 +11,10 @@ import ThemeToggle from './ThemeToggle'
 const MENU_ITEMS = [
   { label: 'Home',        ariaLabel: 'Go to home page',       link: '/' },
   { label: 'Exams',       ariaLabel: 'Browse all exams',       link: '/exams' },
-  { label: 'Leaderboard', ariaLabel: 'View leaderboard',       link: '/leaderboard' },
+  { label: 'Dashboard',   ariaLabel: 'View your dashboard',    link: '/dashboard' },
   { label: 'Tasks',       ariaLabel: 'View tasks',             link: '/tasks' },
   { label: 'Resources',   ariaLabel: 'View resources',         link: '/resources' },
+  { label: 'Leaderboard', ariaLabel: 'View leaderboard',       link: '/leaderboard' },
   { label: 'Profile',     ariaLabel: 'View your profile',      link: '/profile' },
 ]
 
@@ -47,9 +49,11 @@ export default function Navbar({ className = '' }) {
           aria-label="Go to home page"
           className="absolute left-1/2 top-1/2 flex h-14 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden cursor-pointer sm:h-16 sm:w-20"
         >
-          <img
+          <Image
             src={isDark ? '/favicon.png' : '/favicon1.png'}
             alt="IT Resource Zone"
+            width={80}
+            height={80}
             className="h-16 w-16 shrink-0 object-contain drop-shadow-sm sm:h-20 sm:w-20"
           />
         </Link>
@@ -71,9 +75,11 @@ export default function Navbar({ className = '' }) {
                 href="/profile"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-theme-border bg-theme-surfaceElevated hover:bg-theme-bg hover:border-theme-accent transition-all duration-200"
               >
-                <img
+                <Image
                   src={user.imageUrl}
                   alt="Profile"
+                  width={28}
+                  height={28}
                   className="w-7 h-7 rounded-full object-cover border border-theme-border"
                 />
                 <span className="text-sm font-bold text-theme-primary">

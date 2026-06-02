@@ -2,9 +2,25 @@ import { getSiteUrl } from '@/lib/site'
 import { connectDB } from '@/lib/db'
 import Exam from '@/lib/models/Exam'
 
+const configuredStaticLastModified = process.env.BUILD_TIME
+  ? new Date(process.env.BUILD_TIME)
+  : null
+const staticLastModified = configuredStaticLastModified && !Number.isNaN(configuredStaticLastModified.getTime())
+  ? configuredStaticLastModified
+  : null
+
+function sitemapEntry(entry) {
+  if (!entry.lastModified) {
+    const cleanedEntry = { ...entry }
+    delete cleanedEntry.lastModified
+    return cleanedEntry
+  }
+
+  return entry
+}
+
 export default async function sitemap() {
   const baseUrl = getSiteUrl()
-  const staticLastModified = new Date('2026-05-23T00:00:00.000Z')
 
   const staticRoutes = [
     { url: `${baseUrl}/`, lastModified: staticLastModified, changeFrequency: 'weekly', priority: 1 },
@@ -12,7 +28,7 @@ export default async function sitemap() {
     { url: `${baseUrl}/leaderboard`, lastModified: staticLastModified, changeFrequency: 'daily', priority: 0.75 },
     { url: `${baseUrl}/privacy`, lastModified: staticLastModified, changeFrequency: 'yearly', priority: 0.25 },
     { url: `${baseUrl}/terms`, lastModified: staticLastModified, changeFrequency: 'yearly', priority: 0.25 },
-  ]
+  ].map(sitemapEntry)
 
   let dynamicRoutes = []
   try {
@@ -22,7 +38,7 @@ export default async function sitemap() {
     const examRoutes = exams.flatMap((exam) => [
       { url: `${baseUrl}/exam/${exam._id}`, lastModified: exam.updatedAt || exam.createdAt || staticLastModified, changeFrequency: 'weekly', priority: 0.7 },
       { url: `${baseUrl}/leaderboard/${exam._id}`, lastModified: exam.updatedAt || exam.createdAt || staticLastModified, changeFrequency: 'daily', priority: 0.55 },
-    ])
+    ]).map(sitemapEntry)
     dynamicRoutes = examRoutes
   } catch (error) {
     console.error('Failed to load dynamic routes for sitemap', error)

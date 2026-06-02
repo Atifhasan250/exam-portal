@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { validate, createExamSchema } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
@@ -23,6 +24,7 @@ export async function GET(request) {
         status,
         limit: searchParams.get('limit'),
         offset: searchParams.get('offset'),
+        q: searchParams.get('q'),
       })
 
       return NextResponse.json(page, {
@@ -47,6 +49,12 @@ export async function POST(request) {
 
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
+
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-exam-create',
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
 
   try {
     await connectDB()

@@ -26,7 +26,7 @@ export default function OfflinePage() {
           Connection needed
         </h1>
         <p className="mt-3 text-sm sm:text-base text-theme-secondary leading-relaxed">
-          Exams, login, tasks, and progress sync need internet. Reconnect, then retry from the app.
+          Live exams, sign-in, resources, notifications, and progress sync need internet. Reconnect, then retry from the app.
         </p>
 
         <div className="mt-7 grid gap-3">

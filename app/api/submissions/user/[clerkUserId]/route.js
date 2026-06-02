@@ -36,7 +36,7 @@ export async function GET(request, { params }) {
           as: 'exam',
         },
       },
-      { $unwind: '$exam' },
+      { $unwind: { path: '$exam', preserveNullAndEmptyArrays: true } },
       {
         $facet: {
           submissions: [
@@ -46,8 +46,8 @@ export async function GET(request, { params }) {
               $project: {
                 _id: 1,
                 examId: {
-                  _id: '$exam._id',
-                  title: '$exam.title',
+                  _id: { $ifNull: ['$exam._id', '$examId'] },
+                  title: { $ifNull: ['$exam.title', { $ifNull: ['$examTitleSnapshot', 'Deleted exam'] }] },
                 },
                 score: 1,
                 total: 1,

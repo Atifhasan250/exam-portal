@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, updateResourceSchema } from '@/lib/validation'
@@ -43,6 +44,12 @@ export async function PUT(request, { params }) {
 
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
+
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-resource-update',
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
 
   try {
     const { id } = await params
@@ -163,6 +170,13 @@ export async function DELETE(request, { params }) {
 
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
+
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-resource-delete',
+    max: 20,
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
 
   try {
     const { id } = await params

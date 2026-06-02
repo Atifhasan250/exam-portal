@@ -17,15 +17,36 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
   const [loadingMoreStatus, setLoadingMoreStatus] = useState({})
   const [consumedLiveIds, setConsumedLiveIds] = useState(new Set())
   const [liveAccessLoading, setLiveAccessLoading] = useState(true)
+  const [query, setQuery] = useState('')
+  const debouncedQuery = useDebouncedValue(query, 300)
+  const [refreshingExams, setRefreshingExams] = useState(false)
   const router = useRouter()
   const { user, isLoaded } = useUser()
   const CACHE_TTL_MS = 30 * 1000
 
   useEffect(() => {
+    const searchValue = debouncedQuery.trim()
+    if (searchValue) {
+      let active = true
+      setRefreshingExams(true)
+      Promise.all(STATUS_LIST.map((status) => fetchExamPage(status, 0, searchValue)))
+        .then((pages) => {
+          if (!active) return
+          setExamPages(Object.fromEntries(STATUS_LIST.map((status, index) => [status, pages[index]])))
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (active) setRefreshingExams(false)
+        })
+      return () => { active = false }
+    }
+
+    setRefreshingExams(false)
     if (hasInitialData) {
       const pages = normalizeInitialExamPages(initialExamPages, initialExams)
       setExamPages(pages)
       sessionStorage.setItem('exams_cache', JSON.stringify({ pages, cachedAt: Date.now() }))
+      setLoading(false)
       return
     }
 
@@ -51,7 +72,7 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [hasInitialData, initialExamPages, initialExams])
+  }, [debouncedQuery, hasInitialData, initialExamPages, initialExams])
 
   useEffect(() => {
     if (!isLoaded) {
@@ -102,9 +123,10 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
     if (loadingMoreStatus[status]) return
 
     const page = examPages[status] || emptyExamPage()
+    const searchValue = debouncedQuery.trim()
     setLoadingMoreStatus((current) => ({ ...current, [status]: true }))
     try {
-      const nextPage = await fetchExamPage(status, page.nextOffset ?? page.exams.length)
+      const nextPage = await fetchExamPage(status, page.nextOffset ?? page.exams.length, searchValue)
       setExamPages((current) => {
         const currentPage = current[status] || emptyExamPage()
         const nextPages = {
@@ -114,7 +136,9 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
             exams: mergeExams(currentPage.exams, nextPage.exams),
           },
         }
-        sessionStorage.setItem('exams_cache', JSON.stringify({ pages: nextPages, cachedAt: Date.now() }))
+        if (!searchValue) {
+          sessionStorage.setItem('exams_cache', JSON.stringify({ pages: nextPages, cachedAt: Date.now() }))
+        }
         return nextPages
       })
     } catch {
@@ -166,25 +190,37 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
   const liveExams = livePage.exams
   const upcomingExams = upcomingPage.exams
   const pastExams = pastPage.exams
+  const isSearching = query.trim().length > 0
 
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-14">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center space-x-3">
-              <Link href="/" className="w-10 h-10 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-primary transition-all shrink-0">
-                <i className="fas fa-arrow-left" />
-              </Link>
               <h1 className="text-3xl font-extrabold text-theme-primary">All Exams</h1>
+              {refreshingExams ? <i className="fas fa-circle-notch fa-spin text-theme-secondary text-sm" aria-label="Refreshing exams" /> : null}
             </div>
-            <Link
-              href="/leaderboard"
-              className="flex items-center justify-center gap-2 w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl text-sm font-semibold bg-theme-surface border border-theme-border text-theme-primary hover:border-yellow-500/50 hover:text-yellow-500 transition-all shadow-sm shrink-0"
-            >
-              <i className="fas fa-trophy text-yellow-500" />
-              <span className="hidden sm:inline">Leaderboard</span>
-            </Link>
+            <div className="flex items-center gap-3 sm:justify-end">
+              <div className="relative min-w-0 flex-1 sm:w-[320px] sm:flex-none lg:w-[420px]">
+                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-theme-secondary" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  className="input-field pl-11 text-sm sm:text-base"
+                  style={{ paddingLeft: '2.75rem' }}
+                  placeholder="Search exam names..."
+                  aria-label="Search exams by name"
+                />
+              </div>
+              <Link
+                href="/leaderboard"
+                className="flex items-center justify-center gap-2 w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-xl text-sm font-semibold bg-theme-surface border border-theme-border text-theme-primary hover:border-yellow-500/50 hover:text-yellow-500 transition-all shadow-sm shrink-0"
+              >
+                <i className="fas fa-trophy text-yellow-500" />
+                <span className="hidden sm:inline">Leaderboard</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -193,7 +229,7 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
             title="Upcoming Exams"
             icon="fa-calendar-alt"
             color="text-yellow-500"
-            footer={upcomingPage.hasMore ? <LoadMoreButton loading={loadingMoreStatus.upcoming} onClick={() => loadMoreExams('upcoming')} label="Load More Upcoming Exams" /> : null}
+            footer={upcomingPage.hasMore ? <LoadMoreButton loading={loadingMoreStatus.upcoming} onClick={() => loadMoreExams('upcoming')} label={isSearching ? 'Load More Matching Upcoming Exams' : 'Load More Upcoming Exams'} /> : null}
           >
             {upcomingExams.map((exam, index) => (
               <ExamCard key={exam._id} exam={exam} badge="Upcoming" badgeColor="bg-yellow-500/10 text-yellow-500 border-yellow-500/20" fmtDate={fmtDate} disabled disabledLabel="Starts Soon" index={index} />
@@ -205,10 +241,10 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
           title="Live Exams"
           icon="fa-circle text-red-500 animate-pulse"
           color="text-red-500"
-          footer={livePage.hasMore ? <LoadMoreButton loading={loadingMoreStatus.live} onClick={() => loadMoreExams('live')} label="Load More Live Exams" /> : null}
+          footer={livePage.hasMore ? <LoadMoreButton loading={loadingMoreStatus.live} onClick={() => loadMoreExams('live')} label={isSearching ? 'Load More Matching Live Exams' : 'Load More Live Exams'} /> : null}
         >
           {liveExams.length === 0 ? (
-            <p className="text-theme-secondary text-sm">No exams are live right now.</p>
+            <p className="text-theme-secondary text-sm">{isSearching ? 'No live exams matched your search.' : 'No exams are live right now.'}</p>
           ) : liveExams.map((exam, index) => {
             const alreadyConsumed = consumedLiveIds.has(exam._id?.toString())
             const checkingLiveAccess = !isLoaded || liveAccessLoading
@@ -232,10 +268,10 @@ export default function ExamsPageClient({ initialExamPages = null, initialExams 
           title="Past Exams"
           icon="fa-history"
           color="text-theme-secondary"
-          footer={pastPage.hasMore ? <LoadMoreButton loading={loadingMoreStatus.past} onClick={() => loadMoreExams('past')} label="Load More Past Exams" /> : null}
+          footer={pastPage.hasMore ? <LoadMoreButton loading={loadingMoreStatus.past} onClick={() => loadMoreExams('past')} label={isSearching ? 'Load More Matching Past Exams' : 'Load More Past Exams'} /> : null}
         >
           {pastExams.length === 0 ? (
-            <p className="text-theme-secondary text-sm">No past exams yet.</p>
+            <p className="text-theme-secondary text-sm">{isSearching ? 'No past exams matched your search.' : 'No past exams yet.'}</p>
           ) : pastExams.map((exam, index) => (
             <ExamCard key={exam._id} exam={exam} badge="Practice" badgeColor="bg-theme-accent/10 text-theme-accent border border-theme-accent/20" fmtDate={fmtDate} onStart={() => handleTakeExam(exam._id, exam.title, 'past')} index={index} />
           ))}
@@ -293,12 +329,14 @@ function ExamCard({ exam, badge, badgeColor, fmtDate, onStart, disabled, disable
   )
 }
 
-async function fetchExamPage(status, offset) {
+async function fetchExamPage(status, offset, query = '') {
   const params = new URLSearchParams({
     status,
     limit: String(EXAM_PAGE_SIZE),
     offset: String(offset),
   })
+  const value = query.trim()
+  if (value) params.set('q', value)
   const response = await fetch(`/api/exams?${params.toString()}`)
   const data = await response.json()
   if (!response.ok) throw new Error(data?.error || 'Failed to fetch exams')
@@ -388,4 +426,15 @@ function mergeExams(current = [], next = []) {
     merged.push(exam)
   }
   return merged
+}
+
+function useDebouncedValue(value, delay) {
+  const [debounced, setDebounced] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+
+  return debounced
 }

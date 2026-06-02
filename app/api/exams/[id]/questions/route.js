@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { validate, addQuestionsSchema, MAX_EXAM_QUESTIONS } from '@/lib/validation'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
@@ -18,6 +19,12 @@ export async function POST(request, { params }) {
   if (!adminCheck.ok) return adminCheck.response
 
   // ── Validate input ──────────────────────────────────────────────────
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-exam-question-create',
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
+
   try {
     const { id } = await params
     if (!isValidObjectId(id)) return invalidIdResponse('exam id')

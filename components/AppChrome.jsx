@@ -10,10 +10,12 @@ import { useTheme } from '@/context/ThemeContext'
 import PostHogUserIdentity from './PostHogUserIdentity'
 
 const CHROMELESS_PREFIXES = ['/sign-in', '/sign-up', '/offline']
+const NO_TOP_NAV_PREFIXES = ['/exam/', '/quiz/']
 
 const IMPORTANT_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/exams', label: 'All Exams' },
+  { href: '/dashboard', label: 'Dashboard' },
   { href: '/resources', label: 'Resources' },
   { href: '/tasks', label: 'Tasks' },
   { href: '/sign-in', label: 'Login' },
@@ -23,6 +25,7 @@ const IMPORTANT_LINKS = [
 const RESOURCE_LINKS = [
   { href: '/exams', label: 'Mock Exams' },
   { href: '/leaderboard', label: "Toppers' Board" },
+  { href: '/dashboard', label: 'Learning Dashboard' },
   { href: '/profile', label: 'My Profile' },
   { href: '/resources', label: 'Tutorials & Resources' },
 ]
@@ -45,10 +48,12 @@ const SOCIAL_LINKS = [
 export default function AppChrome({ children }) {
   const pathname = usePathname()
   const isChromeless = CHROMELESS_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const hideTopNav = NO_TOP_NAV_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   const showMobileNavbar = pathname === '/'
   const showBottomNav = !isChromeless && pathname !== '/'
   const year = new Date().getFullYear()
   const { theme } = useTheme()
+  const logoSrc = theme === 'dark' ? '/favicon.png' : '/favicon1.png'
 
   // Lighter spark for dark bg, deeper for light bg
   const sparkColor = theme === 'dark' ? '#a5b4fc' : '#ea7a53'
@@ -57,7 +62,7 @@ export default function AppChrome({ children }) {
     <ClickSpark sparkColor={sparkColor} sparkSize={12} sparkRadius={20} sparkCount={8} duration={450}>
       <PostHogUserIdentity />
       <div className="flex flex-col min-h-screen bg-theme-bg text-theme-primary transition-theme">
-        {!isChromeless && <Navbar className={showMobileNavbar ? '' : 'hidden sm:block'} />}
+        {!isChromeless && !hideTopNav && <Navbar className={showMobileNavbar ? '' : 'hidden sm:block'} />}
         <div className="flex-grow">{children}</div>
 
         {!isChromeless && (
@@ -69,7 +74,7 @@ export default function AppChrome({ children }) {
               <div className="sm:col-span-2 lg:col-span-1 space-y-4">
                 <Link href="/" className="inline-flex items-center space-x-2 group">
                   <Image
-                    src="/favicon.png"
+                    src={logoSrc}
                     alt="IT Resource Zone Logo"
                     width={38}
                     height={38}

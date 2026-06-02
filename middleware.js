@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 const ADMIN_COOKIE_NAME = 'irz_admin_token'
 
 const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
   '/profile(.*)',
   '/profile/submission(.*)',
 ])
@@ -11,7 +12,7 @@ const isProtectedResourceRoute = createRouteMatcher(['/resources(.*)'])
 
 const MARKDOWN_CONTENT = `# IT Resource Zone
 
-> Online learning and exam portal for beginner IT students, with live exams, practice exams, leaderboards, study planning, and curated learning resources.
+> Free IT learning and exam portal for beginner students, with live exams, practice exams, leaderboards, private progress dashboards, study planning, habit tracking, admin notifications, and curated resources.
 
 - **Developer:** Atif Hasan
 - **URL:** https://irz.atifhasan.com
@@ -20,10 +21,12 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 ## Core Features
 - Timed live exams with secure attempt tracking
 - Practice mode for past exams
-- Per-exam and global leaderboards
-- Private resource library with YouTube lessons, PDFs, files, and useful links
-- Personal study planner, habit tracking, and score history for signed-in students
-- Admin panel for exam, question, category, and resource management
+- Instant scoring, answer review, submission history, and profile PDF export
+- Global and per-exam leaderboards
+- Signed-in resource library with YouTube lessons, PDFs, images, files, and useful links
+- Resource progress tracking for signed-in students
+- Personal dashboard, study planner, habit analytics, and optional browser notifications
+- Private admin panel for exams, questions, users, notifications, categories, resources, and uploaded assets
 
 ## Public Routes
 - / - Home
@@ -35,20 +38,23 @@ const MARKDOWN_CONTENT = `# IT Resource Zone
 - /terms - Terms of Service
 
 ## Private Routes
-- /profile - Student account and submission history
-- /tasks - Personal study planner
+- /dashboard - Signed-in learning dashboard and recommendations
+- /profile - Student account, settings, data export, and account deletion
+- /profile/submission/[id] - Private submission review
+- /exams/history - Private exam history
+- /tasks - Personal study planner and daily habit tracker
 - /tasks/history - Personal planner analytics
 - /resources - Signed-in learning resource library
 - /resources/[slug] - Signed-in resource category page
 - /resources/watch/[slug] - Signed-in video lesson page
-- /resources/view/[slug] - Signed-in resource viewer
-- /admin - Admin tools
+- /resources/view/[slug] - Signed-in resource/file viewer
+- /admin - Private admin tools
 
 ## Constraints
 - Live exams can have one enforceable submission per student account
 - Answers are locked once selected
 - Live exam questions are protected until an authorized attempt begins
-- Admin routes are private and must not be indexed
+- Signed-in student areas, resource pages, auth pages, admin routes, and APIs are private or non-indexable
 `
 
 function base64UrlToBytes(value) {

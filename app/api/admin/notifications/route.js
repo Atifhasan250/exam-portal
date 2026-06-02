@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { hasPushEnv } from '@/lib/push'
@@ -25,6 +26,7 @@ function serializeNotification(notification) {
     sent: notification.sent,
     failed: notification.failed,
     lastError: notification.lastError,
+    failureDetails: notification.failureDetails || [],
     createdAt: notification.createdAt,
   }
 }
@@ -57,6 +59,13 @@ export async function POST(request) {
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
 
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-notification-create',
+    max: 10,
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
+
   if (!hasPushEnv()) {
     return NextResponse.json({ error: 'Push environment variables are not configured.' }, { status: 503 })
   }
@@ -83,7 +92,7 @@ export async function POST(request) {
         ...result,
         status: 'sent',
         sentAt: new Date(),
-        lastError: '',
+        lastError: result.failed ? result.lastError : '',
       })
       await notification.save()
     }

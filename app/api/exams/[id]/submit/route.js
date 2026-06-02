@@ -91,6 +91,7 @@ export async function POST(request, { params }) {
     let { answers } = parsed.data
     let questions = []
     let attempt = null
+    let practiceAttempt = null
     let wasLive = false
     let savedSubmissionId = null
 
@@ -110,6 +111,24 @@ export async function POST(request, { params }) {
       })
 
       if (!attempt) {
+        const existingLiveSubmission = await Submission.findOne({
+          examId: exam._id,
+          clerkUserId: userId,
+          wasLive: true,
+        }).lean()
+        if (existingLiveSubmission) {
+          return NextResponse.json({
+            score: existingLiveSubmission.score,
+            total: existingLiveSubmission.total,
+            wrong: existingLiveSubmission.wrong,
+            unanswered: existingLiveSubmission.unanswered,
+            submissionId: existingLiveSubmission._id.toString(),
+            wasLive: true,
+            reviewAvailable: false,
+            reviewAvailableAt: liveEnd ? liveEnd.toISOString() : null,
+            questions: [],
+          })
+        }
         return NextResponse.json({ error: 'Active attempt not found.' }, { status: 404 })
       }
 
@@ -138,6 +157,19 @@ export async function POST(request, { params }) {
         message: 'Too many practice submissions for this exam.',
       })
       if (practiceLimited) return practiceLimited
+
+      if (parsed.data.practiceAttemptId) {
+        practiceAttempt = await PracticeAttempt.findOne({
+          _id: parsed.data.practiceAttemptId,
+          examId: exam._id,
+          clerkUserId: userId,
+          status: { $in: ['started', 'submitted'] },
+        })
+
+        if (!practiceAttempt) {
+          return NextResponse.json({ error: 'Active practice attempt not found.' }, { status: 404 })
+        }
+      }
 
       questions = await Question.find({ examId: exam._id }).sort({ order: 1 }).lean()
     }
@@ -176,6 +208,7 @@ export async function POST(request, { params }) {
             [
               {
                 examId: exam._id,
+                examTitleSnapshot: exam.title,
                 clerkUserId: userId,
                 studentName,
                 score,
@@ -215,6 +248,7 @@ export async function POST(request, { params }) {
 
           const practicePayload = {
             examId: exam._id,
+            examTitleSnapshot: exam.title,
             clerkUserId: userId,
             studentName,
             score,
@@ -223,6 +257,7 @@ export async function POST(request, { params }) {
             unanswered,
             wasLive,
             answers,
+            practiceAttemptId: practiceAttempt?._id,
             attemptCount,
             lastAttemptAt: submittedAt,
           }
@@ -280,6 +315,19 @@ export async function POST(request, { params }) {
         if (attempt) {
           await ExamAttempt.updateOne(
             { _id: attempt._id, status: 'in_progress' },
+            {
+              $set: {
+                status: 'submitted',
+                submittedAt: new Date(),
+              },
+            },
+            { session },
+          )
+        }
+
+        if (practiceAttempt) {
+          await PracticeAttempt.updateOne(
+            { _id: practiceAttempt._id, status: 'started' },
             {
               $set: {
                 status: 'submitted',

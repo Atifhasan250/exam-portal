@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { logAdminAction } from '@/lib/auditLog'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
@@ -15,6 +16,13 @@ export async function DELETE(request, { params }) {
 
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
+
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-exam-question-delete',
+    max: 30,
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
 
   try {
     const { id, questionId } = await params

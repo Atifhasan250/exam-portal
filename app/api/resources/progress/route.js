@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { userMutationRateLimit } from '@/lib/rateLimit'
 import { validate, resourceProgressSchema } from '@/lib/validation'
 import ResourceProgress from '@/lib/models/ResourceProgress'
 import Resource from '@/lib/models/Resource'
@@ -43,6 +44,13 @@ export async function POST(request) {
 
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: noStoreHeaders })
+
+  const limited = await userMutationRateLimit(request, {
+    name: 'resource-progress-update',
+    max: 60,
+    keyParts: [userId],
+  })
+  if (limited) return limited
 
   try {
     const raw = await request.json()

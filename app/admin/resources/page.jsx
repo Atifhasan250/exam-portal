@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { parseJSON, parseTXT } from '@/utils/parseQuestions'
 
 const emptyCategory = {
   name: '',
@@ -28,16 +29,16 @@ const categoryIcons = [
 ]
 
 const categoryColors = [
-  '#ea7a53',
-  '#081126',
-  '#8fd1bd',
-  '#f6eecf',
-  '#16a34a',
-  '#dc2626',
-  '#ea7a53',
-  '#081126',
-  '#fff8e7',
-  '#fff9e3',
+  { value: '#ea7a53', label: 'Accent' },
+  { value: '#f09a7d', label: 'Accent soft' },
+  { value: '#081126', label: 'Primary' },
+  { value: '#24324f', label: 'Primary soft' },
+  { value: '#8fd1bd', label: 'Mint' },
+  { value: '#62b99f', label: 'Mint deep' },
+  { value: '#f6eecf', label: 'Warm surface' },
+  { value: '#eadfbd', label: 'Progress track' },
+  { value: '#dc2626', label: 'Error' },
+  { value: '#047857', label: 'Success' },
 ]
 
 const emptyResource = {
@@ -62,6 +63,7 @@ const emptyResource = {
   language: 'bn',
   tagsInput: '',
   topicTagsInput: '',
+  quizQuestions: [],
   published: false,
   featured: false,
 }
@@ -75,6 +77,9 @@ const typeLabels = {
 }
 
 const ADMIN_RESOURCE_PAGE_SIZE = 100
+const PLAYLIST_IMPORT_PAGE_SIZE = 50
+const PLAYLIST_IMPORT_REQUEST_SIZE = 100
+const PLAYLIST_VISIBLE_BATCH_SIZE = 50
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
   'application/pdf',
@@ -107,10 +112,14 @@ export default function AdminResourcesPage() {
   const [resourceForm, setResourceForm] = useState(emptyResource)
   const [editingResourceId, setEditingResourceId] = useState('')
   const [resourceFilter, setResourceFilter] = useState({ categoryId: '', type: '', q: '' })
+  const [selectedResourceIds, setSelectedResourceIds] = useState(new Set())
+  const [bulkResourceAction, setBulkResourceAction] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [playlistUrl, setPlaylistUrl] = useState('')
   const [playlistPreview, setPlaylistPreview] = useState(null)
   const [selectedPlaylistVideos, setSelectedPlaylistVideos] = useState(new Set())
+  const [playlistVisibleCount, setPlaylistVisibleCount] = useState(PLAYLIST_VISIBLE_BATCH_SIZE)
+  const [playlistImportProgress, setPlaylistImportProgress] = useState(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
@@ -161,6 +170,17 @@ export default function AdminResourcesPage() {
   }, [loadData])
 
   const filteredResources = resources
+  const visibleResourceIds = filteredResources.map((resource) => resource._id)
+  const selectedVisibleResourceCount = visibleResourceIds.filter((id) => selectedResourceIds.has(id)).length
+  const allVisibleResourcesSelected = visibleResourceIds.length > 0 && selectedVisibleResourceCount === visibleResourceIds.length
+
+  useEffect(() => {
+    setSelectedResourceIds((current) => {
+      const visibleIds = new Set(resources.map((resource) => resource._id))
+      const next = new Set([...current].filter((id) => visibleIds.has(id)))
+      return next.size === current.size ? current : next
+    })
+  }, [resources])
 
   const loadMoreResources = async () => {
     setLoadingMoreResources(true)
@@ -301,8 +321,8 @@ export default function AdminResourcesPage() {
       categoryId: getCategoryId(fullResource),
       type: fullResource.type || 'youtube',
       title: fullResource.title || '',
-      description: fullResource.type === 'youtube' ? '' : fullResource.description || '',
-      transcriptText: fullResource.transcriptText || '',
+      description: fullResource.description || '',
+      transcriptText: '',
       url: fullResource.url || '',
       thumbnailUrl: fullResource.thumbnailUrl || '',
       youtubeId: fullResource.youtubeId || '',
@@ -319,6 +339,7 @@ export default function AdminResourcesPage() {
       language: fullResource.language || 'bn',
       tagsInput: (fullResource.tags || []).join(', '),
       topicTagsInput: (fullResource.topicTags || []).join(', '),
+      quizQuestions: normalizeQuizQuestionsForForm(fullResource.quizQuestions),
       published: Boolean(fullResource.published),
       featured: Boolean(fullResource.featured),
     })
@@ -335,6 +356,77 @@ export default function AdminResourcesPage() {
     }
     setMessage('Resource deleted.')
     await loadData()
+  }
+
+  const toggleResourceSelection = (resourceId, checked) => {
+    setSelectedResourceIds((current) => {
+      const next = new Set(current)
+      if (checked) next.add(resourceId)
+      else next.delete(resourceId)
+      return next
+    })
+  }
+
+  const toggleAllVisibleResources = (checked) => {
+    setSelectedResourceIds((current) => {
+      const next = new Set(current)
+      for (const id of visibleResourceIds) {
+        if (checked) next.add(id)
+        else next.delete(id)
+      }
+      return next
+    })
+  }
+
+  const deleteSelectedResources = async () => {
+    const ids = [...selectedResourceIds]
+    if (!ids.length) return
+    if (!window.confirm(`Delete ${ids.length} selected resource(s)? This cannot be undone.`)) return
+
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await fetch('/api/admin/resources/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(formatApiError(data, 'Bulk delete failed'))
+      setSelectedResourceIds(new Set())
+      if (editingResourceId && ids.includes(editingResourceId)) resetResourceForm()
+      setMessage(`Deleted ${data.deletedCount || 0} resource(s).${data.missingCount ? ` ${data.missingCount} already missing.` : ''}`)
+      await loadData()
+    } catch (err) {
+      setError(err.message)
+    }
+    setSaving(false)
+  }
+
+  const applyBulkResourceAction = async () => {
+    const ids = [...selectedResourceIds]
+    if (!ids.length || !bulkResourceAction) return
+
+    const published = bulkResourceAction === 'publish'
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await fetch('/api/admin/resources/bulk-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, published }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(formatApiError(data, 'Bulk status update failed'))
+      setBulkResourceAction('')
+      setMessage(`${published ? 'Published' : 'Moved to draft'} ${data.modifiedCount || 0} resource(s).`)
+      await loadData()
+    } catch (err) {
+      setError(err.message)
+    }
+    setSaving(false)
   }
 
   const fetchYouTubePreview = async () => {
@@ -357,9 +449,10 @@ export default function AdminResourcesPage() {
         categoryId: current.categoryId || categories[0]?._id || '',
         published: current.published,
         featured: current.featured,
-        transcriptText: mappedVideo.transcriptText || current.transcriptText,
+        description: current.description,
+        transcriptText: '',
       }))
-      setMessage(data.transcriptText ? 'YouTube metadata and transcript loaded. Review and save it.' : 'YouTube metadata loaded. Transcript was not available.')
+      setMessage('YouTube metadata loaded. Add an optional description before saving if needed.')
     } catch (err) {
       setError(err.message)
     }
@@ -464,17 +557,45 @@ export default function AdminResourcesPage() {
     setError('')
     setMessage('')
     setPlaylistPreview(null)
+    setPlaylistImportProgress(null)
+    setPlaylistVisibleCount(PLAYLIST_VISIBLE_BATCH_SIZE)
     try {
       const response = await fetch('/api/admin/resources/youtube/playlist/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: playlistUrl, limit: 50 }),
+        body: JSON.stringify({ url: playlistUrl, limit: PLAYLIST_IMPORT_PAGE_SIZE }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(formatApiError(data, 'Playlist preview failed'))
       setPlaylistPreview(data)
       setSelectedPlaylistVideos(new Set((data.videos || []).map((video) => video.youtubeId)))
-      setMessage(`${data.videos?.length || 0} playlist videos loaded for review.`)
+      setPlaylistVisibleCount(PLAYLIST_VISIBLE_BATCH_SIZE)
+      setMessage(`${data.videos?.length || 0} of ${data.totalCount || data.videos?.length || 0} playlist videos loaded for review.`)
+    } catch (err) {
+      setError(err.message)
+    }
+    setSaving(false)
+  }
+
+  const loadMorePlaylistVideos = async () => {
+    if (!playlistPreview?.nextPageToken) return
+
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const nextPage = await fetchPlaylistPage(playlistUrl, playlistPreview.nextPageToken)
+      setPlaylistPreview((current) => ({
+        ...nextPage,
+        videos: [...(current?.videos || []), ...(nextPage.videos || [])],
+        totalCount: nextPage.totalCount || current?.totalCount || nextPage.videos?.length || 0,
+      }))
+      setSelectedPlaylistVideos((current) => {
+        const next = new Set(current)
+        for (const video of nextPage.videos || []) next.add(video.youtubeId)
+        return next
+      })
+      setMessage(`${nextPage.videos?.length || 0} more playlist videos loaded for review.`)
     } catch (err) {
       setError(err.message)
     }
@@ -504,25 +625,52 @@ export default function AdminResourcesPage() {
           featured: false,
         }))
 
-      const response = await fetch('/api/admin/resources/youtube/playlist/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          categoryId: resourceForm.categoryId,
-          playlistId: playlistPreview.playlistId,
-          videos,
-        }),
+      setPlaylistImportProgress({
+        processed: 0,
+        total: videos.length,
+        imported: 0,
+        skipped: 0,
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(formatApiError(data, 'Playlist import failed'))
-      setMessage(`Imported ${data.importedCount} video(s). Skipped ${data.skippedDuplicateCount} duplicate(s).`)
+
+      let importedCount = 0
+      let skippedDuplicateCount = 0
+      let processedCount = 0
+
+      for (let index = 0; index < videos.length; index += PLAYLIST_IMPORT_REQUEST_SIZE) {
+        const batch = videos.slice(index, index + PLAYLIST_IMPORT_REQUEST_SIZE)
+        const response = await fetch('/api/admin/resources/youtube/playlist/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryId: resourceForm.categoryId,
+            playlistId: playlistPreview.playlistId,
+            videos: batch,
+          }),
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(formatApiError(data, 'Playlist import failed'))
+
+        importedCount += data.importedCount || 0
+        skippedDuplicateCount += data.skippedDuplicateCount || 0
+        processedCount += batch.length
+        setPlaylistImportProgress({
+          processed: processedCount,
+          total: videos.length,
+          imported: importedCount,
+          skipped: skippedDuplicateCount,
+        })
+      }
+
+      setMessage(`Imported ${importedCount} selected video(s). Skipped ${skippedDuplicateCount} duplicate(s).`)
       setPlaylistPreview(null)
       setPlaylistUrl('')
+      setPlaylistVisibleCount(PLAYLIST_VISIBLE_BATCH_SIZE)
       await loadData()
     } catch (err) {
       setError(err.message)
     }
     setSaving(false)
+    setPlaylistImportProgress(null)
   }
 
   const moveItem = async (kind, id, direction) => {
@@ -679,6 +827,50 @@ export default function AdminResourcesPage() {
                 </select>
                 <input className="input-field" value={resourceFilter.q} onChange={(event) => setResourceFilter({ ...resourceFilter, q: event.target.value })} placeholder="Search" />
               </div>
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-theme-border bg-theme-bg p-3 sm:flex-row sm:items-center sm:justify-between">
+                <label className="inline-flex items-center gap-3 text-sm font-bold text-theme-primary">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleResourcesSelected}
+                    disabled={filteredResources.length === 0}
+                    onChange={(event) => toggleAllVisibleResources(event.target.checked)}
+                    className="h-4 w-4"
+                    style={{ accentColor: 'var(--color-accent)' }}
+                  />
+                  <span>Select visible resources</span>
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-theme-secondary">{selectedResourceIds.size} selected</span>
+                  <select
+                    className="h-10 rounded-xl border border-theme-border bg-theme-surface px-3 text-sm font-bold text-theme-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    value={bulkResourceAction}
+                    disabled={saving || selectedResourceIds.size === 0}
+                    onChange={(event) => setBulkResourceAction(event.target.value)}
+                  >
+                    <option value="">Bulk action</option>
+                    <option value="publish">Publish selected</option>
+                    <option value="draft">Make selected draft</option>
+                  </select>
+                  <button
+                    type="button"
+                    disabled={saving || selectedResourceIds.size === 0 || !bulkResourceAction}
+                    onClick={applyBulkResourceAction}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 text-sm font-bold text-theme-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <i className="fas fa-check text-xs" />
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving || selectedResourceIds.size === 0}
+                    onClick={deleteSelectedResources}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-theme-error-border bg-theme-error-bg px-4 text-sm font-bold text-theme-error-text disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <i className="fas fa-trash text-xs" />
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
 
               <div className="space-y-3">
                 {filteredResources.map((resource, index) => (
@@ -690,6 +882,8 @@ export default function AdminResourcesPage() {
                     onMove={(direction) => moveItem('resources', resource._id, direction)}
                     onEdit={() => editResource(resource)}
                     onDelete={() => deleteResource(resource)}
+                    selected={selectedResourceIds.has(resource._id)}
+                    onSelect={(checked) => toggleResourceSelection(resource._id, checked)}
                   />
                 ))}
                 {filteredResources.length === 0 ? <p className="text-theme-secondary text-sm py-8 text-center">No resources match this filter.</p> : null}
@@ -730,17 +924,28 @@ export default function AdminResourcesPage() {
                   {saving ? 'Loading...' : 'Preview Playlist'}
                 </button>
                 <button disabled={saving || !playlistPreview || selectedPlaylistVideos.size === 0} onClick={importPlaylist} className="w-full bg-theme-accent text-theme-accent-text py-3 rounded-xl font-bold disabled:opacity-50">
-                  Import Selected Videos
+                  {saving && playlistImportProgress ? 'Importing...' : 'Import Selected Videos'}
                 </button>
+                {playlistImportProgress ? (
+                  <div className="bg-theme-bg border border-theme-border rounded-xl p-3 text-sm text-theme-secondary">
+                    <p className="font-bold text-theme-primary">
+                      {playlistImportProgress.processed} of {playlistImportProgress.total} checked
+                    </p>
+                    <p>{playlistImportProgress.imported} imported / {playlistImportProgress.skipped} skipped</p>
+                  </div>
+                ) : null}
               </div>
             </Panel>
 
-            <Panel title={playlistPreview ? `Preview (${selectedPlaylistVideos.size} selected)` : 'Playlist Preview'}>
+            <Panel title={playlistPreview ? `Preview (${selectedPlaylistVideos.size} selected of ${playlistPreview.totalCount || playlistPreview.videos.length})` : 'Playlist Preview'}>
               {!playlistPreview ? (
                 <p className="text-theme-secondary text-sm py-10 text-center">Paste a playlist URL and preview it before importing.</p>
               ) : (
                 <div className="space-y-3">
-                  {playlistPreview.videos.map((video) => (
+                  <p className="text-xs font-bold text-theme-secondary">
+                    Showing {Math.min(playlistVisibleCount, playlistPreview.videos.length)} rendered of {playlistPreview.videos.length} loaded video(s). Load more pages to review additional videos before importing.
+                  </p>
+                  {playlistPreview.videos.slice(0, playlistVisibleCount).map((video) => (
                     <label key={video.youtubeId} className="border border-theme-border rounded-xl p-3 flex gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -760,6 +965,25 @@ export default function AdminResourcesPage() {
                       </div>
                     </label>
                   ))}
+                  {playlistVisibleCount < playlistPreview.videos.length ? (
+                    <button
+                      type="button"
+                      onClick={() => setPlaylistVisibleCount((current) => Math.min(current + PLAYLIST_VISIBLE_BATCH_SIZE, playlistPreview.videos.length))}
+                      className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary"
+                    >
+                      Show More Loaded Videos
+                    </button>
+                  ) : null}
+                  {playlistPreview.nextPageToken ? (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={loadMorePlaylistVideos}
+                      className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                    >
+                      {saving ? 'Loading...' : `Load Next ${PLAYLIST_IMPORT_PAGE_SIZE}`}
+                    </button>
+                  ) : null}
                 </div>
               )}
             </Panel>
@@ -824,23 +1048,14 @@ function ResourceForm({ form, setForm, categories, youtubeUrl, setYoutubeUrl, fe
       ) : null}
 
       <Field label="Title"><input className="input-field" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></Field>
-      {form.type === 'youtube' ? (
-        <Field label="Transcript / subtitles">
-          <div className="space-y-2">
-            <textarea
-              className="input-field min-h-32"
-              value={form.transcriptText}
-              onChange={(event) => setForm({ ...form, transcriptText: event.target.value })}
-              placeholder="Fetch metadata to auto-load subtitles when available, or paste transcript text here."
-            />
-            <p className="text-xs text-theme-secondary">
-              {form.transcriptText?.trim() ? `${form.transcriptText.trim().length.toLocaleString()} transcript characters ready to save.` : 'No transcript saved for this resource yet.'}
-            </p>
-          </div>
-        </Field>
-      ) : (
-        <Field label="Description"><textarea className="input-field min-h-24" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field>
-      )}
+      <Field label="Description (optional)">
+        <textarea
+          className="input-field min-h-24"
+          value={form.description}
+          onChange={(event) => setForm({ ...form, description: event.target.value })}
+          placeholder="Add any notes or summary you want to save with this resource."
+        />
+      </Field>
       <Field label={form.type === 'youtube' ? 'Source URL' : 'Resource URL'}>
         <input className="input-field" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} placeholder="https://..." />
       </Field>
@@ -857,6 +1072,7 @@ function ResourceForm({ form, setForm, categories, youtubeUrl, setYoutubeUrl, fe
       </div>
       <Field label="Tags"><input className="input-field" value={form.tagsInput} onChange={(event) => setForm({ ...form, tagsInput: event.target.value })} placeholder="comma separated" /></Field>
       <Field label="Topic Tags"><input className="input-field" value={form.topicTagsInput} onChange={(event) => setForm({ ...form, topicTagsInput: event.target.value })} placeholder="javascript, arrays" /></Field>
+      <QuizQuestionsField form={form} setForm={setForm} />
       <div className="grid grid-cols-2 gap-3">
         <ToggleRow label="Published" checked={form.published} onChange={(published) => setForm({ ...form, published })} />
         <ToggleRow label="Featured" checked={form.featured} onChange={(featured) => setForm({ ...form, featured })} />
@@ -865,20 +1081,175 @@ function ResourceForm({ form, setForm, categories, youtubeUrl, setYoutubeUrl, fe
   )
 }
 
-function ResourceRow({ resource, index, total, onMove, onEdit, onDelete }) {
-  const transcriptLength = resource.transcriptLength ?? resource.transcriptText?.trim().length ?? 0
-  const hasTranscript = Boolean(resource.hasTranscript || transcriptLength)
+function QuizQuestionsField({ form, setForm }) {
+  const quizQuestions = Array.isArray(form.quizQuestions) ? form.quizQuestions : []
+  const [tab, setTab] = useState('txt')
+  const [txtInput, setTxtInput] = useState('')
+  const [jsonInput, setJsonInput] = useState('')
+  const [error, setError] = useState('')
+  const serializedQuestions = JSON.stringify(quizQuestions)
+  const examples = {
+    txt: `Q1. What is the capital of France?
+1. Berlin
+2. London
+3. Paris
+4. Madrid
+*3(ans)
+**Paris is the capital and largest city of France.
 
+Q2. Which is a JavaScript framework?
+1. Django
+2. Flask
+3. React
+4. Laravel
+5. Spring
+*3(ans)
+**`,
+    json: `[
+  {
+    "question": "What is the capital of France?",
+    "options": ["Berlin", "London", "Paris", "Madrid"],
+    "correct": 2,
+    "explanation": "Paris is the capital of France."
+  },
+  {
+    "question": "Which is a JS framework?",
+    "options": ["Django", "Flask", "React"],
+    "correct": 2,
+    "explanation": ""
+  }
+]`,
+  }
+
+  useEffect(() => {
+    const questions = JSON.parse(serializedQuestions || '[]')
+    setTxtInput(formatQuestionsAsTxt(questions))
+    setJsonInput(formatQuestionsAsJson(questions))
+    setError('')
+  }, [serializedQuestions])
+
+  const parseInput = () => {
+    setError('')
+    try {
+      const questions = tab === 'json' ? parseJSON(jsonInput) : parseTXT(txtInput)
+      if (!questions.length) {
+        setError('No valid quiz questions found.')
+        return
+      }
+      setForm({ ...form, quizQuestions: normalizeQuizQuestionsForForm(questions) })
+    } catch (err) {
+      setError(err.message || 'Quiz questions could not be parsed.')
+    }
+  }
+
+  const clearQuestions = () => {
+    setTxtInput('')
+    setJsonInput('')
+    setError('')
+    setForm({ ...form, quizQuestions: [] })
+  }
+
+  return (
+    <div className="bg-theme-bg border border-theme-border rounded-xl p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-theme-primary">Quiz Questions (optional)</p>
+          <p className="text-xs text-theme-secondary">Paste TXT or JSON exam-style questions. Leave blank to skip the resource quiz.</p>
+        </div>
+        {quizQuestions.length > 0 ? (
+          <span className="px-2 py-1 rounded-lg bg-theme-success-bg text-xs font-bold text-theme-success-text shrink-0">
+            {quizQuestions.length} saved
+          </span>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { id: 'txt', label: 'TXT', icon: 'fa-file-lines' },
+          { id: 'json', label: 'JSON', icon: 'fa-code' },
+        ].map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => { setTab(item.id); setError('') }}
+            className={`h-10 rounded-xl text-sm font-bold transition-all ${tab === item.id ? 'bg-theme-accent text-theme-accent-text' : 'bg-theme-surface border border-theme-border text-theme-secondary hover:text-theme-primary'}`}
+          >
+            <i className={`fas ${item.icon} mr-2`} />
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'txt' ? (
+        <div className="space-y-3">
+          <textarea
+            className="input-field min-h-40 font-mono text-sm resize-y"
+            value={txtInput}
+            onChange={(event) => setTxtInput(event.target.value)}
+            placeholder="Paste questions in TXT format..."
+            spellCheck="false"
+            autoComplete="off"
+          />
+          <FormatExample title="TXT Format Example" code={examples.txt} />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <textarea
+            className="input-field min-h-40 font-mono text-sm resize-y"
+            value={jsonInput}
+            onChange={(event) => setJsonInput(event.target.value)}
+            placeholder="Paste JSON array..."
+            spellCheck="false"
+            autoComplete="off"
+          />
+          <FormatExample title="JSON Format Example" code={examples.json} />
+        </div>
+      )}
+
+      {error ? <div className="rounded-xl border border-theme-error-border bg-theme-error-bg px-3 py-2 text-sm font-bold text-theme-error-text">{error}</div> : null}
+
+      {quizQuestions.length > 0 ? (
+        <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+          {quizQuestions.slice(0, 8).map((question, index) => (
+            <div key={index} className="bg-theme-surface border border-theme-border rounded-xl p-3 text-xs">
+              <p className="font-bold text-theme-primary whitespace-pre-wrap">{index + 1}. {question.question}</p>
+              <p className="text-theme-secondary mt-1">{question.options?.length || 0} options - correct option {(Number(question.correct) || 0) + 1}</p>
+            </div>
+          ))}
+          {quizQuestions.length > 8 ? <p className="text-xs font-bold text-theme-secondary text-center">+{quizQuestions.length - 8} more question(s)</p> : null}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={parseInput} className="h-11 rounded-xl bg-theme-surface border border-theme-border text-theme-primary font-bold hover:border-theme-accent/50 transition-all">
+          Parse Quiz
+        </button>
+        <button type="button" onClick={clearQuestions} className="h-11 rounded-xl bg-theme-surface border border-theme-border text-theme-secondary font-bold hover:text-theme-primary transition-all">
+          Clear
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ResourceRow({ resource, index, total, onMove, onEdit, onDelete, selected, onSelect }) {
   return (
     <div className="border border-theme-border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0 overflow-hidden">
       <div className="flex gap-3 min-w-0 flex-1">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(event) => onSelect(event.target.checked)}
+          className="mt-5 h-4 w-4 shrink-0"
+          style={{ accentColor: 'var(--color-accent)' }}
+          aria-label={`Select ${resource.title}`}
+        />
         {resource.thumbnailUrl ? <img src={resource.thumbnailUrl} alt="" className="w-24 h-14 rounded-lg object-cover bg-theme-progress-track shrink-0" /> : <div className="w-14 h-14 rounded-xl bg-theme-progress-track flex items-center justify-center shrink-0"><i className="fas fa-file-lines text-theme-secondary" /></div>}
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2 mb-1">
             <span className="px-2 py-1 rounded-lg bg-theme-progress-track text-xs font-bold text-theme-secondary">{typeLabels[resource.type] || resource.type}</span>
             <StatusPill active={resource.published} activeLabel="Published" inactiveLabel="Draft" />
             {resource.featured ? <span className="px-2 py-1 rounded-lg bg-theme-success-bg text-xs font-bold text-theme-success-text">Featured</span> : null}
-            {hasTranscript ? <span className="px-2 py-1 rounded-lg bg-theme-accent/10 text-xs font-bold text-theme-accent">Transcript</span> : null}
           </div>
           <h3 className="font-bold text-theme-primary truncate max-w-full">{resource.title}</h3>
           <p className="text-xs text-theme-secondary truncate">
@@ -909,6 +1280,28 @@ function Field({ label, children }) {
   return <label className="block"><span className="block text-sm font-bold text-theme-primary mb-1">{label}</span>{children}</label>
 }
 
+function FormatExample({ title, code }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-theme-border">
+        <span className="text-xs font-bold text-theme-secondary">{title}</span>
+        <button type="button" onClick={copy} className="text-xs text-theme-accent hover:underline">
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+      <pre className="p-3 text-xs text-theme-secondary overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">{code}</pre>
+    </div>
+  )
+}
+
 function ToggleRow({ label, checked, onChange }) {
   return (
     <label className="flex items-center justify-between gap-3 bg-theme-bg border border-theme-border rounded-xl px-4 py-3">
@@ -937,20 +1330,26 @@ function IconPicker({ value, onChange }) {
 }
 
 function ColorPicker({ value, onChange }) {
+  const selectedValue = String(value || '').toLowerCase()
+
   return (
     <div className="grid grid-cols-5 gap-2">
-      {categoryColors.map((color) => (
-        <button
-          key={color}
-          type="button"
-          title={color}
-          onClick={() => onChange(color)}
-          className={`h-11 rounded-xl border transition-all ${value === color ? 'border-theme-primary ring-2' : 'border-theme-border'}`}
-          style={{ backgroundColor: color, '--tw-ring-color': 'var(--color-accent)' }}
-        >
-          <span className="sr-only">{color}</span>
-        </button>
-      ))}
+      {categoryColors.map((color) => {
+        const isSelected = selectedValue === color.value.toLowerCase()
+
+        return (
+          <button
+            key={color.value}
+            type="button"
+            title={`${color.label} (${color.value})`}
+            onClick={() => onChange(color.value)}
+            className={`h-11 rounded-xl border transition-all ${isSelected ? 'border-theme-accent ring-2 ring-theme-accent ring-offset-2 ring-offset-theme-surface' : 'border-theme-border hover:border-theme-accent/70'}`}
+            style={{ backgroundColor: color.value }}
+          >
+            <span className="sr-only">{color.label}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -1014,13 +1413,64 @@ function SelectLanguage({ value, onChange }) {
   )
 }
 
+function normalizeQuizQuestionsForForm(questions = []) {
+  if (!Array.isArray(questions)) return []
+
+  return questions.map((question, index) => {
+    const normalizedOptions = Array.isArray(question.options) ? question.options.map((option) => String(option || '')) : []
+    const parsedCorrect = Number(question.correct)
+    const validCorrect = Number.isFinite(parsedCorrect) && parsedCorrect >= 0 && parsedCorrect < normalizedOptions.length ? parsedCorrect : 0
+
+    return {
+      question: String(question.question || ''),
+      options: normalizedOptions,
+      correct: validCorrect,
+      explanation: question.explanation ? String(question.explanation) : '',
+      order: Number.isFinite(Number(question.order)) ? Number(question.order) : index + 1,
+    }
+  }).filter((question) => question.question && question.options.length >= 2)
+}
+
+function normalizeQuizQuestionsForSave(questions = []) {
+  return normalizeQuizQuestionsForForm(questions).map((question, index) => ({
+    ...question,
+    order: index + 1,
+  }))
+}
+
+function formatQuestionsAsTxt(questions = []) {
+  if (!questions.length) return ''
+
+  return questions.map((question, index) => {
+    const lines = [`Q${index + 1}. ${question.question}`]
+    question.options.forEach((option, optionIndex) => lines.push(`${optionIndex + 1}. ${option}`))
+    lines.push(`*${Number(question.correct) + 1}(ans)`)
+    if (question.explanation) lines.push(`** ${question.explanation}`)
+    return lines.join('\n')
+  }).join('\n\n')
+}
+
+function formatQuestionsAsJson(questions = []) {
+  if (!questions.length) return ''
+
+  return JSON.stringify(
+    questions.map((question) => ({
+      question: question.question,
+      options: question.options,
+      correct: question.correct,
+      explanation: question.explanation || '',
+    })),
+    null,
+    2,
+  )
+}
+
 function resourceFormToPayload(form) {
   return {
     categoryId: form.categoryId,
     type: form.type,
     title: form.title,
-    description: form.type === 'youtube' ? '' : form.description || '',
-    transcriptText: form.type === 'youtube' ? form.transcriptText || '' : '',
+    description: form.description || '',
     url: form.url,
     thumbnailUrl: form.thumbnailUrl,
     youtubeId: form.youtubeId,
@@ -1037,6 +1487,7 @@ function resourceFormToPayload(form) {
     language: form.language,
     tags: splitTags(form.tagsInput),
     topicTags: splitTags(form.topicTagsInput),
+    quizQuestions: normalizeQuizQuestionsForSave(form.quizQuestions),
     published: form.published,
     featured: form.featured,
     metadataSource: form.youtubeId ? 'youtube' : 'manual',
@@ -1060,13 +1511,15 @@ async function prepareResourceForSave(form, youtubeUrl, categories) {
     ...form,
     ...mapYouTubeToForm(data),
     categoryId: form.categoryId || categories[0]?._id || '',
+    description: form.description,
     published: form.published,
     featured: form.featured,
-    transcriptText: data.transcriptText || form.transcriptText,
+    transcriptText: '',
     level: form.level,
     language: form.language,
     tagsInput: form.tagsInput,
     topicTagsInput: form.topicTagsInput,
+    quizQuestions: form.quizQuestions,
   }
 }
 
@@ -1075,7 +1528,7 @@ function mapYouTubeToForm(video) {
     type: 'youtube',
     title: video.title || '',
     description: '',
-    transcriptText: video.transcriptText || '',
+    transcriptText: '',
     url: video.url || '',
     thumbnailUrl: video.thumbnailUrl || '',
     youtubeId: video.youtubeId || '',
@@ -1091,6 +1544,17 @@ function mapYouTubeToPayload(video) {
     sourcePublishedAt: video.sourcePublishedAt,
     metadataSource: 'youtube',
   }
+}
+
+async function fetchPlaylistPage(url, pageToken = '') {
+  const response = await fetch('/api/admin/resources/youtube/playlist/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, limit: PLAYLIST_IMPORT_PAGE_SIZE, pageToken }),
+  })
+  const data = await response.json()
+  if (!response.ok) throw new Error(formatApiError(data, 'Playlist preview failed'))
+  return data
 }
 
 function splitTags(value) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { adminMutationRateLimit } from '@/lib/rateLimit'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
 import { validate, createResourceSchema } from '@/lib/validation'
@@ -47,26 +48,16 @@ export async function GET(request) {
     }
 
     const resources = await Resource.find(query)
-      .select('-transcriptText')
+      .select('-transcriptText -quizQuestions')
       .populate('categoryId', 'name slug icon color')
       .sort({ categoryId: 1, order: 1, createdAt: -1 })
       .skip(offset)
       .limit(limit)
       .lean()
-    const [totalCount, transcriptStats] = await Promise.all([
-      Resource.countDocuments(query),
-      getTranscriptStats(resources.map((resource) => resource._id)),
-    ])
+    const totalCount = await Resource.countDocuments(query)
 
     return NextResponse.json({
-      resources: serialize(resources.map((resource) => {
-        const transcriptLength = transcriptStats.get(resource._id.toString()) || 0
-        return {
-          ...resource,
-          hasTranscript: transcriptLength > 0,
-          transcriptLength,
-        }
-      })),
+      resources: serialize(resources),
       totalCount,
       limit,
       offset,
@@ -78,31 +69,18 @@ export async function GET(request) {
   }
 }
 
-async function getTranscriptStats(resourceIds) {
-  if (!resourceIds.length) return new Map()
-
-  const stats = await Resource.aggregate([
-    { $match: { _id: { $in: resourceIds } } },
-    {
-      $project: {
-        transcriptLength: {
-          $strLenCP: {
-            $trim: { input: { $ifNull: ['$transcriptText', ''] } },
-          },
-        },
-      },
-    },
-  ])
-
-  return new Map(stats.map((item) => [item._id.toString(), item.transcriptLength || 0]))
-}
-
 export async function POST(request) {
   const originCheck = enforceSameOrigin(request)
   if (originCheck) return originCheck
 
   const adminCheck = await requireAdmin()
   if (!adminCheck.ok) return adminCheck.response
+
+  const limited = await adminMutationRateLimit(request, {
+    name: 'admin-resource-create',
+    keyParts: [adminCheck.admin?.username || 'admin'],
+  })
+  if (limited) return limited
 
   try {
     const raw = await request.json()

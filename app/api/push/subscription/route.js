@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { enforceSameOrigin } from '@/lib/requestSecurity'
+import { userMutationRateLimit } from '@/lib/rateLimit'
 import { validate, pushSubscriptionSchema } from '@/lib/validation'
 import PushSubscription from '@/lib/models/PushSubscription'
 
@@ -28,6 +29,13 @@ export async function POST(request) {
 
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limited = await userMutationRateLimit(request, {
+    name: 'push-subscription-create',
+    max: 20,
+    keyParts: [userId],
+  })
+  if (limited) return limited
 
   try {
     const raw = await request.json()
@@ -64,6 +72,13 @@ export async function DELETE(request) {
 
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limited = await userMutationRateLimit(request, {
+    name: 'push-subscription-delete',
+    max: 20,
+    keyParts: [userId],
+  })
+  if (limited) return limited
 
   try {
     const deleteAllFromQuery = request.nextUrl.searchParams.get('all') === 'true'

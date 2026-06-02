@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useTheme } from '@/context/ThemeContext'
 
-const LAST_UPDATED = 'May 25, 2026'
+const LAST_UPDATED = 'June 1, 2026'
 
 const sections = [
   {
@@ -11,15 +11,19 @@ const sections = [
     content: [
       {
         heading: 'Account Information',
-        text: 'When you create an account on IT Resource Zone, we collect your name, email address, and a securely hashed password. This information is required to authenticate you and personalize your experience.',
+        text: 'When you create an account on IT Resource Zone, Clerk processes your sign-in details such as name, email address, profile image, password credentials, and any linked authentication methods. We use this account information to authenticate you, personalize your experience, and show your display name in exams and leaderboards.',
       },
       {
         heading: 'Exam & Performance Data',
-        text: 'We record your exam submissions, scores, time taken, and answers to provide you with results, analytics, and leaderboard rankings. Your leaderboard name and exam score may be publicly visible on leaderboard pages. This data is essential to the core functionality of the platform.',
+        text: 'We record exam attempts, submissions, answers, score, time taken, live/practice status, attempt events, and question review data. This powers results, score history, review pages, analytics, and public leaderboard rankings. Your display name, score, and ranking may be visible on leaderboard pages.',
       },
       {
-        heading: 'Usage Data',
-        text: 'We automatically collect information about how you interact with the platform, including pages visited, features used, device/browser information, approximate location derived from network data, errors, and session activity. This helps us improve reliability, security, and user experience.',
+        heading: 'Learning, Planner, and Resource Data',
+        text: 'If you use the dashboard, resources, study planner, habits, browser notifications, or profile export features, we store the related progress, task, habit, push subscription, resource completion, and report data needed to provide those features.',
+      },
+      {
+        heading: 'Usage, Device, and Error Data',
+        text: 'We collect information about how the platform is used, including pages visited, feature events, device/browser information, approximate network-derived location, performance data, error details, and session activity. This helps us improve reliability, security, and user experience.',
       },
     ],
   },
@@ -28,7 +32,7 @@ const sections = [
     content: [
       {
         heading: 'Platform Functionality',
-        text: 'Your data is used to authenticate your account, process exam submissions, calculate scores, and display your ranking on the leaderboard.',
+        text: 'Your data is used to authenticate your account, process exam submissions, calculate scores, manage live and practice attempts, show history and rankings, track resource progress, run the dashboard, and sync planner and habit data.',
       },
       {
         heading: 'Improvement & Analytics',
@@ -36,7 +40,7 @@ const sections = [
       },
       {
         heading: 'Communications',
-        text: 'We may use your email address to send important notices about your account, exam results, or significant platform updates. We do not send unsolicited promotional emails.',
+        text: 'We may use your email address or browser push subscription to send important account, exam, admin, or platform notices. Browser notifications are optional and can be managed from supported app settings.',
       },
     ],
   },
@@ -45,15 +49,15 @@ const sections = [
     content: [
       {
         heading: 'Storage',
-        text: 'Your data is stored securely using industry-standard cloud infrastructure. We take reasonable technical and organizational measures to protect your data from unauthorized access, loss, or misuse.',
+        text: 'Application data is stored using cloud infrastructure including MongoDB and Vercel. Uploaded or resource media may be stored and delivered through ImageKit. We take reasonable technical and organizational measures to protect data from unauthorized access, loss, or misuse.',
       },
       {
         heading: 'Authentication',
-        text: 'Account authentication is handled by Clerk, a secure, industry-standard authentication provider. We do not store your raw passwords. All passwords are hashed and salted before storage.',
+        text: 'Student authentication is handled by Clerk. We do not store raw student passwords in the application database. Admin authentication is separate and protected through server-side credentials and secure cookies.',
       },
       {
         heading: 'Data Retention',
-        text: 'We retain your account and performance data for as long as your account is active. If you request account deletion, your personal data will be permanently removed within 30 days.',
+        text: 'We retain account, exam, planner, resource, notification, and analytics-linked data for as long as needed to operate the platform and your account. If you delete your account or request deletion, associated application data is removed where technically and legally possible; backups and service logs may take additional time to expire.',
       },
     ],
   },
@@ -62,11 +66,11 @@ const sections = [
     content: [
       {
         heading: 'Session Cookies',
-        text: 'We use essential session cookies to keep you logged in and to maintain your exam session state. These cookies are strictly necessary for the platform to function.',
+        text: 'We use essential cookies and local browser storage to keep you logged in, protect admin sessions, maintain exam/session state, support the PWA experience, and remember required preferences.',
       },
       {
         heading: 'Preference Cookies',
-        text: "We store your theme preference (light/dark mode) in your browser's local storage to provide a consistent experience across visits.",
+        text: "We store preferences such as light/dark theme and app state in your browser's local storage so the interface stays consistent across visits.",
       },
     ],
   },
@@ -82,12 +86,20 @@ const sections = [
         text: 'Our platform is hosted on Vercel. Vercel may collect standard server-side logs (e.g., IP addresses) as part of providing hosting services.',
       },
       {
+        heading: 'MongoDB Atlas and Upstash',
+        text: 'We use MongoDB for application data. Upstash Redis may be used for rate limiting, caching, or abuse prevention on selected features such as admin login.',
+      },
+      {
         heading: 'Vercel Analytics, PostHog, and Sentry',
         text: 'We use Vercel Analytics and PostHog to measure product usage and Sentry to monitor errors and performance. These services may process technical information such as IP address, browser/device data, page URLs, events, and error details.',
       },
       {
         heading: 'ImageKit and YouTube',
         text: 'We use ImageKit to host and deliver resource images/files, and some resource pages embed or link to YouTube videos. When you open these resources, those providers may process your request under their own privacy policies.',
+      },
+      {
+        heading: 'Web Push Providers',
+        text: 'If you enable browser notifications, browser push services may process the technical delivery of notifications according to the provider for your browser or device.',
       },
     ],
   },
@@ -96,15 +108,15 @@ const sections = [
     content: [
       {
         heading: 'Access & Correction',
-        text: 'You may access and update your profile information at any time through the Profile page on our platform.',
+        text: 'You may access and update your profile information through the Profile page. You can also export a learning report from your profile.',
       },
       {
         heading: 'Account Deletion',
-        text: 'You have the right to request deletion of your account and all associated personal data. To do so, contact us at itresourcezone@gmail.com.',
+        text: 'You can delete your account from the Profile page where available, or request deletion by contacting itresourcezone@gmail.com.',
       },
       {
         heading: 'Data Portability',
-        text: 'You may request a copy of your personal data and exam history by contacting our support team.',
+        text: 'You may request a copy of personal data and exam history by contacting our support team. The profile export provides a user-facing learning report, not a complete technical data archive.',
       },
     ],
   },

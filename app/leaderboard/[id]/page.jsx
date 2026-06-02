@@ -34,6 +34,8 @@ export async function generateMetadata({ params }) {
       description: `See ranked results for ${exam.title} and compare student performance on IT Resource Zone.`,
       path: `/leaderboard/${id}`,
       keywords: ['exam leaderboard', exam.title, 'student results'],
+      image: `/leaderboard/${id}/opengraph-image`,
+      imageAlt: `${exam.title} leaderboard preview`,
     })
   } catch {
     return buildPageMetadata({

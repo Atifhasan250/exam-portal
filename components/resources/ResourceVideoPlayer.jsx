@@ -213,6 +213,10 @@ async function saveProgress(resourceId, progressSeconds, completed, setProgress,
       body: JSON.stringify({ resourceId, progressSeconds, completed }),
     })
     if (response.ok && !options.keepalive) setProgress(await response.json())
+  } catch (error) {
+    if (!options.keepalive) {
+      console.warn('[resource-video] progress save failed', error)
+    }
   } finally {
     setSaving(false)
   }

@@ -27,6 +27,7 @@ export default function ResourcesPageClient({
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
   const [hasMoreResources, setHasMoreResources] = useState(initialHasMoreResources)
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
+  const [refreshingResources, setRefreshingResources] = useState(false)
 
   const refreshProgress = useCallback(async () => {
     const now = Date.now()
@@ -79,9 +80,23 @@ export default function ResourcesPageClient({
       offset: String(offset),
     })
     const value = debouncedQuery.trim()
+    if (!append && value && value.length < 2) {
+      setResources([])
+      setHasMoreResources(false)
+      setRefreshingResources(false)
+      setLoadingResources(false)
+      return
+    }
     if (value) params.set('q', value)
 
-    append ? setLoadingMoreResources(true) : setLoadingResources(true)
+    const refreshInPlace = !append && initialLoadComplete
+    if (append) {
+      setLoadingMoreResources(true)
+    } else if (refreshInPlace) {
+      setRefreshingResources(true)
+    } else {
+      setLoadingResources(true)
+    }
     try {
       const response = await fetch(`/api/resources?${params.toString()}`)
       const data = await response.json()
@@ -92,9 +107,15 @@ export default function ResourcesPageClient({
       if (!append) setResources([])
       setHasMoreResources(false)
     } finally {
-      append ? setLoadingMoreResources(false) : setLoadingResources(false)
+      if (append) {
+        setLoadingMoreResources(false)
+      } else if (refreshInPlace) {
+        setRefreshingResources(false)
+      } else {
+        setLoadingResources(false)
+      }
     }
-  }, [debouncedQuery])
+  }, [debouncedQuery, initialLoadComplete])
 
   useEffect(() => {
     if (!skippedInitialResourcesFetch.current) {
@@ -130,6 +151,15 @@ export default function ResourcesPageClient({
   ), [progress])
 
   const isSearching = query.trim().length > 0
+  const matchedCategories = useMemo(() => {
+    const value = query.trim().toLowerCase()
+    if (!value) return []
+    return categories.filter((category) => (
+      category.name?.toLowerCase().includes(value) ||
+      category.slug?.toLowerCase().includes(value) ||
+      category.description?.toLowerCase().includes(value)
+    ))
+  }, [categories, query])
 
   const continueItems = progress
     .filter((item) => item.resourceId?.type === 'youtube' && !item.completed && item.progressSeconds > 0)
@@ -163,7 +193,10 @@ export default function ResourcesPageClient({
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Resources</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Resources</h1>
+                {refreshingResources ? <i className="fas fa-circle-notch fa-spin text-theme-secondary text-sm" aria-label="Refreshing resources" /> : null}
+              </div>
             </div>
             <div className="relative w-[46vw] min-w-[150px] max-w-[210px] sm:w-[320px] sm:max-w-none lg:w-[420px]">
               <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-theme-secondary" />
@@ -182,9 +215,15 @@ export default function ResourcesPageClient({
 
         {!loading && !loadingResources && isSearching ? (
           <>
+            {matchedCategories.length > 0 ? (
+              <>
+                <SectionTitle title="Matching Categories" subtitle={`${matchedCategories.length} matching categor${matchedCategories.length === 1 ? 'y' : 'ies'}`} />
+                <CategoryGrid categories={matchedCategories} progress={progress} />
+              </>
+            ) : null}
             <SectionTitle title="Search Results" subtitle={`${resources.length} matching resource(s)`} />
-            <ResourceGrid resources={resources} allResources={resources} progressByResourceId={progressByResourceId} />
-            {resources.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
+            {resources.length > 0 ? <ResourceGrid resources={resources} allResources={resources} progressByResourceId={progressByResourceId} /> : null}
+            {resources.length === 0 && matchedCategories.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
             {hasMoreResources ? <LoadMoreButton loading={loadingMoreResources} onClick={() => fetchResources({ offset: resources.length, append: true })} /> : null}
           </>
         ) : null}
@@ -209,9 +248,9 @@ export default function ResourcesPageClient({
                   ) : null}
                   <div className="flex flex-wrap gap-2 mt-4 text-xs font-bold text-theme-secondary">
                     <span>{category.resourceCounts?.youtube || 0} videos</span>
-                    <span>•</span>
+                    <span>&bull;</span>
                     <span>{category.resourceCounts?.pdf || 0} PDFs</span>
-                    <span>•</span>
+                    <span>&bull;</span>
                     <span>{category.resourceCounts?.link || 0} links</span>
                   </div>
                   <CategoryProgressBar summary={calculateCategoryResourceProgress(category, progress)} />
@@ -237,6 +276,37 @@ export default function ResourcesPageClient({
         ) : null}
       </main>
     </div>
+  )
+}
+
+function CategoryGrid({ categories, progress }) {
+  return (
+    <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {categories.map((category) => (
+        <Link key={category._id} href={`/resources/${category.slug}`} className="min-w-0 w-full bg-theme-surface border border-theme-border rounded-2xl p-4 sm:p-5 shadow-sm hover:border-theme-accent/40 transition-all">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-theme-progress-track flex items-center justify-center shrink-0" style={{ color: category.color || 'var(--color-accent)' }}>
+                <i className={`fas ${category.icon || 'fa-book-open'}`} />
+              </div>
+              <h2 className="min-w-0 text-lg sm:text-xl font-extrabold leading-snug break-words">{category.name}</h2>
+            </div>
+            <span className="self-start rounded-lg bg-theme-progress-track px-2.5 py-1 text-xs font-bold text-theme-secondary shrink-0">{category.resourceCounts?.total || 0} items</span>
+          </div>
+          {category.description?.trim() ? (
+            <p className="text-sm text-theme-secondary mt-3 line-clamp-2 break-words">{category.description.trim()}</p>
+          ) : null}
+          <div className="flex flex-wrap gap-2 mt-4 text-xs font-bold text-theme-secondary">
+            <span>{category.resourceCounts?.youtube || 0} videos</span>
+            <span>&bull;</span>
+            <span>{category.resourceCounts?.pdf || 0} PDFs</span>
+            <span>&bull;</span>
+            <span>{category.resourceCounts?.link || 0} links</span>
+          </div>
+          <CategoryProgressBar summary={calculateCategoryResourceProgress(category, progress)} />
+        </Link>
+      ))}
+    </section>
   )
 }
 

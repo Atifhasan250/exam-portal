@@ -4,12 +4,29 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const DEFAULT_FORM = {
-  title: '',
-  body: '',
-  url: '/tasks',
-  sendNow: true,
-  scheduledAt: '',
+const NOTIFICATION_PATHS = [
+  { label: 'Tasks', value: '/tasks' },
+  { label: 'Exams', value: '/exams' },
+  { label: 'Profile', value: '/profile' },
+  { label: 'Leaderboard', value: '/leaderboard' },
+  { label: 'Dashboard', value: '/dashboard' },
+  { label: 'Resources', value: '/resources' },
+]
+
+function getDefaultScheduledAt() {
+  const scheduledDate = new Date(Date.now() + 10 * 60 * 1000)
+  const timezoneOffset = scheduledDate.getTimezoneOffset() * 60 * 1000
+  return new Date(scheduledDate.getTime() - timezoneOffset).toISOString().slice(0, 16)
+}
+
+function createDefaultForm() {
+  return {
+    title: '',
+    body: '',
+    url: '/tasks',
+    sendNow: true,
+    scheduledAt: getDefaultScheduledAt(),
+  }
 }
 
 function formatDate(value) {
@@ -17,14 +34,33 @@ function formatDate(value) {
   return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function formatFailureDetails(notification) {
+  const details = Array.isArray(notification.failureDetails) ? notification.failureDetails : []
+  if (details.length > 0) {
+    return details.map((detail, index) => {
+      const parts = [
+        detail.clerkUserId ? `User: ${detail.clerkUserId}` : '',
+        detail.endpointHost ? `Push service: ${detail.endpointHost}` : '',
+        detail.deactivated ? 'Subscription deactivated' : '',
+        detail.reason || 'No provider reason was returned.',
+      ].filter(Boolean)
+
+      return `${index + 1}. ${parts.join(' | ')}`
+    }).join('\n')
+  }
+
+  return notification.lastError || 'No detailed failure reason was stored for this notification.'
+}
+
 export default function AdminNotificationsPage() {
-  const [form, setForm] = useState(DEFAULT_FORM)
+  const [form, setForm] = useState(createDefaultForm)
   const [notifications, setNotifications] = useState([])
   const [pushConfigured, setPushConfigured] = useState(true)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [failureToast, setFailureToast] = useState(null)
   const router = useRouter()
 
   const canSubmit = useMemo(() => (
@@ -61,11 +97,20 @@ export default function AdminNotificationsPage() {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
+  const updateSendNow = (sendNow) => {
+    setForm((current) => ({
+      ...current,
+      sendNow,
+      scheduledAt: sendNow ? current.scheduledAt : getDefaultScheduledAt(),
+    }))
+  }
+
   const sendNotification = async (event) => {
     event.preventDefault()
     setSending(true)
     setMessage('')
     setError('')
+    setFailureToast(null)
 
     try {
       const response = await fetch('/api/admin/notifications', {
@@ -89,10 +134,16 @@ export default function AdminNotificationsPage() {
 
       const notification = data.notification
       setNotifications((current) => [notification, ...current].slice(0, 30))
-      setForm(DEFAULT_FORM)
+      setForm(createDefaultForm())
       setMessage(notification.status === 'sent'
         ? `Sent ${notification.sent} of ${notification.attempted} subscriptions.`
         : 'Notification scheduled.')
+      if (notification.failed) {
+        setFailureToast({
+          title: notification.title,
+          details: formatFailureDetails(notification),
+        })
+      }
     } catch (sendError) {
       setError(sendError.message || 'Failed to send notification')
     } finally {
@@ -131,6 +182,28 @@ export default function AdminNotificationsPage() {
           </div>
         ) : null}
 
+        {failureToast ? (
+          <div className="fixed bottom-4 right-4 z-50 w-[calc(100%-2rem)] max-w-md bg-theme-surface border border-theme-error-border rounded-2xl shadow-2xl p-4 text-sm sm:bottom-6 sm:right-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold text-theme-primary">Notification failed for some users</p>
+                <p className="mt-1 text-theme-secondary font-semibold">{failureToast.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFailureToast(null)}
+                className="shrink-0 h-8 w-8 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-accent transition-all"
+                aria-label="Close failure reason"
+              >
+                <i className="fas fa-times" />
+              </button>
+            </div>
+            <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-theme-bg border border-theme-border p-3 text-theme-error-text font-semibold leading-relaxed">
+              {failureToast.details}
+            </pre>
+          </div>
+        ) : null}
+
         <form onSubmit={sendNotification} className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
@@ -147,15 +220,18 @@ export default function AdminNotificationsPage() {
             </div>
             <div>
               <label className="block text-sm font-bold text-theme-secondary mb-2">Open Path</label>
-              <input
-                type="text"
+              <select
                 value={form.url}
                 onChange={(event) => updateField('url', event.target.value)}
-                maxLength={300}
                 className="w-full px-4 py-3 rounded-xl bg-theme-bg border border-theme-border text-theme-primary outline-none focus:ring-2 focus:ring-theme-accent"
-                placeholder="/exams"
                 required
-              />
+              >
+                {NOTIFICATION_PATHS.map((path) => (
+                  <option key={path.value} value={path.value}>
+                    {path.label} ({path.value})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -176,14 +252,14 @@ export default function AdminNotificationsPage() {
             <div className="flex rounded-xl bg-theme-bg border border-theme-border p-1">
               <button
                 type="button"
-                onClick={() => updateField('sendNow', true)}
+                onClick={() => updateSendNow(true)}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${form.sendNow ? 'bg-theme-accent text-theme-accent-text shadow-sm' : 'text-theme-secondary hover:text-theme-primary'}`}
               >
                 Send Now
               </button>
               <button
                 type="button"
-                onClick={() => updateField('sendNow', false)}
+                onClick={() => updateSendNow(false)}
                 className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${!form.sendNow ? 'bg-theme-accent text-theme-accent-text shadow-sm' : 'text-theme-secondary hover:text-theme-primary'}`}
               >
                 Schedule
@@ -243,7 +319,18 @@ export default function AdminNotificationsPage() {
                       <td className="py-4 pr-4 text-theme-secondary whitespace-nowrap">{formatDate(notification.sentAt)}</td>
                       <td className="py-4 pr-4 text-theme-secondary whitespace-nowrap">
                         {notification.sent}/{notification.attempted}
-                        {notification.failed ? ` failed ${notification.failed}` : ''}
+                        {notification.failed ? (
+                          <button
+                            type="button"
+                            onClick={() => setFailureToast({
+                              title: notification.title,
+                              details: formatFailureDetails(notification),
+                            })}
+                            className="ml-2 rounded-lg border border-theme-error-border px-2 py-1 text-xs font-bold text-theme-error-text hover:bg-theme-error-bg transition-all"
+                          >
+                            failed {notification.failed}
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ))}

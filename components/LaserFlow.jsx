@@ -289,17 +289,23 @@ export const LaserFlow = ({
     const mount = mountRef.current;
     if (!mount) return undefined;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: false,
-      alpha: true,
-      depth: false,
-      stencil: false,
-      powerPreference: 'high-performance',
-      premultipliedAlpha: false,
-      preserveDrawingBuffer: false,
-      failIfMajorPerformanceCaveat: false,
-      logarithmicDepthBuffer: false
-    });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        alpha: true,
+        depth: false,
+        stencil: false,
+        powerPreference: 'high-performance',
+        premultipliedAlpha: false,
+        preserveDrawingBuffer: false,
+        failIfMajorPerformanceCaveat: false,
+        logarithmicDepthBuffer: false
+      });
+    } catch (e) {
+      console.warn('WebGLRenderer failed to initialize:', e);
+      return undefined;
+    }
     rendererRef.current = renderer;
 
     baseDprRef.current = Math.min(dpr ?? (window.devicePixelRatio || 1), 2);

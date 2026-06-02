@@ -27,11 +27,6 @@ export default function ProfilePwaPanel() {
   const [installPrompt, setInstallPrompt] = useState(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [subscriptionState, setSubscriptionState] = useState({ subscribed: false, count: 0 })
-  const [preference, setPreference] = useState({
-    enabled: false,
-    reminderTime: '20:00',
-    timezone: 'Asia/Dhaka',
-  })
   const [notificationPermission, setNotificationPermission] = useState('default')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -61,22 +56,12 @@ export default function ProfilePwaPanel() {
 
   useEffect(() => {
     let active = true
-    Promise.all([
-      fetch('/api/push/subscription').then((response) => response.json()).catch(() => null),
-      fetch('/api/push/reminder-preferences').then((response) => response.json()).catch(() => null),
-    ]).then(([subscriptionData, preferenceData]) => {
+    fetch('/api/push/subscription').then((response) => response.json()).catch(() => null).then((subscriptionData) => {
       if (!active) return
       if (subscriptionData && !subscriptionData.error) {
         setSubscriptionState({
           subscribed: Boolean(subscriptionData.subscribed),
           count: subscriptionData.count || 0,
-        })
-      }
-      if (preferenceData && !preferenceData.error) {
-        setPreference({
-          enabled: Boolean(preferenceData.enabled),
-          reminderTime: preferenceData.reminderTime || '20:00',
-          timezone: preferenceData.timezone || 'Asia/Dhaka',
         })
       }
     })
@@ -120,20 +105,7 @@ export default function ProfilePwaPanel() {
       })
       if (!subscribeResponse.ok) throw new Error('Failed to save push subscription')
 
-      const nextPreference = {
-        enabled: true,
-        reminderTime: '20:00',
-        timezone: 'Asia/Dhaka',
-      }
-      const preferenceResponse = await fetch('/api/push/reminder-preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nextPreference),
-      })
-      if (!preferenceResponse.ok) throw new Error('Failed to save reminder preference')
-
       setSubscriptionState({ subscribed: true, count: 1 })
-      setPreference(nextPreference)
       setMessage('Notifications are on.')
     } catch (error) {
       setMessage(error.message || 'Could not enable notifications.')
@@ -160,19 +132,7 @@ export default function ProfilePwaPanel() {
         body: JSON.stringify(endpoint ? { endpoint } : { all: true }),
       })
 
-      const nextPreference = {
-        ...preference,
-        enabled: false,
-      }
-      const preferenceResponse = await fetch('/api/push/reminder-preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nextPreference),
-      })
-      if (!preferenceResponse.ok) throw new Error('Failed to update reminder preference')
-
       setSubscriptionState({ subscribed: false, count: 0 })
-      setPreference(nextPreference)
       setMessage('Notifications are off.')
     } catch (error) {
       setMessage(error.message || 'Could not disable notifications.')
@@ -190,7 +150,7 @@ export default function ProfilePwaPanel() {
             Mobile App
           </h3>
           <p className="text-theme-secondary text-sm mt-2 leading-relaxed">
-            Install IT Resource Zone and control app notifications from this profile.
+            Install IT Resource Zone and control browser notifications from this profile.
           </p>
           {message ? (
             <p className="mt-3 text-sm font-semibold text-theme-secondary">{message}</p>
@@ -217,7 +177,7 @@ export default function ProfilePwaPanel() {
             </a>
           )}
 
-          {preference.enabled && subscriptionState.subscribed ? (
+          {subscriptionState.subscribed ? (
             <button
               onClick={disableNotifications}
               disabled={busy}

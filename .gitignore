@@ -50,6 +50,8 @@ scratch.cjs
 
 # Generated integration reports
 posthog-setup-report.md
+/FULL_AUDIT_OVERVIEW.md
+/prompt.md
 
 
 /android-twa/
