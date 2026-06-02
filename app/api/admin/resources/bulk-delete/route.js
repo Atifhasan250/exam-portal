@@ -79,12 +79,23 @@ export async function POST(request) {
       await session.endSession()
     }
 
-    await logAdminAction(request, adminCheck.admin, 'BULK_DELETE_RESOURCES', null, {
-      deletedCount,
-      missingCount,
-      requestedCount: ids.length,
-    })
-    if (deletedCount) await invalidateResourceCaches()
+    try {
+      await logAdminAction(request, adminCheck.admin, 'BULK_DELETE_RESOURCES', null, {
+        deletedCount,
+        missingCount,
+        requestedCount: ids.length,
+      })
+    } catch (error) {
+      logger.warn('[POST /api/admin/resources/bulk-delete] audit log failed', { error })
+    }
+
+    if (deletedCount) {
+      try {
+        await invalidateResourceCaches()
+      } catch (error) {
+        logger.warn('[POST /api/admin/resources/bulk-delete] cache invalidation failed', { error })
+      }
+    }
 
     return NextResponse.json({ deletedCount, missingCount, requestedCount: ids.length })
   } catch (error) {

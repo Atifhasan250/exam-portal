@@ -1416,13 +1416,19 @@ function SelectLanguage({ value, onChange }) {
 function normalizeQuizQuestionsForForm(questions = []) {
   if (!Array.isArray(questions)) return []
 
-  return questions.map((question, index) => ({
-    question: String(question.question || ''),
-    options: Array.isArray(question.options) ? question.options.map((option) => String(option || '')) : [],
-    correct: Number(question.correct) || 0,
-    explanation: question.explanation ? String(question.explanation) : '',
-    order: Number.isFinite(Number(question.order)) ? Number(question.order) : index + 1,
-  })).filter((question) => question.question && question.options.length >= 2)
+  return questions.map((question, index) => {
+    const normalizedOptions = Array.isArray(question.options) ? question.options.map((option) => String(option || '')) : []
+    const parsedCorrect = Number(question.correct)
+    const validCorrect = Number.isFinite(parsedCorrect) && parsedCorrect >= 0 && parsedCorrect < normalizedOptions.length ? parsedCorrect : 0
+
+    return {
+      question: String(question.question || ''),
+      options: normalizedOptions,
+      correct: validCorrect,
+      explanation: question.explanation ? String(question.explanation) : '',
+      order: Number.isFinite(Number(question.order)) ? Number(question.order) : index + 1,
+    }
+  }).filter((question) => question.question && question.options.length >= 2)
 }
 
 function normalizeQuizQuestionsForSave(questions = []) {

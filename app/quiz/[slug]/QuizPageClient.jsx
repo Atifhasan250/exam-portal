@@ -415,9 +415,24 @@ function QuizOption({ option, selected, hasAnswered, lastSelected, onClick, onAn
     ? selected ? 'border-theme-accent bg-theme-accent/10 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-default' : 'border-theme-border bg-theme-surface opacity-75 cursor-default'
     : selected ? 'border-theme-accent bg-theme-accent/10 dark:bg-indigo-500/10 ring-1 ring-theme-accent cursor-pointer' : 'border-theme-border bg-theme-surface hover:border-theme-accent/45 dark:hover:border-indigo-500/50 cursor-pointer hover:shadow-md'
   const dotClasses = selected ? 'border-theme-accent bg-theme-accent' : 'border-theme-border group-hover:border-theme-accent'
+  const handleKeyDown = (event) => {
+    if (hasAnswered) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onClick()
+    }
+  }
 
   return (
-    <label className={`${classes} ${lastSelected ? 'option-selected-anim' : ''}`} onClick={onClick} onAnimationEnd={onAnimationEnd}>
+    <label
+      className={`${classes} ${lastSelected ? 'option-selected-anim' : ''}`}
+      role="radio"
+      tabIndex={hasAnswered ? -1 : 0}
+      aria-checked={selected}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      onAnimationEnd={onAnimationEnd}
+    >
       <div className={`flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all ${dotClasses}`}>
         {selected ? <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full scale-in-center" /> : null}
       </div>

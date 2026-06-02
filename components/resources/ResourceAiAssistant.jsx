@@ -244,7 +244,6 @@ export default function ResourceAiAssistant({ resource, compact = false }) {
 
 function mergeContinuationMessages(messages, answer) {
   const next = [...messages]
-  if (next.at(-1)?.role === 'user') next.pop()
   const lastAssistantIndex = next.map((message) => message.role).lastIndexOf('assistant')
 
   if (lastAssistantIndex >= 0) {

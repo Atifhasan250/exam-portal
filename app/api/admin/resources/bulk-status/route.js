@@ -54,12 +54,23 @@ export async function POST(request) {
       },
     )
 
-    await logAdminAction(request, adminCheck.admin, raw.published ? 'BULK_PUBLISH_RESOURCES' : 'BULK_DRAFT_RESOURCES', undefined, {
-      matchedCount: result.matchedCount || 0,
-      modifiedCount: result.modifiedCount || 0,
-      requestedCount: ids.length,
-    })
-    if (result.modifiedCount) await invalidateResourceCaches()
+    try {
+      await logAdminAction(request, adminCheck.admin, raw.published ? 'BULK_PUBLISH_RESOURCES' : 'BULK_DRAFT_RESOURCES', undefined, {
+        matchedCount: result.matchedCount || 0,
+        modifiedCount: result.modifiedCount || 0,
+        requestedCount: ids.length,
+      })
+    } catch (error) {
+      logger.warn('[POST /api/admin/resources/bulk-status] audit log failed', { error })
+    }
+
+    if (result.modifiedCount) {
+      try {
+        await invalidateResourceCaches()
+      } catch (error) {
+        logger.warn('[POST /api/admin/resources/bulk-status] cache invalidation failed', { error })
+      }
+    }
 
     return NextResponse.json({
       matchedCount: result.matchedCount || 0,

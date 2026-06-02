@@ -87,7 +87,8 @@ export async function POST(request, { params }) {
     const history = await getAiChatHistory(userId, resourceId)
     const isContinuation = isAiContinuationPrompt(message) && history.some((entry) => entry.role === 'assistant')
 
-    const cached = isContinuation ? null : await getCachedAiAnswer(resourceId, message)
+    const resourceUpdatedAt = resource.updatedAt?.toISOString?.() || resource.updatedAt || ''
+    const cached = isContinuation ? null : await getCachedAiAnswer(resourceId, message, resourceUpdatedAt)
     if (cached?.answer) {
       const quotaBefore = await getAiQuota(userId)
       await appendAiChatHistory(userId, resourceId, [
@@ -137,7 +138,7 @@ export async function POST(request, { params }) {
     if (isContinuation) {
       await mergeAiContinuationHistory(userId, resourceId, generated.answer)
     } else {
-      await setCachedAiAnswer(resourceId, message, generated)
+      await setCachedAiAnswer(resourceId, message, resourceUpdatedAt, generated)
       await appendAiChatHistory(userId, resourceId, [
         { role: 'user', text: message, billable: true, createdAt: new Date().toISOString() },
         { role: 'assistant', text: generated.answer, createdAt: new Date().toISOString() },
