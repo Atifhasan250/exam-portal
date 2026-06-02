@@ -58,7 +58,12 @@ function OverviewPanel({ resource }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">Video</p>
-          <h2 className="text-lg font-extrabold leading-snug">{resource.title}</h2>
+          <h2 className="text-lg font-extrabold leading-snug">
+            {resource.resourceNumber ? (
+              <span className="mr-2 text-theme-accent">{resource.resourceNumber}.</span>
+            ) : null}
+            {resource.title}
+          </h2>
           {resource.channelTitle ? <p className="text-sm text-theme-secondary">{resource.channelTitle}</p> : null}
         </div>
         <ResourceQuizButton resourceSlug={resource.slug} quizQuestionCount={resource.quizQuestionCount} />

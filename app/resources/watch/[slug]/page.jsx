@@ -46,10 +46,12 @@ export default async function ResourceWatchPage({ params }) {
   const { slug } = await params
   const resource = await getResourceBySlug(slug)
   if (!resource || resource.type !== 'youtube') notFound()
-  const { previousResource, nextResource } = await getSiblingResources(resource)
+  const { previousResource, nextResource, resourceNumber, resourceTotal } = await getSiblingResources(resource)
   const playerResource = serialize(resource)
   playerResource.slug = publicResourceSlug(resource)
   playerResource.quizQuestionCount = Array.isArray(resource.quizQuestions) ? resource.quizQuestions.length : 0
+  playerResource.resourceNumber = resourceNumber
+  playerResource.resourceTotal = resourceTotal
   delete playerResource.quizQuestions
   delete playerResource.transcriptText
   const videoSchema = buildVideoSchema(resource)
