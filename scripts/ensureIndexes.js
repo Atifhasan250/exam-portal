@@ -20,6 +20,7 @@ import '../lib/models/PlannerData.js'
 import '../lib/models/Resource.js'
 import '../lib/models/ResourceCategory.js'
 import '../lib/models/ResourceProgress.js'
+import '../lib/models/ResourceAiChatHistory.js'
 import '../lib/models/UploadedAsset.js'
 import '../lib/models/AdminAuditLog.js'
 

@@ -937,14 +937,23 @@ export default function AdminResourcesPage() {
               </div>
             </Panel>
 
-            <Panel title={playlistPreview ? `Preview (${selectedPlaylistVideos.size} selected of ${playlistPreview.totalCount || playlistPreview.videos.length})` : 'Playlist Preview'}>
+            <Panel
+              title={playlistPreview ? `Preview (${selectedPlaylistVideos.size} selected of ${playlistPreview.totalCount || playlistPreview.videos.length})` : 'Playlist Preview'}
+              action={playlistPreview?.nextPageToken ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={loadMorePlaylistVideos}
+                  className="shrink-0 bg-theme-bg border border-theme-border px-4 py-2 rounded-xl text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                >
+                  {saving ? 'Loading...' : `Load Next ${PLAYLIST_IMPORT_PAGE_SIZE}`}
+                </button>
+              ) : null}
+            >
               {!playlistPreview ? (
                 <p className="text-theme-secondary text-sm py-10 text-center">Paste a playlist URL and preview it before importing.</p>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-xs font-bold text-theme-secondary">
-                    Showing {Math.min(playlistVisibleCount, playlistPreview.videos.length)} rendered of {playlistPreview.videos.length} loaded video(s). Load more pages to review additional videos before importing.
-                  </p>
                   {playlistPreview.videos.slice(0, playlistVisibleCount).map((video) => (
                     <label key={video.youtubeId} className="border border-theme-border rounded-xl p-3 flex gap-3 cursor-pointer">
                       <input
@@ -972,16 +981,6 @@ export default function AdminResourcesPage() {
                       className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary"
                     >
                       Show More Loaded Videos
-                    </button>
-                  ) : null}
-                  {playlistPreview.nextPageToken ? (
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={loadMorePlaylistVideos}
-                      className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-                    >
-                      {saving ? 'Loading...' : `Load Next ${PLAYLIST_IMPORT_PAGE_SIZE}`}
                     </button>
                   ) : null}
                 </div>
@@ -1267,10 +1266,13 @@ function ResourceRow({ resource, index, total, onMove, onEdit, onDelete, selecte
   )
 }
 
-function Panel({ title, children }) {
+function Panel({ title, action, children }) {
   return (
     <section className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm min-w-0">
-      <h3 className="text-lg font-extrabold text-theme-primary mb-4">{title}</h3>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-lg font-extrabold text-theme-primary">{title}</h3>
+        {action}
+      </div>
       {children}
     </section>
   )
