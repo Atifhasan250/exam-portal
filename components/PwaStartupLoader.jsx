@@ -40,7 +40,7 @@ export default function PwaStartupLoader() {
       <div className="flex flex-col items-center gap-5">
         <div className="relative flex h-28 w-28 items-center justify-center rounded-[2rem] border border-theme-border bg-theme-surface shadow-2xl shadow-theme-accent/10">
           <Image
-            src="/icons/maskable-512.png"
+            src="/icons/icon-512.png"
             alt="IT Resource Zone"
             width={84}
             height={84}
