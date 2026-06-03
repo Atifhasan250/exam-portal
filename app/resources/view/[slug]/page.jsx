@@ -5,8 +5,7 @@ import { getResourceThumbnailUrl, publicResourceSlug, serialize } from '@/lib/re
 import { getCachedCategorySiblingResources, getCachedResourcePageBySlug } from '@/lib/publicCache'
 import { safeJsonLd } from '@/lib/jsonLd'
 import ResourceOpenButton from '@/components/resources/ResourceOpenButton'
-import ResourceQuizButton from '@/components/resources/ResourceQuizButton'
-import ResourceAiAssistant from '@/components/resources/ResourceAiAssistant'
+import ResourceWatchTabs from '@/components/resources/ResourceWatchTabs'
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
@@ -44,12 +43,16 @@ export default async function ResourceViewPage({ params }) {
   const resource = await getResourceBySlug(slug)
   if (!resource || resource.type === 'youtube') notFound()
 
-  const { previousResource, nextResource } = await getCachedCategorySiblingResources(resource)
+  const { previousResource, nextResource, resourceNumber, resourceTotal } = await getCachedCategorySiblingResources(resource)
   const resourceUrl = resource.url || resource.imagekitUrl
   const resourceSchema = buildResourceSchema(resource)
   const breadcrumbSchema = buildBreadcrumbSchema(resource)
   const aiResource = serialize(resource)
   aiResource.slug = publicResourceSlug(resource)
+  aiResource.resourceUrl = resourceUrl
+  aiResource.quizQuestionCount = Array.isArray(resource.quizQuestions) ? resource.quizQuestions.length : 0
+  aiResource.resourceNumber = resourceNumber
+  aiResource.resourceTotal = resourceTotal
   delete aiResource.quizQuestions
   delete aiResource.transcriptText
 
@@ -74,44 +77,13 @@ export default async function ResourceViewPage({ params }) {
           <h1 className="text-xl sm:text-2xl font-extrabold text-theme-primary">{resource.categoryId?.name || 'Resources'}</h1>
         </div>
 
-        <section className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <section className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-6 items-start">
           <div className="space-y-5 min-w-0">
             <ResourcePreview resource={resource} resourceUrl={resourceUrl} />
             <ResourceNavigation previousResource={previousResource} nextResource={nextResource} />
           </div>
 
-          <div className="space-y-6">
-            <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5 space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">{labelForType(resource.type)}</p>
-                <h2 className="text-lg font-extrabold leading-snug">{resource.title}</h2>
-                {resource.categoryId?.name ? <p className="text-sm text-theme-secondary">{resource.categoryId.name}</p> : null}
-              </div>
-              <Detail label="Level" value={levelLabel(resource.level)} />
-              <Detail label="Language" value={languageLabel(resource.language)} />
-              <Detail label="Type" value={labelForType(resource.type)} />
-              <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
-              <ResourceQuizButton
-                resourceSlug={publicResourceSlug(resource)}
-                quizQuestionCount={Array.isArray(resource.quizQuestions) ? resource.quizQuestions.length : 0}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-theme-accent bg-theme-accent/10 px-4 text-sm font-bold text-theme-accent transition-all hover:bg-theme-accent hover:text-theme-accent-text disabled:cursor-not-allowed disabled:border-theme-border disabled:bg-theme-bg disabled:text-theme-secondary disabled:hover:bg-theme-bg"
-              />
-              {resource.description ? (
-                <p className="border-t border-theme-border pt-3 text-sm leading-relaxed text-theme-secondary whitespace-pre-line">{resource.description}</p>
-              ) : null}
-              {resourceUrl ? (
-                <div className="pt-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Resource Link</p>
-                  <a href={resourceUrl} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
-                    {resourceUrl}
-                  </a>
-                </div>
-              ) : null}
-            </aside>
-            <aside className="bg-theme-surface border border-theme-border rounded-2xl p-5">
-              <ResourceAiAssistant resource={aiResource} compact />
-            </aside>
-          </div>
+          <ResourceWatchTabs resource={aiResource} />
         </section>
       </main>
     </div>
@@ -233,17 +205,6 @@ function ResourceNavButton({ resource, direction }) {
   )
 }
 
-function Detail({ label, value }) {
-  if (!value) return null
-
-  return (
-    <div className="flex items-center justify-between gap-4 border-t border-theme-border pt-3">
-      <span className="text-sm text-theme-secondary">{label}</span>
-      <span className="text-sm font-bold text-theme-primary text-right">{value}</span>
-    </div>
-  )
-}
-
 function iconForType(type) {
   if (type === 'pdf') return 'fa-file-pdf'
   if (type === 'link') return 'fa-link'
@@ -284,20 +245,6 @@ function getDownloadUrl(resource, resourceUrl) {
   }
 
   return resourceUrl
-}
-
-function levelLabel(level) {
-  if (level === 'intermediate') return 'Intermediate'
-  if (level === 'advanced') return 'Advanced'
-  return 'Beginner'
-}
-
-function languageLabel(language) {
-  if (language === 'bn') return 'Bangla'
-  if (language === 'en') return 'English'
-  if (language === 'hi') return 'Hindi'
-  if (language === 'mixed') return 'Mixed'
-  return 'Other'
 }
 
 function buildResourceSchema(resource) {

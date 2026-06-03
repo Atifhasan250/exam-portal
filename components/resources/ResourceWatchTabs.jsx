@@ -53,36 +53,46 @@ function TabButton({ active, icon, label, onClick }) {
 }
 
 function OverviewPanel({ resource }) {
+  const isVideo = resource.type === 'youtube'
+  const resourceUrl = resource.resourceUrl || resource.url
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">Video</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-theme-accent">{labelForType(resource.type)}</p>
           <h2 className="text-lg font-extrabold leading-snug">
             {resource.resourceNumber ? (
               <span className="mr-2 text-theme-accent">{resource.resourceNumber}.</span>
             ) : null}
             {resource.title}
           </h2>
-          {resource.channelTitle ? <p className="text-sm text-theme-secondary">{resource.channelTitle}</p> : null}
+          {resource.channelTitle ? (
+            <p className="text-sm text-theme-secondary">{resource.channelTitle}</p>
+          ) : resource.categoryId?.name ? (
+            <p className="text-sm text-theme-secondary">{resource.categoryId.name}</p>
+          ) : null}
         </div>
         <ResourceQuizButton resourceSlug={resource.slug} quizQuestionCount={resource.quizQuestionCount} />
       </div>
       <Detail label="Level" value={levelLabel(resource.level)} />
       <Detail label="Language" value={languageLabel(resource.language)} />
-      <Detail label="Duration" value={formatDuration(resource.durationSeconds)} />
+      {isVideo ? <Detail label="Duration" value={formatDuration(resource.durationSeconds)} /> : null}
+      {!isVideo ? <Detail label="Type" value={labelForType(resource.type)} /> : null}
       <Detail label="Category" value={resource.categoryId?.name || 'Resources'} />
       {resource.description ? (
         <p className="border-t border-theme-border pt-3 text-sm leading-relaxed text-theme-secondary whitespace-pre-line">
           {resource.description}
         </p>
       ) : null}
-      <div className="pt-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">Video Link</p>
-        <a href={resource.url} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
-          {resource.url}
-        </a>
-      </div>
+      {resourceUrl ? (
+        <div className="pt-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-2">{isVideo ? 'Video Link' : 'Resource Link'}</p>
+          <a href={resourceUrl} target="_blank" rel="noreferrer" className="text-sm text-theme-accent break-all hover:underline">
+            {resourceUrl}
+          </a>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -110,6 +120,14 @@ function languageLabel(language) {
   if (language === 'hi') return 'Hindi'
   if (language === 'mixed') return 'Mixed'
   return 'Other'
+}
+
+function labelForType(type) {
+  if (type === 'youtube') return 'Video'
+  if (type === 'pdf') return 'PDF'
+  if (type === 'link') return 'Link'
+  if (type === 'image') return 'Image'
+  return 'File'
 }
 
 function formatDuration(seconds = 0) {

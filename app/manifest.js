@@ -9,7 +9,7 @@ export default function manifest() {
     description:
       'Free IT exams, instant results, leaderboards, study planning, habit tracking, admin notifications, private dashboards, and curated learning resources.',
     id: '/',
-    start_url: '/',
+    start_url: '/?app=1',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',

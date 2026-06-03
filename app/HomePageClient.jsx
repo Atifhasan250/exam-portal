@@ -3,16 +3,31 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from '@/context/ThemeContext'
 
 const LaserFlow = dynamic(() => import('@/components/LaserFlow'), { ssr: false })
+const APK_DOWNLOAD_URL = '/IT%20Resource%20Zone.apk'
 
 export default function HomePageClient() {
-  const { user } = useUser()
+  const router = useRouter()
+  const { user, isLoaded } = useUser()
   const { theme, themeLoaded } = useTheme()
   const [laserProfile, setLaserProfile] = useState('off')
   const isDark = theme === 'dark'
+
+  useEffect(() => {
+    if (!isLoaded || !user) return
+
+    const params = new URLSearchParams(window.location.search)
+    const isAppLaunch = params.get('app') === '1'
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone
+
+    if (isAppLaunch || isStandalone) {
+      router.replace('/dashboard')
+    }
+  }, [isLoaded, router, user])
 
   useEffect(() => {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -90,13 +105,14 @@ export default function HomePageClient() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/exams"
+                <a
+                  href={APK_DOWNLOAD_URL}
+                  download="IT Resource Zone.apk"
                   className="w-full sm:w-auto px-8 py-4 bg-theme-accent text-theme-accent-text font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-theme-accent/30 active:scale-95 shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
                 >
-                  <i className="fas fa-rocket" />
-                  <span>Browse Exams</span>
-                </Link>
+                  <i className="fas fa-download" />
+                  <span>Download App</span>
+                </a>
                 <Link
                   href="/resources"
                   className="w-full sm:w-auto px-8 py-4 bg-theme-bg text-theme-primary border border-theme-border font-bold rounded-xl hover:-translate-y-1 hover:shadow-xl hover:border-theme-primary/40 hover:bg-theme-surface active:scale-95 shadow-sm transition-all duration-300 flex items-center justify-center space-x-2"

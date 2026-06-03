@@ -196,6 +196,10 @@ export default function ProfilePage() {
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme pb-24 page-enter">
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <header>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Profile</h1>
+        </header>
+
         <section className="relative bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8">
           <div className="absolute right-4 top-4 z-10 sm:hidden">
             <ThemeToggle theme={theme} onToggle={toggleTheme} />

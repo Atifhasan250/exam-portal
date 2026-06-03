@@ -131,6 +131,13 @@ export default clerkMiddleware(async (auth, req) => {
     })
   }
 
+  if (pathname === '/' && req.nextUrl.searchParams.get('app') === '1') {
+    const { userId } = await auth()
+    if (userId) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+  }
+
   // Admin route protection: immediately redirect to login if no admin token cookie exists
   if (pathname.startsWith('/admin') && pathname !== '/admin') {
     const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value
