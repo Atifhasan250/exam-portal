@@ -57,7 +57,12 @@ $launcherTargets = @(
   @{ Path = 'android-twa\app\src\main\res\mipmap-hdpi\ic_launcher.png'; Size = 72 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-xhdpi\ic_launcher.png'; Size = 96 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-xxhdpi\ic_launcher.png'; Size = 144 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png'; Size = 192 }
+  @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png'; Size = 192 },
+  @{ Path = 'android-twa\app\src\main\res\drawable-mdpi\splash.png'; Size = 300 },
+  @{ Path = 'android-twa\app\src\main\res\drawable-hdpi\splash.png'; Size = 450 },
+  @{ Path = 'android-twa\app\src\main\res\drawable-xhdpi\splash.png'; Size = 600 },
+  @{ Path = 'android-twa\app\src\main\res\drawable-xxhdpi\splash.png'; Size = 900 },
+  @{ Path = 'android-twa\app\src\main\res\drawable-xxxhdpi\splash.png'; Size = 1200 }
 )
 
 try {
