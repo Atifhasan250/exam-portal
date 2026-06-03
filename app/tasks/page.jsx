@@ -171,7 +171,7 @@ export default function TasksPage() {
       <PageLoadingOverlay>
         <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
           <main className="flex-grow py-8 sm:py-12 px-4 max-w-4xl w-full mx-auto relative space-y-8">
-            <div className="skeleton h-12 w-full rounded-2xl" />
+            <div className="skeleton h-10 w-44 rounded-xl" />
             <div className="skeleton h-40 w-full rounded-3xl" />
             <div className="space-y-6">
               {[1, 2, 3, 4].map((i) => (
@@ -187,9 +187,12 @@ export default function TasksPage() {
   return (
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme flex flex-col page-enter">
       <main className="flex-grow py-8 sm:py-12 px-4 max-w-4xl w-full mx-auto relative">
+        <header className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Tasks</h1>
+        </header>
         
         {!user ? (
-          <div className="mt-10 max-w-lg mx-auto bg-theme-surface border border-theme-border rounded-3xl p-10 text-center shadow-xl transition-all duration-300 hover:shadow-2xl">
+          <div className="max-w-lg mx-auto bg-theme-surface border border-theme-border rounded-3xl p-10 text-center shadow-xl transition-all duration-300 hover:shadow-2xl">
             <div className="w-20 h-20 mx-auto bg-theme-accent/10 text-theme-accent rounded-full flex items-center justify-center mb-6">
               <i className="fas fa-lock text-3xl" />
             </div>

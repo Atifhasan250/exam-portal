@@ -175,9 +175,9 @@ export default function ResourcesPageClient({
       <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme">
         <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-8">
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="skeleton h-10 w-44 rounded-xl" />
-              <div className="skeleton h-12 w-[46vw] min-w-[150px] max-w-[210px] sm:w-[320px] sm:max-w-none lg:w-[420px] rounded-xl" />
+              <div className="skeleton h-12 w-full sm:w-[320px] lg:w-[420px] rounded-xl" />
             </div>
           </section>
 
@@ -191,14 +191,14 @@ export default function ResourcesPageClient({
     <div className="bg-theme-bg min-h-screen text-theme-primary transition-theme page-enter">
       <main className="max-w-6xl mx-auto px-4 py-8 sm:py-12 pb-28 space-y-8">
         <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Resources</h1>
+                <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Resources</h1>
                 {refreshingResources ? <i className="fas fa-circle-notch fa-spin text-theme-secondary text-sm" aria-label="Refreshing resources" /> : null}
               </div>
             </div>
-            <div className="relative w-[46vw] min-w-[150px] max-w-[210px] sm:w-[320px] sm:max-w-none lg:w-[420px]">
+            <div className="relative w-full sm:w-[320px] sm:flex-none lg:w-[420px]">
               <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-theme-secondary" />
               <input
                 value={query}
@@ -226,6 +226,13 @@ export default function ResourcesPageClient({
             {resources.length === 0 && matchedCategories.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
             {hasMoreResources ? <LoadMoreButton loading={loadingMoreResources} onClick={() => fetchResources({ offset: resources.length, append: true })} /> : null}
           </>
+        ) : null}
+
+        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
+          <SectionTitle title="Continue Watching" subtitle="Pick up from where you stopped." />
+        ) : null}
+        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
+          <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} metaMode="category" />
         ) : null}
 
         {!loading && !loadingResources && !isSearching ? (
@@ -259,13 +266,6 @@ export default function ResourcesPageClient({
               {categories.length === 0 ? <EmptyState text="No resource categories are published yet." /> : null}
             </section>
           </>
-        ) : null}
-
-        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
-          <SectionTitle title="Continue Watching" subtitle="Pick up from where you stopped." />
-        ) : null}
-        {!loading && !loadingResources && !isSearching && continueItems.length > 0 ? (
-          <ResourceGrid resources={continueItems} allResources={resources} progressByResourceId={progressByResourceId} metaMode="category" />
         ) : null}
 
         {!loading && !loadingResources && !isSearching && featuredResources.length > 0 ? (

@@ -6,6 +6,8 @@ import { getSiteUrl } from '@/lib/site'
 import { safeJsonLd } from '@/lib/jsonLd'
 import { Analytics } from '@vercel/analytics/react'
 import PwaRuntime from '@/components/PwaRuntime'
+import PwaStartupLoader from '@/components/PwaStartupLoader'
+import PwaPushPrompt from '@/components/PwaPushPrompt'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -163,6 +165,8 @@ export default function RootLayout({ children }) {
       <body className={inter.className} suppressHydrationWarning>
         <AppProviders>
           <PwaRuntime />
+          <PwaStartupLoader />
+          <PwaPushPrompt />
           <AppChrome>{children}</AppChrome>
         </AppProviders>
         <Analytics />

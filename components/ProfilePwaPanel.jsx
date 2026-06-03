@@ -1,19 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-
-  for (let i = 0; i < rawData.length; i += 1) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-
-  return outputArray
-}
+import { isPushSupported, subscribeCurrentDeviceToPush } from '@/lib/pushClient'
 
 function isIosSafari() {
   if (typeof navigator === 'undefined') return false
@@ -32,13 +20,7 @@ export default function ProfilePwaPanel() {
   const [message, setMessage] = useState('')
 
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
-  const pushSupported = useMemo(() => (
-    typeof window !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    'Notification' in window &&
-    Boolean(vapidPublicKey)
-  ), [vapidPublicKey])
+  const pushSupported = useMemo(() => isPushSupported(vapidPublicKey), [vapidPublicKey])
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
@@ -91,20 +73,7 @@ export default function ProfilePwaPanel() {
         return
       }
 
-      const registration = await navigator.serviceWorker.ready
-      const existingSubscription = await registration.pushManager.getSubscription()
-      const subscription = existingSubscription || await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      })
-
-      const subscribeResponse = await fetch('/api/push/subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription.toJSON()),
-      })
-      if (!subscribeResponse.ok) throw new Error('Failed to save push subscription')
-
+      await subscribeCurrentDeviceToPush(vapidPublicKey)
       setSubscriptionState({ subscribed: true, count: 1 })
       setMessage('Notifications are on.')
     } catch (error) {
