@@ -3,17 +3,23 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$sourceCandidates = @(
+$maskableSourceCandidates = @(
   (Join-Path $repoRoot 'public\icons\maskable.png'),
   (Join-Path $repoRoot 'public\icons\maskable-512.png')
 )
-$sourcePath = $sourceCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+$maskableSourcePath = $maskableSourceCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+$launcherSourcePath = Join-Path $repoRoot 'public\icons\icon-512.png'
 
-if (-not $sourcePath) {
-  throw "Source icon not found. Expected one of: $($sourceCandidates -join ', ')"
+if (-not $maskableSourcePath) {
+  throw "Maskable source icon not found. Expected one of: $($maskableSourceCandidates -join ', ')"
 }
 
-$source = [System.Drawing.Image]::FromFile($sourcePath)
+if (-not (Test-Path -LiteralPath $launcherSourcePath)) {
+  throw "Launcher source icon not found: $launcherSourcePath"
+}
+
+$maskableSource = [System.Drawing.Image]::FromFile($maskableSourcePath)
+$launcherSource = [System.Drawing.Image]::FromFile($launcherSourcePath)
 
 function Save-ResizedPng {
   param(
@@ -36,16 +42,8 @@ function Save-ResizedPng {
   $bitmap.Dispose()
 }
 
-$targets = @(
+$maskableTargets = @(
   @{ Path = 'public\icons\maskable-512.png'; Size = 512 },
-  @{ Path = 'public\icons\icon-512.png'; Size = 512 },
-  @{ Path = 'public\icons\icon-192.png'; Size = 192 },
-  @{ Path = 'android-twa\store_icon.png'; Size = 512 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-mdpi\ic_launcher.png'; Size = 48 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-hdpi\ic_launcher.png'; Size = 72 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-xhdpi\ic_launcher.png'; Size = 96 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-xxhdpi\ic_launcher.png'; Size = 144 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png'; Size = 192 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-mdpi\ic_maskable.png'; Size = 82 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-hdpi\ic_maskable.png'; Size = 123 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-xhdpi\ic_maskable.png'; Size = 164 },
@@ -53,16 +51,32 @@ $targets = @(
   @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_maskable.png'; Size = 328 }
 )
 
+$launcherTargets = @(
+  @{ Path = 'android-twa\store_icon.png'; Size = 512 },
+  @{ Path = 'android-twa\app\src\main\res\mipmap-mdpi\ic_launcher.png'; Size = 48 },
+  @{ Path = 'android-twa\app\src\main\res\mipmap-hdpi\ic_launcher.png'; Size = 72 },
+  @{ Path = 'android-twa\app\src\main\res\mipmap-xhdpi\ic_launcher.png'; Size = 96 },
+  @{ Path = 'android-twa\app\src\main\res\mipmap-xxhdpi\ic_launcher.png'; Size = 144 },
+  @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png'; Size = 192 }
+)
+
 try {
-  foreach ($target in $targets) {
+  foreach ($target in $maskableTargets) {
     $targetPath = Join-Path $repoRoot $target.Path
-    if ((Resolve-Path -LiteralPath $sourcePath).Path -eq $targetPath) {
+    if ((Resolve-Path -LiteralPath $maskableSourcePath).Path -eq $targetPath) {
       Write-Output "Skipped $($target.Path) (source file)"
       continue
     }
-    Save-ResizedPng -Source $source -Path $targetPath -Size $target.Size
-    Write-Output "Updated $($target.Path) ($($target.Size)x$($target.Size))"
+    Save-ResizedPng -Source $maskableSource -Path $targetPath -Size $target.Size
+    Write-Output "Updated maskable $($target.Path) ($($target.Size)x$($target.Size))"
+  }
+
+  foreach ($target in $launcherTargets) {
+    $targetPath = Join-Path $repoRoot $target.Path
+    Save-ResizedPng -Source $launcherSource -Path $targetPath -Size $target.Size
+    Write-Output "Updated launcher $($target.Path) ($($target.Size)x$($target.Size))"
   }
 } finally {
-  $source.Dispose()
+  $maskableSource.Dispose()
+  $launcherSource.Dispose()
 }
