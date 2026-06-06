@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseJSON, parseTXT } from '@/utils/parseQuestions'
@@ -99,6 +100,7 @@ function isAllowedUpload(file) {
 
 export default function AdminResourcesPage() {
   const router = useRouter()
+  const resourcesPanelRef = useRef(null)
   const [categories, setCategories] = useState([])
   const [resources, setResources] = useState([])
   const [resourceTotal, setResourceTotal] = useState(0)
@@ -114,6 +116,10 @@ export default function AdminResourcesPage() {
   const [resourceFilter, setResourceFilter] = useState({ categoryId: '', type: '', q: '' })
   const [selectedResourceIds, setSelectedResourceIds] = useState(new Set())
   const [bulkResourceAction, setBulkResourceAction] = useState('')
+  const [draggedCategoryId, setDraggedCategoryId] = useState('')
+  const [categoryDropPosition, setCategoryDropPosition] = useState(null)
+  const [draggedResourceId, setDraggedResourceId] = useState('')
+  const [resourceDropPosition, setResourceDropPosition] = useState(null)
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [playlistUrl, setPlaylistUrl] = useState('')
   const [playlistPreview, setPlaylistPreview] = useState(null)
@@ -152,7 +158,7 @@ export default function AdminResourcesPage() {
       const resourceItems = Array.isArray(resourceData) ? resourceData : resourceData.resources || []
       setCategories(Array.isArray(categoryData) ? categoryData : [])
       setResources(resourceItems)
-      setResourceOffset(resourceItems.length)
+      setResourceOffset(0)
       setResourceTotal(Array.isArray(resourceData) ? resourceItems.length : resourceData.totalCount || resourceItems.length)
       setHasMoreResources(!Array.isArray(resourceData) && Boolean(resourceData.hasMore))
       setResourceForm((current) => ({
@@ -170,6 +176,16 @@ export default function AdminResourcesPage() {
   }, [loadData])
 
   const filteredResources = resources
+  const visibleResourceCategoryIds = new Set(filteredResources.map(getCategoryId).filter(Boolean))
+  const inferredReorderCategoryId = !resourceFilter.categoryId
+    && !resourceFilter.type
+    && !resourceFilter.q.trim()
+    && filteredResources.length === resourceTotal
+    && visibleResourceCategoryIds.size === 1
+    ? [...visibleResourceCategoryIds][0]
+    : ''
+  const reorderCategoryId = resourceFilter.categoryId || inferredReorderCategoryId
+  const canReorderResources = Boolean(reorderCategoryId) && !resourceFilter.type && !resourceFilter.q.trim()
   const visibleResourceIds = filteredResources.map((resource) => resource._id)
   const selectedVisibleResourceCount = visibleResourceIds.filter((id) => selectedResourceIds.has(id)).length
   const allVisibleResourcesSelected = visibleResourceIds.length > 0 && selectedVisibleResourceCount === visibleResourceIds.length
@@ -182,11 +198,18 @@ export default function AdminResourcesPage() {
     })
   }, [resources])
 
-  const loadMoreResources = async () => {
+  const scrollToResourcesPanel = () => {
+    window.requestAnimationFrame(() => {
+      resourcesPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const loadResourcePage = async (offset) => {
+    const nextOffset = Math.max(0, offset)
     setLoadingMoreResources(true)
     setError('')
     try {
-      const params = buildResourceListParams(resourceFilter, resourceOffset)
+      const params = buildResourceListParams(resourceFilter, nextOffset)
       const response = await fetch(`/api/admin/resources?${params.toString()}`)
       if (response.status === 401) {
         router.push('/admin')
@@ -196,15 +219,24 @@ export default function AdminResourcesPage() {
 
       const data = await response.json()
       const items = data.resources || []
-      setResources((current) => [...current, ...items])
-      setResourceOffset((current) => current + items.length)
+      setResources(items)
+      setResourceOffset(nextOffset)
       setResourceTotal(data.totalCount || resourceTotal)
       setHasMoreResources(Boolean(data.hasMore))
+      scrollToResourcesPanel()
     } catch (err) {
       setError(err.message)
     } finally {
       setLoadingMoreResources(false)
     }
+  }
+
+  const loadNextResources = () => {
+    loadResourcePage(resourceOffset + resources.length)
+  }
+
+  const loadPreviousResources = () => {
+    loadResourcePage(resourceOffset - ADMIN_RESOURCE_PAGE_SIZE)
   }
 
   const resetCategoryForm = () => {
@@ -395,6 +427,7 @@ export default function AdminResourcesPage() {
       const data = await response.json()
       if (!response.ok) throw new Error(formatApiError(data, 'Bulk delete failed'))
       setSelectedResourceIds(new Set())
+      setBulkResourceAction('')
       if (editingResourceId && ids.includes(editingResourceId)) resetResourceForm()
       setMessage(`Deleted ${data.deletedCount || 0} resource(s).${data.missingCount ? ` ${data.missingCount} already missing.` : ''}`)
       await loadData()
@@ -407,6 +440,11 @@ export default function AdminResourcesPage() {
   const applyBulkResourceAction = async () => {
     const ids = [...selectedResourceIds]
     if (!ids.length || !bulkResourceAction) return
+
+    if (bulkResourceAction === 'delete') {
+      await deleteSelectedResources()
+      return
+    }
 
     const published = bulkResourceAction === 'publish'
     setSaving(true)
@@ -673,48 +711,146 @@ export default function AdminResourcesPage() {
     setPlaylistImportProgress(null)
   }
 
-  const moveItem = async (kind, id, direction) => {
-    if (kind === 'resources') {
-      if (!resourceFilter.categoryId) {
-        setError('Select a category before reordering resources.')
-        return
-      }
-      if (resourceFilter.type || resourceFilter.q.trim()) {
-        setError('Clear type and search filters before reordering resources.')
-        return
-      }
-      if (hasMoreResources || filteredResources.length !== resourceTotal) {
-        setError('Load all resources in this category before reordering.')
-        return
-      }
-    }
-
-    const list = kind === 'categories' ? [...categories] : [...filteredResources]
-    const index = list.findIndex((item) => item._id === id)
-    const targetIndex = index + direction
-    if (index < 0 || targetIndex < 0 || targetIndex >= list.length) return
-
-    const next = [...list]
-    const [item] = next.splice(index, 1)
-    next.splice(targetIndex, 0, item)
-
-    const endpoint = kind === 'categories'
-      ? '/api/admin/resources/categories/reorder'
-      : '/api/admin/resources/reorder'
-    const response = await fetch(endpoint, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orderedIds: next.map((entry) => entry._id),
-        ...(kind === 'resources' ? { categoryId: resourceFilter.categoryId } : {}),
-      }),
-    })
-    if (!response.ok) {
-      const data = await response.json()
-      setError(data.error || 'Reorder failed')
+  const moveCategoryToPosition = async (categoryId, targetPosition) => {
+    const numericPosition = Math.trunc(Number(targetPosition))
+    if (!Number.isFinite(numericPosition) || numericPosition < 1) {
+      setError('Enter a valid category position.')
       return
     }
-    await loadData()
+
+    const sourceIndex = categories.findIndex((category) => category._id === categoryId)
+    if (sourceIndex < 0) return
+
+    const targetIndex = Math.min(numericPosition, categories.length) - 1
+    const next = [...categories]
+    const [item] = next.splice(sourceIndex, 1)
+    next.splice(targetIndex, 0, item)
+
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await fetch('/api/admin/resources/categories/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: next.map((entry) => entry._id) }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(formatApiError(data, 'Category move failed'))
+      setMessage(`Category moved to #${targetIndex + 1}.`)
+      await loadData()
+    } catch (err) {
+      setError(err.message)
+    }
+    setSaving(false)
+  }
+
+  const handleDragAutoScroll = (event) => {
+    const edgeSize = 110
+    const maxSpeed = 28
+    if (event.clientY < edgeSize) {
+      window.scrollBy({ top: -Math.max(8, maxSpeed * (1 - event.clientY / edgeSize)), behavior: 'auto' })
+    } else if (window.innerHeight - event.clientY < edgeSize) {
+      window.scrollBy({ top: Math.max(8, maxSpeed * (1 - (window.innerHeight - event.clientY) / edgeSize)), behavior: 'auto' })
+    }
+  }
+
+  const getDropInsertionIndex = (event, index) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    return event.clientY > rect.top + rect.height / 2 ? index + 1 : index
+  }
+
+  const handleCategoryDragOver = (event, index) => {
+    if (saving || !draggedCategoryId) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    handleDragAutoScroll(event)
+    setCategoryDropPosition(getDropInsertionIndex(event, index))
+  }
+
+  const handleCategoryDrop = async () => {
+    if (!draggedCategoryId || categoryDropPosition === null) {
+      setDraggedCategoryId('')
+      setCategoryDropPosition(null)
+      return
+    }
+
+    const sourceIndex = categories.findIndex((category) => category._id === draggedCategoryId)
+    if (sourceIndex < 0) {
+      setDraggedCategoryId('')
+      setCategoryDropPosition(null)
+      return
+    }
+
+    const categoryId = draggedCategoryId
+    const targetPosition = sourceIndex < categoryDropPosition ? categoryDropPosition : categoryDropPosition + 1
+    setDraggedCategoryId('')
+    setCategoryDropPosition(null)
+    await moveCategoryToPosition(categoryId, targetPosition)
+  }
+
+  const moveResourceToPosition = async (resourceId, targetPosition) => {
+    if (!canReorderResources) {
+      setError('Select one category and clear type/search filters before reordering resources.')
+      return
+    }
+
+    const numericPosition = Math.trunc(Number(targetPosition))
+    if (!Number.isFinite(numericPosition) || numericPosition < 1) {
+      setError('Enter a valid resource position.')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const response = await fetch('/api/admin/resources/move', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceId,
+          categoryId: reorderCategoryId,
+          targetPosition: numericPosition,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(formatApiError(data, 'Resource move failed'))
+      setMessage(`Resource moved to #${data.targetPosition || numericPosition}.`)
+      await loadData()
+    } catch (err) {
+      setError(err.message)
+    }
+    setSaving(false)
+  }
+
+  const handleResourceDragOver = (event, index) => {
+    if (!canReorderResources || !draggedResourceId) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    handleDragAutoScroll(event)
+    setResourceDropPosition(getDropInsertionIndex(event, index))
+  }
+
+  const handleResourceDrop = async () => {
+    if (!draggedResourceId || resourceDropPosition === null) {
+      setDraggedResourceId('')
+      setResourceDropPosition(null)
+      return
+    }
+
+    const sourceIndex = filteredResources.findIndex((resource) => resource._id === draggedResourceId)
+    if (sourceIndex < 0) {
+      setDraggedResourceId('')
+      setResourceDropPosition(null)
+      return
+    }
+
+    const resourceId = draggedResourceId
+    const targetPosition = resourceOffset + (sourceIndex < resourceDropPosition ? resourceDropPosition : resourceDropPosition + 1)
+    setDraggedResourceId('')
+    setResourceDropPosition(null)
+    await moveResourceToPosition(resourceId, targetPosition)
   }
 
   return (
@@ -767,10 +903,47 @@ export default function AdminResourcesPage() {
             </Panel>
 
             <Panel title={`Categories (${categories.length})`}>
-              <div className="space-y-3">
+              <div className="mb-4 rounded-xl border border-theme-border bg-theme-bg px-3 py-2 text-xs font-bold text-theme-secondary">
+                Reorder: drag a category row, or type a position number for long jumps.
+              </div>
+              <div
+                className="space-y-3"
+                onDragOver={(event) => {
+                  if (draggedCategoryId) handleDragAutoScroll(event)
+                }}
+              >
                 {categories.map((category, index) => (
-                  <div key={category._id} className="border border-theme-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="min-w-0">
+                  <div
+                    key={category._id}
+                    draggable={!saving}
+                    onDragStart={(event) => {
+                      if (saving) return
+                      event.dataTransfer.effectAllowed = 'move'
+                      setDraggedCategoryId(category._id)
+                    }}
+                    onDragEnd={() => {
+                      setDraggedCategoryId('')
+                      setCategoryDropPosition(null)
+                    }}
+                    onDragOver={(event) => {
+                      handleCategoryDragOver(event, index)
+                    }}
+                    onDrop={(event) => {
+                      if (saving) return
+                      event.preventDefault()
+                      handleCategoryDrop()
+                    }}
+                    className={`border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${draggedCategoryId === category._id ? 'border-theme-accent bg-theme-accent/10 opacity-70' : 'border-theme-border'} ${categoryDropPosition === index ? 'border-t-4 border-t-theme-accent' : ''} ${categoryDropPosition === index + 1 ? 'border-b-4 border-b-theme-accent' : ''}`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-bg text-theme-secondary ${saving ? 'cursor-not-allowed opacity-30' : 'cursor-grab active:cursor-grabbing'}`}
+                        title="Drag to reorder"
+                        aria-hidden="true"
+                      >
+                        <i className="fas fa-grip-vertical text-xs" />
+                      </div>
+                      <div className="min-w-0">
                       <div className="flex items-center gap-3">
                         <span className="w-9 h-9 rounded-xl bg-theme-progress-track flex items-center justify-center" style={{ color: category.color || 'var(--color-accent)' }}>
                           <i className={`fas ${category.icon || 'fa-book-open'}`} />
@@ -781,9 +954,15 @@ export default function AdminResourcesPage() {
                         </div>
                       </div>
                     </div>
+                    </div>
                     <div className="flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2">
-                      <IconButton title="Move up" icon="fa-arrow-up" disabled={index === 0} onClick={() => moveItem('categories', category._id, -1)} />
-                      <IconButton title="Move down" icon="fa-arrow-down" disabled={index === categories.length - 1} onClick={() => moveItem('categories', category._id, 1)} />
+                      <PositionMoveForm
+                        currentPosition={index + 1}
+                        total={categories.length}
+                        disabled={saving}
+                        label={`Move ${category.name} to position`}
+                        onMove={(position) => moveCategoryToPosition(category._id, position)}
+                      />
                       <StatusPill active={category.published} activeLabel="Published" inactiveLabel="Draft" />
                       <IconButton title="Edit" icon="fa-pen" onClick={() => editCategory(category)} />
                       <IconButton title="Delete" icon="fa-trash" danger onClick={() => deleteCategory(category)} />
@@ -815,6 +994,7 @@ export default function AdminResourcesPage() {
               </div>
             </Panel>
 
+            <div ref={resourcesPanelRef}>
             <Panel title={`Resources (${filteredResources.length}${resourceTotal ? ` of ${resourceTotal}` : ''})`}>
               <div className="grid sm:grid-cols-3 gap-3 mb-4 min-w-0">
                 <select className="input-field" value={resourceFilter.categoryId} onChange={(event) => setResourceFilter({ ...resourceFilter, categoryId: event.target.value })}>
@@ -850,6 +1030,7 @@ export default function AdminResourcesPage() {
                     <option value="">Bulk action</option>
                     <option value="publish">Publish selected</option>
                     <option value="draft">Make selected draft</option>
+                    <option value="delete">Delete selected</option>
                   </select>
                   <button
                     type="button"
@@ -860,26 +1041,39 @@ export default function AdminResourcesPage() {
                     <i className="fas fa-check text-xs" />
                     Apply
                   </button>
-                  <button
-                    type="button"
-                    disabled={saving || selectedResourceIds.size === 0}
-                    onClick={deleteSelectedResources}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-theme-error-border bg-theme-error-bg px-4 text-sm font-bold text-theme-error-text disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <i className="fas fa-trash text-xs" />
-                    Delete Selected
-                  </button>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="mb-4 rounded-xl border border-theme-border bg-theme-bg px-3 py-2 text-xs font-bold text-theme-secondary">
+                {canReorderResources
+                  ? 'Reorder: drag a resource row for nearby moves, or type a position number for long jumps.'
+                  : 'Show one full category and clear type/search filters to reorder resources.'}
+              </div>
+
+              <div
+                className="space-y-3"
+                onDragOver={(event) => {
+                  if (draggedResourceId) handleDragAutoScroll(event)
+                }}
+              >
                 {filteredResources.map((resource, index) => (
                   <ResourceRow
                     key={resource._id}
                     resource={resource}
-                    index={index}
-                    total={filteredResources.length}
-                    onMove={(direction) => moveItem('resources', resource._id, direction)}
+                    rowIndex={index}
+                    currentPosition={resourceOffset + index + 1}
+                    total={canReorderResources ? resourceTotal : filteredResources.length}
+                    canReorder={canReorderResources && !saving}
+                    isDragging={draggedResourceId === resource._id}
+                    dropPosition={resourceDropPosition}
+                    onDragStart={() => setDraggedResourceId(resource._id)}
+                    onDragEnd={() => {
+                      setDraggedResourceId('')
+                      setResourceDropPosition(null)
+                    }}
+                    onDragOver={(event) => handleResourceDragOver(event, index)}
+                    onDrop={() => handleResourceDrop()}
+                    onMoveToPosition={(position) => moveResourceToPosition(resource._id, position)}
                     onEdit={() => editResource(resource)}
                     onDelete={() => deleteResource(resource)}
                     selected={selectedResourceIds.has(resource._id)}
@@ -887,17 +1081,31 @@ export default function AdminResourcesPage() {
                   />
                 ))}
                 {filteredResources.length === 0 ? <p className="text-theme-secondary text-sm py-8 text-center">No resources match this filter.</p> : null}
-                {hasMoreResources ? (
-                  <button
-                    onClick={loadMoreResources}
-                    disabled={loadingMoreResources}
-                    className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-                  >
-                    {loadingMoreResources ? 'Loading...' : 'Load More Resources'}
-                  </button>
+                {hasMoreResources || resourceOffset > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {hasMoreResources ? (
+                      <button
+                        onClick={loadNextResources}
+                        disabled={loadingMoreResources}
+                        className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                      >
+                        {loadingMoreResources ? 'Loading...' : 'Load Next Resources'}
+                      </button>
+                    ) : null}
+                    {resourceOffset > 0 ? (
+                      <button
+                        onClick={loadPreviousResources}
+                        disabled={loadingMoreResources}
+                        className="w-full bg-theme-bg border border-theme-border py-3 rounded-xl font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
+                      >
+                        {loadingMoreResources ? 'Loading...' : 'Load Prev Resources'}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </Panel>
+            </div>
           </section>
         ) : null}
 
@@ -967,7 +1175,7 @@ export default function AdminResourcesPage() {
                           setSelectedPlaylistVideos(next)
                         }}
                       />
-                      <img src={video.thumbnailUrl} alt="" className="w-24 h-14 rounded-lg object-cover bg-theme-bg shrink-0" />
+                      <Image src={video.thumbnailUrl} alt="" width={96} height={56} className="w-24 h-14 rounded-lg object-cover bg-theme-bg shrink-0" />
                       <div className="min-w-0">
                         <h3 className="font-bold text-sm text-theme-primary line-clamp-2">{video.title}</h3>
                         <p className="text-xs text-theme-secondary">{video.channelTitle} · {formatMinutes(video.durationSeconds)}</p>
@@ -1231,10 +1439,63 @@ Q2. Which is a JavaScript framework?
   )
 }
 
-function ResourceRow({ resource, index, total, onMove, onEdit, onDelete, selected, onSelect }) {
+function ResourceRow({
+  resource,
+  rowIndex,
+  currentPosition,
+  total,
+  canReorder,
+  isDragging,
+  dropPosition,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  onMoveToPosition,
+  onEdit,
+  onDelete,
+  selected,
+  onSelect,
+}) {
+  const [positionInput, setPositionInput] = useState(String(currentPosition))
+
+  useEffect(() => {
+    setPositionInput(String(currentPosition))
+  }, [currentPosition])
+
+  const submitPosition = (event) => {
+    event.preventDefault()
+    if (!canReorder) return
+    onMoveToPosition(positionInput)
+  }
+
   return (
-    <div className="border border-theme-border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0 overflow-hidden">
+    <div
+      draggable={canReorder}
+      onDragStart={(event) => {
+        if (!canReorder) return
+        event.dataTransfer.effectAllowed = 'move'
+        onDragStart()
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => {
+        onDragOver(event)
+      }}
+      onDrop={(event) => {
+        if (!canReorder) return
+        event.preventDefault()
+        onDrop()
+      }}
+      className={`border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0 overflow-hidden transition-all ${isDragging ? 'border-theme-accent bg-theme-accent/10 opacity-70' : 'border-theme-border'} ${dropPosition === rowIndex ? 'border-t-4 border-t-theme-accent' : ''} ${dropPosition === rowIndex + 1 ? 'border-b-4 border-b-theme-accent' : ''}`}
+    >
       <div className="flex gap-3 min-w-0 flex-1">
+        <div
+          className={`mt-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-bg text-theme-secondary ${canReorder ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-30'}`}
+          title={canReorder ? 'Drag to reorder' : 'Select one category to reorder'}
+          aria-hidden="true"
+        >
+          <i className="fas fa-grip-vertical text-xs" />
+        </div>
         <input
           type="checkbox"
           checked={selected}
@@ -1256,9 +1517,30 @@ function ResourceRow({ resource, index, total, onMove, onEdit, onDelete, selecte
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 lg:justify-end shrink-0">
-        <IconButton title="Move up" icon="fa-arrow-up" disabled={index === 0} onClick={() => onMove(-1)} />
-        <IconButton title="Move down" icon="fa-arrow-down" disabled={index === total - 1} onClick={() => onMove(1)} />
+      <div className="flex flex-wrap items-center gap-2 lg:justify-end shrink-0">
+        <form onSubmit={submitPosition} className="flex h-9 items-center gap-1 rounded-xl border border-theme-border bg-theme-bg px-2">
+          <span className="text-xs font-black text-theme-secondary">#</span>
+          <input
+            type="number"
+            min="1"
+            max={Math.max(total, 1)}
+            value={positionInput}
+            disabled={!canReorder}
+            onClick={(event) => event.stopPropagation()}
+            onDragStart={(event) => event.preventDefault()}
+            onChange={(event) => setPositionInput(event.target.value)}
+            className="h-7 w-14 bg-transparent text-center text-sm font-bold text-theme-primary outline-none disabled:opacity-40"
+            aria-label={`Move ${resource.title} to position`}
+          />
+          <button
+            type="submit"
+            disabled={!canReorder}
+            className="h-7 w-7 rounded-lg text-theme-secondary hover:text-theme-primary disabled:cursor-not-allowed disabled:opacity-30"
+            title="Move to position"
+          >
+            <i className="fas fa-arrow-right text-xs" />
+          </button>
+        </form>
         <IconButton title="Edit" icon="fa-pen" onClick={onEdit} />
         <IconButton title="Delete" icon="fa-trash" danger onClick={onDelete} />
       </div>
@@ -1266,12 +1548,52 @@ function ResourceRow({ resource, index, total, onMove, onEdit, onDelete, selecte
   )
 }
 
+function PositionMoveForm({ currentPosition, total, disabled, label, onMove }) {
+  const [positionInput, setPositionInput] = useState(String(currentPosition))
+
+  useEffect(() => {
+    setPositionInput(String(currentPosition))
+  }, [currentPosition])
+
+  const submitPosition = (event) => {
+    event.preventDefault()
+    if (disabled) return
+    onMove(positionInput)
+  }
+
+  return (
+    <form onSubmit={submitPosition} className="flex h-9 items-center gap-1 rounded-xl border border-theme-border bg-theme-bg px-2">
+      <span className="text-xs font-black text-theme-secondary">#</span>
+      <input
+        type="number"
+        min="1"
+        max={Math.max(total, 1)}
+        value={positionInput}
+        disabled={disabled}
+        onClick={(event) => event.stopPropagation()}
+        onDragStart={(event) => event.preventDefault()}
+        onChange={(event) => setPositionInput(event.target.value)}
+        className="h-7 w-14 bg-transparent text-center text-sm font-bold text-theme-primary outline-none disabled:opacity-40"
+        aria-label={label}
+      />
+      <button
+        type="submit"
+        disabled={disabled}
+        className="h-7 w-7 rounded-lg text-theme-secondary hover:text-theme-primary disabled:cursor-not-allowed disabled:opacity-30"
+        title="Move to position"
+      >
+        <i className="fas fa-arrow-right text-xs" />
+      </button>
+    </form>
+  )
+}
+
 function Panel({ title, action, children }) {
   return (
     <section className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm min-w-0">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-extrabold text-theme-primary">{title}</h3>
-        {action}
+      <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <h3 className="min-w-0 text-lg font-extrabold text-theme-primary">{title}</h3>
+        {action ? <div className="justify-self-end">{action}</div> : null}
       </div>
       {children}
     </section>
