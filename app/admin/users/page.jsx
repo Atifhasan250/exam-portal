@@ -3,8 +3,17 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
+
+const intensityBackgrounds = [
+  'var(--color-progress-track)',
+  'color-mix(in srgb, var(--color-accent) 48%, var(--color-progress-track))',
+  'color-mix(in srgb, var(--color-accent) 64%, var(--color-progress-track))',
+  'color-mix(in srgb, var(--color-accent) 82%, var(--color-progress-track))',
+  'var(--color-accent)',
+]
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
@@ -80,7 +89,7 @@ export default function AdminUsers() {
     setLoadingDetails(true)
 
     try {
-      const response = await fetch(`/api/admin/users/${user.id}?examLimit=50&examOffset=0`)
+      const response = await fetch(`/api/admin/users/${user.id}?examLimit=50&examOffset=0&includeSummary=1`)
       if (!response.ok) throw new Error('Failed to fetch user details')
       const data = await response.json()
       setUserDetails(data)
@@ -100,10 +109,10 @@ export default function AdminUsers() {
     if (!selectedUser || !userDetails?.examsPage?.hasMore) return
 
     setLoadingMoreExams(true)
-    setDetailsError('')
+      setDetailsError('')
     try {
       const offset = userDetails.exams?.length || 0
-      const response = await fetch(`/api/admin/users/${selectedUser.id}?examLimit=50&examOffset=${offset}`)
+      const response = await fetch(`/api/admin/users/${selectedUser.id}?examLimit=50&examOffset=${offset}&includeSummary=0`)
       if (response.status === 401) {
         router.push('/admin')
         return
@@ -209,7 +218,7 @@ export default function AdminUsers() {
                 className="bg-theme-surface border border-theme-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-theme-accent/50 transition-all flex items-center gap-4 cursor-pointer group"
               >
                 {user.imageUrl ? (
-                  <img src={user.imageUrl} alt={user.firstName || 'User'} className="w-12 h-12 rounded-full shrink-0 border border-theme-border object-cover group-hover:scale-105 transition-transform" />
+                  <Image src={user.imageUrl} alt={user.firstName || 'User'} width={48} height={48} className="w-12 h-12 rounded-full shrink-0 border border-theme-border object-cover group-hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-theme-bg flex items-center justify-center text-theme-secondary shrink-0 border border-theme-border group-hover:scale-105 transition-transform">
                     <i className="fas fa-user text-xl" />
@@ -242,7 +251,7 @@ export default function AdminUsers() {
       {selectedUser && typeof document !== 'undefined'
         ? createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-start justify-center p-4 overflow-y-auto modal-backdrop">
-          <div className="bg-theme-surface border border-theme-border rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-2xl my-8 modal-panel relative">
+          <div className="bg-theme-surface border border-theme-border rounded-3xl p-6 sm:p-8 w-full max-w-5xl shadow-2xl my-8 modal-panel relative">
 
             <button
               onClick={closeUserDetails}
@@ -251,19 +260,24 @@ export default function AdminUsers() {
               <i className="fas fa-times" />
             </button>
 
-            <div className="flex items-center gap-4 mb-8">
-              {selectedUser.imageUrl ? (
-                <img src={selectedUser.imageUrl} alt="Avatar" className="w-16 h-16 rounded-full shrink-0 border-2 border-theme-border object-cover" />
+            <div className="flex items-center gap-4 mb-8 pr-10">
+              {(userDetails?.user?.imageUrl || selectedUser.imageUrl) ? (
+                <Image src={userDetails?.user?.imageUrl || selectedUser.imageUrl} alt="Avatar" width={64} height={64} className="w-16 h-16 rounded-full shrink-0 border-2 border-theme-border object-cover" />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-theme-bg flex items-center justify-center text-theme-secondary shrink-0 border-2 border-theme-border">
                   <i className="fas fa-user text-2xl" />
                 </div>
               )}
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-2xl font-bold text-theme-primary">
-                  {[selectedUser.firstName, selectedUser.lastName].filter(Boolean).join(' ') || selectedUser.username || 'Anonymous User'}
+                  {[userDetails?.user?.firstName ?? selectedUser.firstName, userDetails?.user?.lastName ?? selectedUser.lastName].filter(Boolean).join(' ') || userDetails?.user?.username || selectedUser.username || 'Anonymous User'}
                 </h3>
-                <p className="text-theme-secondary text-sm">{selectedUser.emailAddress || 'No email provided'}</p>
+                <p className="text-theme-secondary text-sm break-all">{userDetails?.user?.emailAddress || selectedUser.emailAddress || 'No email provided'}</p>
+                {userDetails?.user?.category ? (
+                  <span className="mt-2 inline-flex px-3 py-1 rounded-full bg-theme-accent/10 text-theme-accent text-xs font-bold border border-theme-accent">
+                    {userDetails.user.category}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -279,6 +293,72 @@ export default function AdminUsers() {
               </div>
             ) : userDetails ? (
               <div className="space-y-8">
+                <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <MetricCard label="Avg Score" value={`${userDetails.dashboard?.metrics?.averageScore || 0}%`} icon="fa-chart-line" />
+                  <MetricCard label="Best Score" value={`${userDetails.dashboard?.metrics?.bestScore || 0}%`} icon="fa-trophy" />
+                  <MetricCard label="Consistency" value={`${getDashboardConsistency(userDetails.dashboard)}%`} icon="fa-fire" />
+                  <MetricCard label="Resources" value={`${userDetails.dashboard?.metrics?.resourcesCompleted || 0}/${userDetails.dashboard?.metrics?.resourcesStarted || 0}`} icon="fa-book-open" />
+                </section>
+
+                <section className="grid lg:grid-cols-12 gap-5">
+                  <div className="lg:col-span-7 bg-theme-bg border border-theme-border rounded-2xl p-5">
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <h4 className="text-lg font-black text-theme-primary">Continue Next</h4>
+                      {Number.isFinite(userDetails.dashboard?.continueAction?.percent) ? (
+                        <span className="text-xs font-bold text-theme-secondary">{userDetails.dashboard.continueAction.percent}% progress</span>
+                      ) : null}
+                    </div>
+                    <div className="grid sm:grid-cols-[160px_1fr] gap-4 items-center">
+                      <div className="relative aspect-video rounded-xl bg-theme-progress-track border border-theme-border overflow-hidden">
+                        {userDetails.dashboard?.continueAction?.thumbnailUrl ? (
+                          <img src={userDetails.dashboard.continueAction.thumbnailUrl} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-theme-secondary">
+                            <i className="fas fa-play text-2xl opacity-60" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mb-1">
+                          {userDetails.dashboard?.continueAction?.type === 'youtube' ? 'Video resource' : 'Learning action'}
+                        </p>
+                        <h5 className="font-black text-theme-primary break-words">{userDetails.dashboard?.continueAction?.title || userDetails.dashboard?.continueAction?.detail || 'No next action available'}</h5>
+                        {Number.isFinite(userDetails.dashboard?.continueAction?.percent) ? (
+                          <div className="h-2 rounded-full bg-theme-progress-track overflow-hidden mt-3">
+                            <div className="h-full bg-theme-accent" style={{ width: `${Math.max(0, Math.min(100, userDetails.dashboard.continueAction.percent))}%` }} />
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-5 bg-theme-bg border border-theme-border rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-black text-theme-primary">Consistency</h4>
+                      <span className="text-xs font-bold text-theme-secondary">90 days</span>
+                    </div>
+                    <div className="flex justify-center w-full">
+                      <div className="grid grid-flow-col grid-rows-7 gap-1.5">
+                        {(userDetails.dashboard?.heatmap || []).map((day, index) => {
+                          if (!day) return <div key={`empty-${index}`} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          return (
+                            <span
+                              key={day.date}
+                              className="block w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[3px]"
+                              title={`${day.date}: ${[
+                                day.completedHabits ? `${day.completedHabits} habits` : null,
+                                day.taskActivity ? 'tasks' : null,
+                                day.resourceActivity ? 'resources' : null,
+                                day.examActivity ? 'exams' : null,
+                              ].filter(Boolean).join(', ') || 'No activity'}`}
+                              style={{ backgroundColor: intensityBackgrounds[day.intensity] || intensityBackgrounds[0] }}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </section>
 
                 {/* Progress Overview Section */}
                 <section>
@@ -346,7 +426,31 @@ export default function AdminUsers() {
                 )}
 
                 {/* Exam History Section */}
-                <section>
+                <section className="grid lg:grid-cols-12 gap-5">
+                  <div className="lg:col-span-5 bg-theme-bg border border-theme-border rounded-2xl p-5">
+                    <h4 className="text-lg font-bold text-theme-primary mb-4 flex items-center gap-2">
+                      <i className="fas fa-book-open text-theme-accent" /> Resource Progress
+                    </h4>
+                    <div className="space-y-3">
+                      {(userDetails.dashboard?.resources || []).length ? userDetails.dashboard.resources.map((resource) => (
+                        <div key={resource.id} className="bg-theme-surface border border-theme-border rounded-xl p-4">
+                          <div className="flex justify-between gap-3 text-sm font-bold mb-2">
+                            <span className="truncate min-w-0">{resource.title}</span>
+                            <span className="flex-shrink-0">{resource.percent}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-theme-progress-track overflow-hidden">
+                            <div className="h-full bg-theme-accent" style={{ width: `${resource.percent}%` }} />
+                          </div>
+                        </div>
+                      )) : (
+                        <div className="bg-theme-surface border border-theme-border rounded-xl p-6 text-center text-theme-secondary text-sm">
+                          No resources started yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-7">
                   <h4 className="text-lg font-bold text-theme-primary mb-4 flex items-center gap-2">
                     <i className="fas fa-history text-theme-accent" /> Attended Exams
                   </h4>
@@ -397,6 +501,7 @@ export default function AdminUsers() {
                       ) : null}
                     </div>
                   )}
+                  </div>
                 </section>
 
               </div>
@@ -407,4 +512,23 @@ export default function AdminUsers() {
       ) : null}
     </div>
   )
+}
+
+function MetricCard({ label, value, icon }) {
+  return (
+    <div className="bg-theme-bg border border-theme-border rounded-2xl p-4">
+      <div className="w-10 h-10 rounded-xl bg-theme-accent/10 text-theme-accent flex items-center justify-center mb-3">
+        <i className={`fas ${icon}`} />
+      </div>
+      <p className="text-2xl font-black text-theme-primary">{value}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-theme-secondary mt-1">{label}</p>
+    </div>
+  )
+}
+
+function getDashboardConsistency(dashboard) {
+  const validDays = dashboard?.heatmap?.filter(Boolean) || []
+  const last30Days = validDays.slice(-30)
+  const activeInLast30 = last30Days.filter((day) => day.intensity > 0).length
+  return last30Days.length ? Math.round((activeInLast30 / last30Days.length) * 100) : 0
 }
