@@ -8,18 +8,18 @@ $maskableSourceCandidates = @(
   (Join-Path $repoRoot 'public\icons\maskable-512.png')
 )
 $maskableSourcePath = $maskableSourceCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-$launcherSourcePath = Join-Path $repoRoot 'public\icons\icon-512.png'
+$splashSourcePath = Join-Path $repoRoot 'public\icons\icon-512.png'
 
 if (-not $maskableSourcePath) {
   throw "Maskable source icon not found. Expected one of: $($maskableSourceCandidates -join ', ')"
 }
 
-if (-not (Test-Path -LiteralPath $launcherSourcePath)) {
-  throw "Launcher source icon not found: $launcherSourcePath"
+if (-not (Test-Path -LiteralPath $splashSourcePath)) {
+  throw "Splash source icon not found: $splashSourcePath"
 }
 
 $maskableSource = [System.Drawing.Image]::FromFile($maskableSourcePath)
-$launcherSource = [System.Drawing.Image]::FromFile($launcherSourcePath)
+$splashSource = [System.Drawing.Image]::FromFile($splashSourcePath)
 
 function Save-ResizedPng {
   param(
@@ -57,7 +57,10 @@ $launcherTargets = @(
   @{ Path = 'android-twa\app\src\main\res\mipmap-hdpi\ic_launcher.png'; Size = 72 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-xhdpi\ic_launcher.png'; Size = 96 },
   @{ Path = 'android-twa\app\src\main\res\mipmap-xxhdpi\ic_launcher.png'; Size = 144 },
-  @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png'; Size = 192 },
+  @{ Path = 'android-twa\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png'; Size = 192 }
+)
+
+$splashTargets = @(
   @{ Path = 'android-twa\app\src\main\res\drawable-mdpi\splash.png'; Size = 300 },
   @{ Path = 'android-twa\app\src\main\res\drawable-hdpi\splash.png'; Size = 450 },
   @{ Path = 'android-twa\app\src\main\res\drawable-xhdpi\splash.png'; Size = 600 },
@@ -78,10 +81,16 @@ try {
 
   foreach ($target in $launcherTargets) {
     $targetPath = Join-Path $repoRoot $target.Path
-    Save-ResizedPng -Source $launcherSource -Path $targetPath -Size $target.Size
+    Save-ResizedPng -Source $maskableSource -Path $targetPath -Size $target.Size
     Write-Output "Updated launcher $($target.Path) ($($target.Size)x$($target.Size))"
+  }
+
+  foreach ($target in $splashTargets) {
+    $targetPath = Join-Path $repoRoot $target.Path
+    Save-ResizedPng -Source $splashSource -Path $targetPath -Size $target.Size
+    Write-Output "Updated splash $($target.Path) ($($target.Size)x$($target.Size))"
   }
 } finally {
   $maskableSource.Dispose()
-  $launcherSource.Dispose()
+  $splashSource.Dispose()
 }
