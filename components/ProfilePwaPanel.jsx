@@ -3,17 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { isPushSupported, subscribeCurrentDeviceToPush } from '@/lib/pushClient'
 
-function isIosSafari() {
-  if (typeof navigator === 'undefined') return false
-  const userAgent = navigator.userAgent.toLowerCase()
-  return /iphone|ipad|ipod/.test(userAgent) && /safari/.test(userAgent) && !/crios|fxios|edgios/.test(userAgent)
-}
-
-const APK_DOWNLOAD_URL = '/IT%20Resource%20Zone.apk'
-
 export default function ProfilePwaPanel() {
-  const [installPrompt, setInstallPrompt] = useState(null)
-  const [isStandalone, setIsStandalone] = useState(false)
   const [subscriptionState, setSubscriptionState] = useState({ subscribed: false, count: 0 })
   const [notificationPermission, setNotificationPermission] = useState('default')
   const [busy, setBusy] = useState(false)
@@ -23,17 +13,7 @@ export default function ProfilePwaPanel() {
   const pushSupported = useMemo(() => isPushSupported(vapidPublicKey), [vapidPublicKey])
 
   useEffect(() => {
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
-    setIsStandalone(Boolean(standalone))
     if ('Notification' in window) setNotificationPermission(Notification.permission)
-
-    const handleInstallPrompt = (event) => {
-      event.preventDefault()
-      setInstallPrompt(event)
-    }
-
-    window.addEventListener('beforeinstallprompt', handleInstallPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
   }, [])
 
   useEffect(() => {
@@ -49,13 +29,6 @@ export default function ProfilePwaPanel() {
     })
     return () => { active = false }
   }, [])
-
-  const handleInstall = async () => {
-    if (!installPrompt) return
-    await installPrompt.prompt()
-    await installPrompt.userChoice
-    setInstallPrompt(null)
-  }
 
   const enableNotifications = async () => {
     if (!pushSupported) {
@@ -115,11 +88,11 @@ export default function ProfilePwaPanel() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
         <div className="min-w-0">
           <h3 className="text-xl font-bold text-theme-primary flex items-center gap-2">
-            <i className="fas fa-mobile-screen-button text-theme-accent" />
-            Mobile App
+            <i className="fas fa-bell text-theme-accent" />
+            Notifications
           </h3>
           <p className="text-theme-secondary text-sm mt-2 leading-relaxed">
-            Install IT Resource Zone and control browser notifications from this profile.
+            Enable browser notifications to get important IT Resource Zone updates on this device.
           </p>
           {message ? (
             <p className="mt-3 text-sm font-semibold text-theme-secondary">{message}</p>
@@ -127,25 +100,6 @@ export default function ProfilePwaPanel() {
         </div>
 
         <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:w-56">
-          {installPrompt && !isStandalone ? (
-            <button
-              onClick={handleInstall}
-              className="w-full px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-all inline-flex items-center justify-center gap-2"
-            >
-              <i className="fas fa-download" />
-              Install App
-            </button>
-          ) : (
-            <a
-              href={APK_DOWNLOAD_URL}
-              download="IT Resource Zone.apk"
-              className="w-full px-4 py-3 rounded-xl font-bold bg-theme-accent text-theme-accent-text hover:opacity-90 transition-all inline-flex items-center justify-center gap-2 text-center"
-            >
-              <i className="fas fa-download" />
-              {isStandalone ? 'Download APK' : isIosSafari() ? 'Download APK' : 'Download App'}
-            </a>
-          )}
-
           {subscriptionState.subscribed ? (
             <button
               onClick={disableNotifications}

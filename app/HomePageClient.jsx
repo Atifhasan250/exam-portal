@@ -9,6 +9,20 @@ import { useTheme } from '@/context/ThemeContext'
 
 const LaserFlow = dynamic(() => import('@/components/LaserFlow'), { ssr: false })
 const APK_DOWNLOAD_URL = '/IT%20Resource%20Zone.apk'
+const SOCIAL_LINKS = [
+  {
+    href: 'https://www.facebook.com/itresourcezone/',
+    icon: 'fa-facebook-f',
+    label: 'Facebook',
+    color: '#1877F2',
+  },
+  {
+    href: 'https://t.me/Itzonei',
+    icon: 'fa-telegram',
+    label: 'Telegram',
+    color: '#26A5E4',
+  },
+]
 
 export default function HomePageClient() {
   const router = useRouter()
@@ -344,6 +358,38 @@ export default function HomePageClient() {
                 <i className="fas fa-rocket" />
                 Browse All Exams
               </Link>
+            </div>
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-theme-secondary">
+                Join with us
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {SOCIAL_LINKS.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Join us on ${link.label}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-bg px-5 py-3 text-sm font-bold text-theme-primary shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:scale-95"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = link.color
+                      e.currentTarget.style.borderColor = link.color
+                      e.currentTarget.style.color = '#fff'
+                      e.currentTarget.querySelector('i').style.color = '#fff'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = ''
+                      e.currentTarget.style.borderColor = ''
+                      e.currentTarget.style.color = ''
+                      e.currentTarget.querySelector('i').style.color = link.color
+                    }}
+                  >
+                    <i className={`fab ${link.icon}`} style={{ color: link.color }} />
+                    <span>{link.label}</span>
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </div>

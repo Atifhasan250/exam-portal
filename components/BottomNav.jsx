@@ -10,6 +10,7 @@ export default function BottomNav() {
   const { user } = useUser()
   const navRef = useRef(null)
   const pillRef = useRef(null)
+  const shouldResetScrollRef = useRef(false)
 
   const navItems = [
     { to: '/exams', icon: 'fa-layer-group', label: 'Exams' },
@@ -36,6 +37,27 @@ export default function BottomNav() {
     pillRef.current.style.width = `${itemRect.width}px`
     pillRef.current.style.transform = `translateX(${itemRect.left - navRect.left}px)`
   }, [pathname, user])
+
+  useEffect(() => {
+    if (!shouldResetScrollRef.current) return
+    shouldResetScrollRef.current = false
+    scrollDocumentToTop()
+  }, [pathname])
+
+  const handleNavClick = (event) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return
+    }
+
+    shouldResetScrollRef.current = true
+  }
 
   if (pathname.startsWith('/admin') || pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up') || /^\/exam\/[^/]+$/.test(pathname)) {
     return null
@@ -102,7 +124,7 @@ export default function BottomNav() {
             // Special FAB-style rendering for Tasks (center item)
             if (to === '/tasks') {
               return (
-                <Link key={to} href={to} data-active={isActive ? 'true' : 'false'} className="relative z-20 flex flex-col items-center justify-end pb-1 h-[46px] w-[80px] shrink-0">
+                <Link key={to} href={to} onClick={handleNavClick} data-active={isActive ? 'true' : 'false'} className="relative z-20 flex flex-col items-center justify-end pb-1 h-[46px] w-[80px] shrink-0">
                   {/* Floating Action Button */}
                   <div
                     className={`absolute left-1/2 -top-8 w-[56px] h-[56px] -translate-x-1/2 rounded-full flex items-center justify-center border transition-all duration-300 ${isActive ? 'bg-theme-accent text-theme-accent-text border-theme-accent' : 'bg-theme-surface text-theme-primary border-theme-border'
@@ -126,6 +148,7 @@ export default function BottomNav() {
               <Link
                 key={to}
                 href={to}
+                onClick={handleNavClick}
                 data-active={isActive ? 'true' : 'false'}
                 className="relative z-10 flex flex-col items-center justify-end pb-1 h-[46px] gap-1 rounded-xl text-[11px] font-bold transition-colors duration-200 flex-1"
                 style={{ color: isActive ? 'var(--color-accent-text)' : 'var(--color-secondary)' }}
@@ -139,4 +162,11 @@ export default function BottomNav() {
       </div>
     </nav>
   )
+}
+
+function scrollDocumentToTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  document.documentElement.scrollTop = 0
+  document.body.scrollTop = 0
 }
