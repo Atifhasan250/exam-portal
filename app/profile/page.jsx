@@ -16,7 +16,7 @@ const QUICK_LINKS = [
   { href: '/exams/history', label: 'Exam History', icon: 'fa-layer-group' },
   { href: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
   { href: '/exams', label: 'Exams', icon: 'fa-pen-to-square' },
-  { href: '/tasks', label: 'Task Planner', icon: 'fa-list-check' },
+  { href: '/tasks/history', label: 'Tasks History', icon: 'fa-list-check' },
   { href: '/resources', label: 'Resources', icon: 'fa-book-open' },
   { href: '/leaderboard', label: 'Leaderboard', icon: 'fa-trophy' },
 ]
@@ -29,10 +29,6 @@ export default function ProfilePage() {
   const [summary, setSummary] = useState(null)
   const [recentSubmissions, setRecentSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [nameInput, setNameInput] = useState('')
-  const [savingName, setSavingName] = useState(false)
-  const [nameError, setNameError] = useState('')
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -69,15 +65,6 @@ export default function ProfilePage() {
     }
   }, [isLoaded, user])
 
-  useEffect(() => {
-    if (!user || !isLoaded) return
-    const hasName = user.fullName || user.firstName
-    if (!hasName) {
-      setNameInput('')
-      setShowEditModal(true)
-    }
-  }, [user, isLoaded])
-
   const joinedDate = useMemo(() => {
     const createdAt = user?.createdAt ? new Date(user.createdAt) : null
     return createdAt && Number.isFinite(createdAt.getTime())
@@ -100,25 +87,8 @@ export default function ProfilePage() {
   const metrics = summary?.metrics || {}
   const email = user.primaryEmailAddress?.emailAddress || 'No primary email'
   const displayName = user.fullName || user.firstName || 'Student'
-
-  const saveNewName = async () => {
-    const trimmed = nameInput.trim()
-    if (!trimmed) return
-    const parts = trimmed.split(/\s+/)
-    const firstName = parts.shift() || ''
-    const lastName = parts.join(' ')
-
-    setSavingName(true)
-    setNameError('')
-    try {
-      await user.update({ firstName, lastName })
-      setShowEditModal(false)
-    } catch (error) {
-      setNameError(error?.errors?.[0]?.message || 'Failed to update your name.')
-    } finally {
-      setSavingName(false)
-    }
-  }
+  const profileImageUrl = user.publicMetadata?.profileImageUrl || user.imageUrl || ''
+  const profileCategory = getProfileCategory(user.publicMetadata)
 
   const handleChangePassword = async (event) => {
     event.preventDefault()
@@ -148,7 +118,12 @@ export default function ProfilePage() {
       const response = await fetch('/api/account', { method: 'DELETE' })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to delete account')
-      router.push('/')
+      try {
+        await signOut?.({ redirectUrl: '/' })
+      } catch (signOutError) {
+        console.error('Failed to sign out after account deletion', signOutError)
+      }
+      router.replace('/')
     } catch (error) {
       console.error('Failed to delete account', error)
       setDeletingAccount(false)
@@ -206,8 +181,8 @@ export default function ProfilePage() {
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-5 text-center sm:text-left">
             <div className="w-24 h-24 mx-auto sm:mx-0 rounded-full bg-theme-accent/10 border border-theme-accent/20 overflow-hidden flex items-center justify-center shrink-0">
-              {user.imageUrl ? (
-                <Image src={user.imageUrl} alt={displayName} width={96} height={96} className="w-full h-full object-cover" />
+              {profileImageUrl ? (
+                <Image src={profileImageUrl} alt={displayName} width={96} height={96} className="w-full h-full object-cover" />
               ) : (
                 <i className="fas fa-user text-4xl text-theme-accent" />
               )}
@@ -215,23 +190,26 @@ export default function ProfilePage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 <h1 className="text-3xl font-black truncate">{displayName}</h1>
-                <button
-                  onClick={() => {
-                    setNameInput(user.fullName || user.firstName || '')
-                    setNameError('')
-                    setShowEditModal(true)
-                  }}
-                  className="w-9 h-9 rounded-xl bg-theme-bg border border-theme-border text-theme-secondary hover:text-theme-primary"
-                  title="Edit name"
+                <Link
+                  href="/profile/edit"
+                  className="w-9 h-9 rounded-xl bg-theme-bg border border-theme-border text-theme-secondary hover:text-theme-primary inline-flex items-center justify-center"
+                  title="Edit profile"
                 >
                   <i className="fas fa-pencil-alt text-xs" />
-                </button>
+                </Link>
               </div>
               <p className="text-theme-secondary mt-1 break-all sm:break-normal">
                 {email}
                 <span className="hidden sm:inline"> | </span>
                 <span className="block sm:inline break-normal">Joined {joinedDate}</span>
               </p>
+              {profileCategory ? (
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                  <span className="px-3 py-1 rounded-full bg-theme-accent/10 text-theme-accent text-xs font-bold border border-theme-accent">
+                    {profileCategory}
+                  </span>
+                </div>
+              ) : null}
             </div>
             <button onClick={() => setShowLogoutDialog(true)} className="px-4 py-3 rounded-xl bg-theme-error-bg text-theme-error-text border border-theme-error-border font-bold text-sm inline-flex items-center justify-center gap-2">
               <i className="fas fa-sign-out-alt" />
@@ -244,7 +222,7 @@ export default function ProfilePage() {
 
         <section className="bg-theme-surface border border-theme-border rounded-2xl p-5">
           <h2 className="text-lg font-black mb-4">Quick Navigation</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {QUICK_LINKS.map((item) => (
               <Link key={item.href} href={item.href} className="min-h-[82px] bg-theme-bg border border-theme-border rounded-xl px-3 py-3 font-bold text-sm hover:border-theme-accent transition-colors flex flex-col sm:flex-row items-center justify-center gap-2 text-center leading-tight">
                 <i className={`fas ${item.icon} text-theme-accent text-xl shrink-0`} />
@@ -288,27 +266,6 @@ export default function ProfilePage() {
           </section>
         </section>
       </main>
-
-      {showEditModal ? createPortal(
-        <Modal onClose={() => setShowEditModal(false)} closeDisabled={!user.fullName && !user.firstName}>
-          <h2 className="text-xl font-black mb-2">{user.fullName || user.firstName ? 'Edit Name' : "Welcome! What's your name?"}</h2>
-          <p className="text-theme-secondary text-sm mb-5">Your name appears on leaderboards and exam results.</p>
-          {nameError ? <div className="mb-4 p-3 bg-theme-error-bg text-theme-error-text rounded-xl text-sm">{nameError}</div> : null}
-          <input
-            autoFocus
-            type="text"
-            value={nameInput}
-            onChange={(event) => setNameInput(event.target.value)}
-            onKeyDown={(event) => event.key === 'Enter' && saveNewName()}
-            placeholder="e.g. John Doe"
-            className="input-field mb-4"
-          />
-          <button onClick={saveNewName} disabled={savingName || !nameInput.trim()} className="w-full bg-theme-accent text-theme-accent-text font-bold py-3 rounded-xl disabled:opacity-60">
-            {savingName ? 'Saving...' : 'Save'}
-          </button>
-        </Modal>,
-        document.body,
-      ) : null}
 
       {showLogoutDialog ? createPortal(
         <ConfirmModal
@@ -576,20 +533,9 @@ function PasswordInput({ label, value, onChange }) {
   )
 }
 
-function Modal({ children, onClose, closeDisabled = false }) {
-  return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" onClick={() => !closeDisabled && onClose()} />
-      <div className="relative bg-theme-surface border border-theme-border rounded-2xl p-8 max-w-sm w-full shadow-2xl modal-panel text-theme-primary">
-        {children}
-        {!closeDisabled ? (
-          <button onClick={onClose} className="mt-3 w-full bg-theme-bg border border-theme-border font-bold py-3 rounded-xl">
-            Cancel
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
+function getProfileCategory(metadata = {}) {
+  if (typeof metadata.category === 'string' && metadata.category.trim()) return metadata.category.trim()
+  return Array.isArray(metadata.categories) ? String(metadata.categories[0] || '').trim() : ''
 }
 
 function ConfirmModal({ icon, title, text, confirmLabel, onCancel, onConfirm, danger = false, disabled = false }) {

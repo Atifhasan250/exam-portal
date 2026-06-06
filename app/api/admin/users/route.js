@@ -27,7 +27,7 @@ export async function GET(request) {
       firstName: user.firstName,
       lastName: user.lastName,
       username: user.username,
-      imageUrl: user.imageUrl,
+      imageUrl: user.publicMetadata?.profileImageUrl || user.imageUrl,
       createdAt: user.createdAt,
       emailAddress: user.emailAddresses?.[0]?.emailAddress || '',
     }))

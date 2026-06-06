@@ -25,7 +25,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 export async function GET(request, { params }) {
-  const originCheck = enforceSameOrigin(request)
+  const originCheck = enforceSameOrigin(request, { allowMissingOrigin: true })
   if (originCheck) return originCheck
 
   try {

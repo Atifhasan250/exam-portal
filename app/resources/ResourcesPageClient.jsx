@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ResourceCard from '@/components/resources/ResourceCard'
+import ResourcePageControls from '@/components/resources/ResourcePageControls'
 import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
+import useDebouncedValue from '@/hooks/useDebouncedValue'
 
-const RESOURCE_PAGE_SIZE = 80
+const RESOURCE_PAGE_SIZE = 100
 
 export default function ResourcesPageClient({
   initialCategories = [],
@@ -15,6 +17,7 @@ export default function ResourcesPageClient({
   initialDataReady = false,
 }) {
   const skippedInitialResourcesFetch = useRef(false)
+  const resourcesSectionRef = useRef(null)
   const progressRefreshAtRef = useRef(0)
   const progressRefreshPromiseRef = useRef(null)
   const [categories, setCategories] = useState(initialCategories)
@@ -26,6 +29,7 @@ export default function ResourcesPageClient({
   const [loadingResources, setLoadingResources] = useState(!initialDataReady)
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
   const [hasMoreResources, setHasMoreResources] = useState(initialHasMoreResources)
+  const [resourceOffset, setResourceOffset] = useState(0)
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
   const [refreshingResources, setRefreshingResources] = useState(false)
 
@@ -74,23 +78,31 @@ export default function ResourcesPageClient({
     return () => { active = false }
   }, [])
 
-  const fetchResources = useCallback(async ({ offset = 0, append = false } = {}) => {
+  const scrollToResourcesSection = () => {
+    window.requestAnimationFrame(() => {
+      resourcesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const fetchResources = useCallback(async ({ offset = 0, pageChange = false } = {}) => {
+    const nextOffset = Math.max(0, offset)
     const params = new URLSearchParams({
       limit: String(RESOURCE_PAGE_SIZE),
-      offset: String(offset),
+      offset: String(nextOffset),
     })
     const value = debouncedQuery.trim()
-    if (!append && value && value.length < 2) {
+    if (!pageChange && value && value.length < 2) {
       setResources([])
       setHasMoreResources(false)
+      setResourceOffset(0)
       setRefreshingResources(false)
       setLoadingResources(false)
       return
     }
     if (value) params.set('q', value)
 
-    const refreshInPlace = !append && initialLoadComplete
-    if (append) {
+    const refreshInPlace = !pageChange && initialLoadComplete
+    if (pageChange) {
       setLoadingMoreResources(true)
     } else if (refreshInPlace) {
       setRefreshingResources(true)
@@ -101,13 +113,18 @@ export default function ResourcesPageClient({
       const response = await fetch(`/api/resources?${params.toString()}`)
       const data = await response.json()
       const items = Array.isArray(data) ? data : []
-      setResources((current) => (append ? [...current, ...items] : items))
+      setResources(items)
+      setResourceOffset(nextOffset)
       setHasMoreResources(response.headers.get('X-Has-More') === 'true')
+      if (pageChange) scrollToResourcesSection()
     } catch {
-      if (!append) setResources([])
+      if (!pageChange) {
+        setResources([])
+        setResourceOffset(0)
+      }
       setHasMoreResources(false)
     } finally {
-      if (append) {
+      if (pageChange) {
         setLoadingMoreResources(false)
       } else if (refreshInPlace) {
         setRefreshingResources(false)
@@ -116,6 +133,14 @@ export default function ResourcesPageClient({
       }
     }
   }, [debouncedQuery, initialLoadComplete])
+
+  const loadNextResources = () => {
+    fetchResources({ offset: resourceOffset + resources.length, pageChange: true })
+  }
+
+  const loadPreviousResources = () => {
+    fetchResources({ offset: resourceOffset - RESOURCE_PAGE_SIZE, pageChange: true })
+  }
 
   useEffect(() => {
     if (!skippedInitialResourcesFetch.current) {
@@ -221,10 +246,20 @@ export default function ResourcesPageClient({
                 <CategoryGrid categories={matchedCategories} progress={progress} />
               </>
             ) : null}
+            <div ref={resourcesSectionRef}>
             <SectionTitle title="Search Results" subtitle={`${resources.length} matching resource(s)`} />
+            </div>
             {resources.length > 0 ? <ResourceGrid resources={resources} allResources={resources} progressByResourceId={progressByResourceId} /> : null}
             {resources.length === 0 && matchedCategories.length === 0 ? <EmptyState text="No resources matched your search." /> : null}
-            {hasMoreResources ? <LoadMoreButton loading={loadingMoreResources} onClick={() => fetchResources({ offset: resources.length, append: true })} /> : null}
+            {hasMoreResources || resourceOffset > 0 ? (
+              <ResourcePageControls
+                loading={loadingMoreResources}
+                hasNext={hasMoreResources}
+                hasPrevious={resourceOffset > 0}
+                onNext={loadNextResources}
+                onPrevious={loadPreviousResources}
+              />
+            ) : null}
           </>
         ) : null}
 
@@ -356,33 +391,8 @@ function EmptyState({ text }) {
   )
 }
 
-function LoadMoreButton({ loading, onClick }) {
-  return (
-    <div className="flex justify-center">
-      <button
-        onClick={onClick}
-        disabled={loading}
-        className="px-5 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-      >
-        {loading ? 'Loading...' : 'Load More'}
-      </button>
-    </div>
-  )
-}
-
 function getProgressResourceId(item) {
   return typeof item.resourceId === 'object' ? item.resourceId?._id : item.resourceId
-}
-
-function useDebouncedValue(value, delayMs) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => setDebouncedValue(value), delayMs)
-    return () => clearTimeout(timeoutId)
-  }, [delayMs, value])
-
-  return debouncedValue
 }
 
 function buildCategoryResourceSerialMap(resources) {

@@ -12,7 +12,6 @@ export default function manifest() {
     start_url: '/?app=1',
     scope: '/',
     display: 'standalone',
-    orientation: 'any',
     background_color: '#081126',
     theme_color: '#6366F1',
     categories: ['education', 'productivity'],

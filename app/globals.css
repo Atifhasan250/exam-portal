@@ -39,7 +39,7 @@ html {
   --color-accent: #6366F1;
   --color-accent-text: #FFFFFF;
   --color-border: #1E2A48;
-  --color-input-border: rgb(231, 227, 255);
+  --color-input-border: #2b3554;
   --color-error-bg: #450a0a;
   --color-error-text: #f87171;
   --color-error-border: #7f1d1d;
@@ -54,11 +54,68 @@ html {
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
+  background: transparent !important;
 }
 
 .dark [class*="cl-otpCodeFieldInput"] {
-  border: 1px solid var(--color-input-border) !important;
+  border: 0 !important;
   border-radius: 0.75rem !important;
+  caret-color: #ffffff !important;
+  background: var(--color-bg) !important;
+}
+
+.dark .auth-clerk .cl-formFieldInput,
+.dark .auth-clerk [class*="cl-formFieldInput"] {
+  color: var(--color-primary) !important;
+  caret-color: #ffffff !important;
+  -webkit-text-fill-color: var(--color-primary) !important;
+}
+
+.dark .auth-clerk .cl-formFieldInput:-webkit-autofill,
+.dark .auth-clerk .cl-formFieldInput:-webkit-autofill:hover,
+.dark .auth-clerk .cl-formFieldInput:-webkit-autofill:focus,
+.dark .auth-clerk [class*="cl-formFieldInput"]:-webkit-autofill,
+.dark .auth-clerk [class*="cl-formFieldInput"]:-webkit-autofill:hover,
+.dark .auth-clerk [class*="cl-formFieldInput"]:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-primary) !important;
+  caret-color: #ffffff !important;
+  box-shadow: 0 0 0 1000px var(--color-bg) inset !important;
+  transition: background-color 9999s ease-out !important;
+}
+
+.auth-clerk .cl-formFieldInput:-webkit-autofill,
+.auth-clerk .cl-formFieldInput:-webkit-autofill:hover,
+.auth-clerk .cl-formFieldInput:-webkit-autofill:focus,
+.auth-clerk [class*="cl-formFieldInput"]:-webkit-autofill,
+.auth-clerk [class*="cl-formFieldInput"]:-webkit-autofill:hover,
+.auth-clerk [class*="cl-formFieldInput"]:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-primary) !important;
+  caret-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 1000px var(--color-bg) inset !important;
+  transition: background-color 9999s ease-out !important;
+}
+
+.dark .auth-clerk .cl-formResendCodeLink,
+.dark .auth-clerk [class*="cl-formResendCodeLink"],
+.dark .auth-clerk .cl-formFieldAction,
+.dark .auth-clerk [class*="cl-formFieldAction"] {
+  color: color-mix(in srgb, var(--color-accent) 82%, white) !important;
+}
+
+.dark .auth-clerk .cl-formFieldInfoText,
+.dark .auth-clerk [class*="cl-formFieldInfoText"],
+.dark .auth-clerk .cl-formFieldHintText,
+.dark .auth-clerk [class*="cl-formFieldHintText"],
+.dark .auth-clerk .cl-formFieldSuccessText,
+.dark .auth-clerk [class*="cl-formFieldSuccessText"],
+.dark .auth-clerk .cl-alertText,
+.dark .auth-clerk [class*="cl-alertText"] {
+  color: color-mix(in srgb, var(--color-primary) 72%, var(--color-secondary)) !important;
+}
+
+.dark .auth-clerk .cl-formFieldErrorText,
+.dark .auth-clerk [class*="cl-formFieldErrorText"] {
+  color: var(--color-error-text) !important;
 }
 
 .auth-clerk .cl-rootBox,
@@ -87,7 +144,7 @@ html {
 .auth-clerk .cl-otpCodeFieldInput {
   background: var(--color-bg) !important;
   border: 1px solid var(--color-border) !important;
-  border-radius: 1rem !important;
+  border-radius: 0.75rem !important;
   color: var(--color-primary) !important;
   min-height: 3rem !important;
   box-shadow: none !important;
@@ -95,16 +152,37 @@ html {
   box-sizing: border-box !important;
 }
 
+.auth-clerk .cl-socialButtonsBlockButton,
+.auth-clerk .cl-formButtonPrimary {
+  border-radius: 0.75rem !important;
+}
+
+.auth-clerk :where(div, span)[class*="cl-socialButtons"]:not(.cl-socialButtonsBlockButtonText):not(.cl-socialButtonsProviderIcon),
+.auth-clerk :where(div, span)[class*="cl-formButtonPrimary"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
 .auth-clerk .cl-socialButtonsBlockButton {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
   padding: 0 1rem !important;
   font-weight: 700 !important;
+  line-height: 1.25 !important;
+  position: relative !important;
+  isolation: isolate !important;
 }
 
-.auth-clerk .cl-socialButtonsBlockButton::before {
-  content: none !important;
+.auth-clerk .cl-socialButtonsBlockButton > * {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 .auth-clerk .cl-socialButtonsBlockButtonText {
@@ -114,10 +192,13 @@ html {
   gap: 0.75rem !important;
   width: auto !important;
   flex: 0 0 auto !important;
+  line-height: 1.25 !important;
+  overflow: visible !important;
 }
 
 .auth-clerk .cl-socialButtonsBlockButtonText::before {
   content: '' !important;
+  display: block !important;
   width: 1.25rem !important;
   height: 1.25rem !important;
   flex: 0 0 1.25rem !important;
@@ -167,7 +248,6 @@ html {
 
 .auth-clerk .cl-formButtonPrimary {
   min-height: 3rem !important;
-  border-radius: 0.875rem !important;
   background: var(--color-accent) !important;
   color: var(--color-accent-text) !important;
   box-shadow: 0 12px 28px color-mix(in srgb, var(--color-accent) 30%, transparent) !important;

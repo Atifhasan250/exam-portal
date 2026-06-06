@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ResourceCard from '@/components/resources/ResourceCard'
+import ResourcePageControls from '@/components/resources/ResourcePageControls'
 import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
+import useDebouncedValue from '@/hooks/useDebouncedValue'
 
 const tabs = [
   { id: '', label: 'All', icon: 'fa-layer-group' },
@@ -31,6 +33,7 @@ export default function CategoryResourcesClient({
   initialDataReady = false,
 }) {
   const skippedInitialResourcesFetch = useRef(false)
+  const resourcesSectionRef = useRef(null)
   const progressRefreshAtRef = useRef(0)
   const progressRefreshPromiseRef = useRef(null)
   const [categories, setCategories] = useState(initialCategories)
@@ -44,6 +47,7 @@ export default function CategoryResourcesClient({
   const [loadingResources, setLoadingResources] = useState(!initialDataReady)
   const [loadingMoreResources, setLoadingMoreResources] = useState(false)
   const [hasMoreResources, setHasMoreResources] = useState(initialHasMoreResources)
+  const [resourceOffset, setResourceOffset] = useState(0)
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
 
   const refreshProgress = useCallback(async () => {
@@ -91,31 +95,51 @@ export default function CategoryResourcesClient({
     return () => { active = false }
   }, [slug])
 
-  const fetchResources = useCallback(async ({ offset = 0, append = false } = {}) => {
+  const scrollToResourcesSection = () => {
+    window.requestAnimationFrame(() => {
+      resourcesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const fetchResources = useCallback(async ({ offset = 0, pageChange = false } = {}) => {
+    const nextOffset = Math.max(0, offset)
     const params = new URLSearchParams({
       category: slug,
       limit: String(RESOURCE_PAGE_SIZE),
-      offset: String(offset),
+      offset: String(nextOffset),
     })
     if (activeType) params.set('type', activeType)
     if (activeLevel) params.set('level', activeLevel)
     const value = debouncedQuery.trim()
     if (value) params.set('q', value)
 
-    append ? setLoadingMoreResources(true) : setLoadingResources(true)
+    pageChange ? setLoadingMoreResources(true) : setLoadingResources(true)
     try {
       const response = await fetch(`/api/resources?${params.toString()}`)
       const data = await response.json()
       const items = Array.isArray(data) ? data : []
-      setResources((current) => (append ? [...current, ...items] : items))
+      setResources(items)
+      setResourceOffset(nextOffset)
       setHasMoreResources(response.headers.get('X-Has-More') === 'true')
+      if (pageChange) scrollToResourcesSection()
     } catch {
-      if (!append) setResources([])
+      if (!pageChange) {
+        setResources([])
+        setResourceOffset(0)
+      }
       setHasMoreResources(false)
     } finally {
-      append ? setLoadingMoreResources(false) : setLoadingResources(false)
+      pageChange ? setLoadingMoreResources(false) : setLoadingResources(false)
     }
   }, [activeLevel, activeType, debouncedQuery, slug])
+
+  const loadNextResources = () => {
+    fetchResources({ offset: resourceOffset + resources.length, pageChange: true })
+  }
+
+  const loadPreviousResources = () => {
+    fetchResources({ offset: resourceOffset - RESOURCE_PAGE_SIZE, pageChange: true })
+  }
 
   useEffect(() => {
     if (!skippedInitialResourcesFetch.current) {
@@ -255,18 +279,28 @@ export default function CategoryResourcesClient({
 
         {!loading && !loadingResources ? (
           <>
-            <SectionTitle
-              title={activeType ? tabs.find((tab) => tab.id === activeType)?.label : 'All Resources'}
-              subtitle={`${filteredResources.length} item(s) available`}
-              action={<LevelFilter activeLevel={activeLevel} onChange={setActiveLevel} />}
-            />
+            <div ref={resourcesSectionRef}>
+              <SectionTitle
+                title={activeType ? tabs.find((tab) => tab.id === activeType)?.label : 'All Resources'}
+                subtitle={`${filteredResources.length} item(s) available`}
+                action={<LevelFilter activeLevel={activeLevel} onChange={setActiveLevel} />}
+              />
+            </div>
             <ResourceGrid resources={filteredResources} allResources={resources} progressByResourceId={progressByResourceId} />
             {filteredResources.length === 0 ? (
               <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 text-center text-theme-secondary">
                 No resources found here yet.
               </div>
             ) : null}
-            {hasMoreResources ? <LoadMoreButton loading={loadingMoreResources} onClick={() => fetchResources({ offset: resources.length, append: true })} /> : null}
+            {hasMoreResources || resourceOffset > 0 ? (
+              <ResourcePageControls
+                loading={loadingMoreResources}
+                hasNext={hasMoreResources}
+                hasPrevious={resourceOffset > 0}
+                onNext={loadNextResources}
+                onPrevious={loadPreviousResources}
+              />
+            ) : null}
           </>
         ) : null}
       </main>
@@ -324,33 +358,8 @@ function LevelFilter({ activeLevel, onChange }) {
   )
 }
 
-function LoadMoreButton({ loading, onClick }) {
-  return (
-    <div className="flex justify-center">
-      <button
-        onClick={onClick}
-        disabled={loading}
-        className="px-5 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-      >
-        {loading ? 'Loading...' : 'Load More'}
-      </button>
-    </div>
-  )
-}
-
 function getProgressResourceId(item) {
   return typeof item.resourceId === 'object' ? item.resourceId?._id : item.resourceId
-}
-
-function useDebouncedValue(value, delayMs) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => setDebouncedValue(value), delayMs)
-    return () => clearTimeout(timeoutId)
-  }, [delayMs, value])
-
-  return debouncedValue
 }
 
 function buildVisibleResourceSerialMap(visibleResources, orderedResources) {

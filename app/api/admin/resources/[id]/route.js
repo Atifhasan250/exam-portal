@@ -79,8 +79,21 @@ export async function PUT(request, { params }) {
           throw error
         }
 
+        const nextCategoryId = parsed.data.categoryId || existing.categoryId
+        const categoryChanged = parsed.data.categoryId
+          && parsed.data.categoryId.toString() !== existing.categoryId?.toString()
+        const maxOrder = categoryChanged && raw.order === undefined
+          ? await Resource.findOne({ categoryId: nextCategoryId }, { order: 1 })
+            .sort({ order: -1 })
+            .session(session)
+            .lean()
+          : null
+
         const payload = normalizeResourcePayload({
           ...parsed.data,
+          order: raw.order === undefined
+            ? (categoryChanged ? (maxOrder?.order || 0) + 1 : existing.order || 0)
+            : parsed.data.order,
           updatedBy: adminCheck.admin?.username || 'admin',
         })
 

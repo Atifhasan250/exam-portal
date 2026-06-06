@@ -21,6 +21,7 @@ const MENU_ITEMS = [
 export default function Navbar({ className = '' }) {
   const { theme, toggleTheme } = useTheme()
   const { user, isLoaded } = useUser()
+  const profileImageUrl = user?.publicMetadata?.profileImageUrl || user?.imageUrl || ''
 
   // Theme-aware StaggeredMenu colours
   const isDark = theme === 'dark'
@@ -76,7 +77,7 @@ export default function Navbar({ className = '' }) {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-theme-border bg-theme-surfaceElevated hover:bg-theme-bg hover:border-theme-accent transition-all duration-200"
               >
                 <Image
-                  src={user.imageUrl}
+                  src={profileImageUrl}
                   alt="Profile"
                   width={28}
                   height={28}
