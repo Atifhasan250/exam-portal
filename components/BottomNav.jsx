@@ -44,7 +44,7 @@ export default function BottomNav() {
     scrollDocumentToTop()
   }, [pathname])
 
-  const handleNavClick = (event) => {
+  const handleNavClick = (event, targetPath) => {
     if (
       event.defaultPrevented ||
       event.button !== 0 ||
@@ -56,7 +56,7 @@ export default function BottomNav() {
       return
     }
 
-    shouldResetScrollRef.current = true
+    shouldResetScrollRef.current = targetPath !== pathname
   }
 
   if (pathname.startsWith('/admin') || pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up') || /^\/exam\/[^/]+$/.test(pathname)) {
@@ -124,7 +124,7 @@ export default function BottomNav() {
             // Special FAB-style rendering for Tasks (center item)
             if (to === '/tasks') {
               return (
-                <Link key={to} href={to} onClick={handleNavClick} data-active={isActive ? 'true' : 'false'} className="relative z-20 flex flex-col items-center justify-end pb-1 h-[46px] w-[80px] shrink-0">
+                <Link key={to} href={to} onClick={(event) => handleNavClick(event, to)} data-active={isActive ? 'true' : 'false'} className="relative z-20 flex flex-col items-center justify-end pb-1 h-[46px] w-[80px] shrink-0">
                   {/* Floating Action Button */}
                   <div
                     className={`absolute left-1/2 -top-8 w-[56px] h-[56px] -translate-x-1/2 rounded-full flex items-center justify-center border transition-all duration-300 ${isActive ? 'bg-theme-accent text-theme-accent-text border-theme-accent' : 'bg-theme-surface text-theme-primary border-theme-border'
@@ -148,7 +148,7 @@ export default function BottomNav() {
               <Link
                 key={to}
                 href={to}
-                onClick={handleNavClick}
+                onClick={(event) => handleNavClick(event, to)}
                 data-active={isActive ? 'true' : 'false'}
                 className="relative z-10 flex flex-col items-center justify-end pb-1 h-[46px] gap-1 rounded-xl text-[11px] font-bold transition-colors duration-200 flex-1"
                 style={{ color: isActive ? 'var(--color-accent-text)' : 'var(--color-secondary)' }}

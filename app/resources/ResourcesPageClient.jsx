@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import PageLoadingOverlay from '@/components/PageLoadingOverlay'
 import ResourceCard from '@/components/resources/ResourceCard'
+import ResourcePageControls from '@/components/resources/ResourcePageControls'
 import { calculateCategoryResourceProgress, CategoryProgressBar } from '@/components/resources/categoryProgress'
+import useDebouncedValue from '@/hooks/useDebouncedValue'
 
 const RESOURCE_PAGE_SIZE = 100
 
@@ -389,44 +391,8 @@ function EmptyState({ text }) {
   )
 }
 
-function ResourcePageControls({ loading, hasNext, hasPrevious, onNext, onPrevious }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {hasNext ? (
-        <button
-          onClick={onNext}
-          disabled={loading}
-          className="px-5 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Load Next Resources'}
-        </button>
-      ) : null}
-      {hasPrevious ? (
-        <button
-          onClick={onPrevious}
-          disabled={loading}
-          className="px-5 py-3 rounded-xl bg-theme-surface border border-theme-border text-sm font-bold text-theme-secondary hover:text-theme-primary disabled:opacity-60"
-        >
-          {loading ? 'Loading...' : 'Load Prev Resources'}
-        </button>
-      ) : null}
-    </div>
-  )
-}
-
 function getProgressResourceId(item) {
   return typeof item.resourceId === 'object' ? item.resourceId?._id : item.resourceId
-}
-
-function useDebouncedValue(value, delayMs) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => setDebouncedValue(value), delayMs)
-    return () => clearTimeout(timeoutId)
-  }, [delayMs, value])
-
-  return debouncedValue
 }
 
 function buildCategoryResourceSerialMap(resources) {

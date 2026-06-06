@@ -34,6 +34,9 @@ export async function PUT(request) {
     })
     if (limited) return limited
 
+    const payloadSizeError = validateProfilePayloadSize(request)
+    if (payloadSizeError) return payloadSizeError
+
     const formData = await request.formData()
     const displayName = String(formData.get('name') || '').trim()
     const category = normalizeCategory(formData.get('category') || formData.get('categories'))
@@ -141,6 +144,27 @@ function validateProfileImage(file) {
     return 'Profile image must be 2 MB or smaller.'
   }
   return ''
+}
+
+function validateProfilePayloadSize(request) {
+  const contentType = request.headers.get('content-type') || ''
+  if (!contentType.toLowerCase().includes('multipart/form-data')) return null
+
+  const contentLength = request.headers.get('content-length') || request.headers.get('x-content-length')
+  if (!contentLength) {
+    return NextResponse.json({ error: 'Profile image uploads require a Content-Length header.' }, { status: 411 })
+  }
+
+  const length = Number(contentLength)
+  if (!Number.isSafeInteger(length) || length < 0) {
+    return NextResponse.json({ error: 'Invalid Content-Length header.' }, { status: 400 })
+  }
+
+  if (length > MAX_PROFILE_IMAGE_SIZE) {
+    return NextResponse.json({ error: 'Profile image must be 2 MB or smaller.' }, { status: 413 })
+  }
+
+  return null
 }
 
 function normalizeCategory(value) {

@@ -109,7 +109,7 @@ export default function AdminUsers() {
     if (!selectedUser || !userDetails?.examsPage?.hasMore) return
 
     setLoadingMoreExams(true)
-      setDetailsError('')
+    setDetailsError('')
     try {
       const offset = userDetails.exams?.length || 0
       const response = await fetch(`/api/admin/users/${selectedUser.id}?examLimit=50&examOffset=${offset}&includeSummary=0`)
