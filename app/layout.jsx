@@ -26,7 +26,9 @@ export const metadata = {
     'IT Resource Zone is a free IT learning portal for live and practice exams, instant results, leaderboards, study planning, habit tracking, private dashboards, and curated learning resources.',
   keywords: ['IT exams', 'online quiz', 'study planner', 'habit tracker', 'IT resources', 'leaderboard', 'student dashboard', 'IT Resource Zone'],
   authors: [{ name: 'Atif Hasan', url: 'https://atifhasan.com/' }],
+  applicationName: 'IT Resource Zone',
   creator: 'Atif Hasan',
+  publisher: 'IT Resource Zone',
   // Canonical URL tells search engines the authoritative address for this site
   alternates: {
     canonical: siteUrl,
@@ -36,8 +38,11 @@ export const metadata = {
     },
   },
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
+    icon: [
+      { url: '/maskable-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon.png', sizes: '1200x1200', type: 'image/png' },
+    ],
+    shortcut: '/maskable-512.png',
     apple: '/icons/apple-touch-icon.png',
   },
   openGraph: {
@@ -91,6 +96,7 @@ const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'IT Resource Zone',
+  alternateName: ['IRZ', 'IT Resource Zone Exam Portal'],
   url: siteUrl,
   description:
     'Free IT learning portal with live and practice exams, leaderboards, private progress dashboards, study planning, habit tracking, admin notifications, and curated resources.',
@@ -99,6 +105,24 @@ const websiteSchema = {
     name: 'Atif Hasan',
     url: 'https://atifhasan.com/',
   },
+  publisher: {
+    '@type': 'Organization',
+    name: 'IT Resource Zone',
+    url: siteUrl,
+    logo: new URL('/maskable-512.png', siteUrl).toString(),
+  },
+}
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'IT Resource Zone',
+  alternateName: 'IRZ',
+  url: siteUrl,
+  logo: new URL('/maskable-512.png', siteUrl).toString(),
+  sameAs: [
+    'https://atifhasan.com/',
+  ],
 }
 
 const webAppSchema = {
@@ -138,7 +162,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en-BD" className={`dark ${inter.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="icon" href="/maskable-512.png" type="image/png" sizes="512x512" />
+        <link rel="shortcut icon" href="/maskable-512.png" type="image/png" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link
@@ -155,6 +180,10 @@ export default function RootLayout({ children }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationSchema) }}
         />
         <script
           type="application/ld+json"

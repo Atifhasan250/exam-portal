@@ -41,7 +41,7 @@ export default function manifest() {
         type: 'image/png',
       },
       {
-        src: '/icons/maskable-512.png',
+        src: '/maskable-512.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',

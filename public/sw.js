@@ -1,13 +1,13 @@
 /* global clients */
 
-const CACHE_VERSION = 'irz-shell-v3'
+const CACHE_VERSION = 'irz-shell-v4'
 const OFFLINE_URL = '/offline.html'
 const SHELL_ASSETS = [
   OFFLINE_URL,
   '/favicon.png',
+  '/maskable-512.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/icons/maskable-512.png',
   '/icons/badge-96.png',
   '/icons/notification-192.png',
 ]
